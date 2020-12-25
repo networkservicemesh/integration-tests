@@ -30,7 +30,7 @@ linters-settings:
   golint:
     min-confidence: 0.8
   goimports:
-    local-prefixes: github.com/networkservicemesh/sdk
+    local-prefixes: github.com/networkservicemesh
   gocyclo:
     min-complexity: 15
   maligned:
@@ -165,3 +165,10 @@ linters:
     # - unused
     - varcheck
     - whitespace
+issues:
+  exclude-rules:
+    # We really *do* want to pass a pointer to an interface in these cases.  See comments in file for New{Server,Client}
+    # function for why
+    - path: .*\.gen\.go
+      linters:
+        - goheader

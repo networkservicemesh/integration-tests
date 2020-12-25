@@ -15,5 +15,7 @@
 // limitations under the License.
 package main
 
-//go:generate gotestmd ../deployments-k8s/ ./suites
+//go:generate gotestmd ../deployments-k8s/examples ./suites
 //go:generate goimports -w -local github.com/networkservicemesh -d "suites/"
+
+func main() {}

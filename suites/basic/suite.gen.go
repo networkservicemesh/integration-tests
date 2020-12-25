@@ -7,7 +7,7 @@ import (
 	"github.com/stretchr/testify/suite"
 
 	"github.com/networkservicemesh/gotestmd/pkg/suites/shell"
-	"github.com/networkservicemesh/integration-tests/suites/examples/spire"
+	"github.com/networkservicemesh/integration-tests/suites/spire"
 )
 
 type Suite struct {
