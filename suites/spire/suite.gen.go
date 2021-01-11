@@ -1,9 +1,6 @@
 package spire
 
 import (
-	"os"
-	"path/filepath"
-
 	"github.com/networkservicemesh/gotestmd/pkg/suites/shell"
 )
 
@@ -12,8 +9,7 @@ type Suite struct {
 }
 
 func (s *Suite) SetupSuite() {
-	dir := filepath.Join(os.Getenv("GOPATH"), "src", "/github.com/networkservicemesh/deployments-k8s/examples/spire")
-	r := s.Runner(dir)
+	r := s.Runner("../deployments-k8s/examples/spire")
 	s.T().Cleanup(func() {
 		r.Run(`kubectl delete ns spire`)
 	})
@@ -22,5 +18,4 @@ func (s *Suite) SetupSuite() {
 	r.Run(`kubectl wait -n spire --timeout=1m --for=condition=ready pod -l app=spire-server`)
 	r.Run(`kubectl exec -n spire spire-server-0 -- \` + "\n" + `/opt/spire/bin/spire-server entry create \` + "\n" + `-spiffeID spiffe://example.org/ns/spire/sa/spire-agent \` + "\n" + `-selector k8s_sat:cluster:nsm-cluster \` + "\n" + `-selector k8s_sat:agent_ns:spire \` + "\n" + `-selector k8s_sat:agent_sa:spire-agent \` + "\n" + `-node`)
 }
-
 func (s *Suite) Test() {}
