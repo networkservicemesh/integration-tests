@@ -5,6 +5,7 @@ import (
 	"github.com/stretchr/testify/suite"
 
 	"github.com/networkservicemesh/gotestmd/pkg/suites/shell"
+
 	"github.com/networkservicemesh/integration-tests/suites/spire"
 )
 
@@ -22,6 +23,24 @@ func (s *Suite) SetupSuite() {
 	r.Run(`kubectl create ns nsm-system`)
 	r.Run(`kubectl exec -n spire spire-server-0 -- \` + "\n" + `/opt/spire/bin/spire-server entry create \` + "\n" + `-spiffeID spiffe://example.org/ns/nsm-system/sa/default \` + "\n" + `-parentID spiffe://example.org/ns/spire/sa/spire-agent \` + "\n" + `-selector k8s:ns:nsm-system \` + "\n" + `-selector k8s:sa:default`)
 	r.Run(`kubectl apply -k .`)
+}
+func (s *Suite) TestSRIOVKernelConnection() {
+	r := s.Runner("../deployments-k8s/examples/SRIOVKernelConnection")
+	s.T().Cleanup(func() {
+		r.Run(`kubectl delete ns ${NAMESPACE}`)
+	})
+	r.Run(`NAMESPACE=($(kubectl create -f namespace.yaml)[0])` + "\n" + `NAMESPACE=${NAMESPACE:10}`)
+	r.Run(`kubectl exec -n spire spire-server-0 -- \` + "\n" + `/opt/spire/bin/spire-server entry create \` + "\n" + `-spiffeID spiffe://example.org/ns/${NAMESPACE}/sa/default \` + "\n" + `-parentID spiffe://example.org/ns/spire/sa/spire-agent \` + "\n" + `-selector k8s:ns:${NAMESPACE} \` + "\n" + `-selector k8s:sa:default`)
+	r.Run(`cat > kustomization.yaml <<EOF` + "\n" + `---` + "\n" + `apiVersion: kustomize.config.k8s.io/v1beta1` + "\n" + `kind: Kustomization` + "\n" + `` + "\n" + `namespace: ${NAMESPACE}` + "\n" + `` + "\n" + `bases:` + "\n" + `- ../../apps/sriov-kernel-nsc` + "\n" + `- ../../apps/sriov-kernel-nse` + "\n" + `EOF`)
+	r.Run(`kubectl apply -k .`)
+	r.Run(`kubectl -n ${NAMESPACE} wait --for=condition=ready --timeout=1m pod -l app=nsc`)
+	r.Run(`kubectl -n ${NAMESPACE} wait --for=condition=ready --timeout=1m pod -l app=nse`)
+	r.Run(`kubectl -n ${NAMESPACE} wait --for=condition=ready --timeout=1m pod -l app=ponger`)
+	r.Run(`NSC_POD=$(kubectl -n ${NAMESPACE} get pods -l app=nsc |` + "\n" + `  grep -v "NAME" |` + "\n" + `  sed -E "s/([.]*) .*/\1/g")`)
+	r.Run(`kubectl -n ${NAMESPACE} logs ${NSC_POD} |` + "\n" + `  grep "All client init operations are done."`)
+	r.Run(`PING_RESULTS=$(kubectl -n ${NAMESPACE} exec ${NSC_POD} -- ping -c 10 -W 1 10.0.0.200 2>&1) \` + "\n" + `  || (echo "${PING_RESULTS}" 1>&2 && false)`)
+	r.Run(`PACKET_LOSS="$(echo "${PING_RESULTS}" |` + "\n" + `  grep "packet loss" |` + "\n" + `  sed -E 's/.* ([0-9]*)(\.[0-9]*)?% packet loss/\1/g')" \` + "\n" + `  || (echo "${PING_RESULTS}" 1>&2 && false)`)
+	r.Run(`test "${PACKET_LOSS}" -ne 100 \` + "\n" + `  || (echo "${PING_RESULTS}" 1>&2 && false)`)
 }
 func (s *Suite) TestVFIOConnection() {
 	r := s.Runner("../deployments-k8s/examples/VFIOConnection")

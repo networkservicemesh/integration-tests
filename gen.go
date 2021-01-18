@@ -17,3 +17,4 @@ package suites
 
 //go:generate gotestmd ../deployments-k8s/examples ./suites
 //go:generate goimports -w -local github.com/networkservicemesh -d "./suites"
+//go:generate goimports -w -local github.com/networkservicemesh/integration-tests -d "./suites"

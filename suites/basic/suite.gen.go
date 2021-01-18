@@ -5,6 +5,7 @@ import (
 	"github.com/stretchr/testify/suite"
 
 	"github.com/networkservicemesh/gotestmd/pkg/suites/shell"
+
 	"github.com/networkservicemesh/integration-tests/suites/spire"
 )
 
