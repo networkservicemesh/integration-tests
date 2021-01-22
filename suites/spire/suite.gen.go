@@ -2,14 +2,20 @@
 package spire
 
 import (
-	"github.com/networkservicemesh/gotestmd/pkg/suites/shell"
+	"github.com/stretchr/testify/suite"
+
+	"github.com/networkservicemesh/integration-tests/extensions/base"
 )
 
 type Suite struct {
-	shell.Suite
+	base.Suite
 }
 
 func (s *Suite) SetupSuite() {
+	var base interface{} = &s.Suite
+	if v, ok := base.(suite.SetupAllSuite); ok {
+		v.SetupSuite()
+	}
 	r := s.Runner("../deployments-k8s/examples/spire")
 	s.T().Cleanup(func() {
 		r.Run(`kubectl delete ns spire`)

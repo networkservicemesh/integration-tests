@@ -1,4 +1,4 @@
-// Copyright (c) 2020-2021 Doc.ai and/or its affiliates.
+// Copyright (c) 2021 Doc.ai and/or its affiliates.
 //
 // SPDX-License-Identifier: Apache-2.0
 //
@@ -13,8 +13,21 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
-package suites
 
-//go:generate gotestmd ../deployments-k8s/examples ./suites github.com/networkservicemesh/integration-tests/extensions/base
-//go:generate goimports -w -local github.com/networkservicemesh -d "./suites"
-//go:generate goimports -w -local github.com/networkservicemesh/integration-tests -d "./suites"
+package base
+
+import (
+	"github.com/networkservicemesh/integration-tests/extensions/checkout"
+)
+
+type Suite struct {
+	checkout.Suite
+	// Add other extensions here
+}
+
+func (s *Suite) SetupSuite() {
+	s.Repository = "networkservicemesh/deployments-k8s"
+	s.Version = "ca8bd977"
+	s.Dir = "../" // Note: this should be synced with input parameters in gen.go file
+	s.Suite.SetupSuite()
+}

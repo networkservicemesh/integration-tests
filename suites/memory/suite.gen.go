@@ -4,17 +4,20 @@ package memory
 import (
 	"github.com/stretchr/testify/suite"
 
-	"github.com/networkservicemesh/gotestmd/pkg/suites/shell"
-
+	"github.com/networkservicemesh/integration-tests/extensions/base"
 	"github.com/networkservicemesh/integration-tests/suites/spire"
 )
 
 type Suite struct {
-	shell.Suite
+	base.Suite
 	spireSuite spire.Suite
 }
 
 func (s *Suite) SetupSuite() {
+	var base interface{} = &s.Suite
+	if v, ok := base.(suite.SetupAllSuite); ok {
+		v.SetupSuite()
+	}
 	suite.Run(s.T(), &s.spireSuite)
 	r := s.Runner("../deployments-k8s/examples/memory")
 	s.T().Cleanup(func() {
