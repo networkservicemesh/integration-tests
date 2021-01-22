@@ -25,6 +25,7 @@ import (
 	"github.com/networkservicemesh/gotestmd/pkg/suites/shell"
 )
 
+// Suite clones the repository if it is not presented on the running file system.
 type Suite struct {
 	shell.Suite
 	Repository string

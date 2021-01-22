@@ -20,6 +20,7 @@ import (
 	"github.com/networkservicemesh/integration-tests/extensions/checkout"
 )
 
+// Suite is a base suite for generating tests. Contains extensions that can be used for assertion and automation goals.
 type Suite struct {
 	checkout.Suite
 	// Add other extensions here
