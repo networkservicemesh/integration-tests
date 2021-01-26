@@ -28,13 +28,13 @@ func (s *Suite) SetupSuite() {
 	r.Run(`kubectl apply -k .`)
 }
 func (s *Suite) TestSRIOVKernelConnection() {
-	r := s.Runner("../deployments-k8s/examples/SRIOVKernelConnection")
+	r := s.Runner("../deployments-k8s/examples/use-cases/SRIOVKernelConnection")
 	s.T().Cleanup(func() {
 		r.Run(`kubectl delete ns ${NAMESPACE}`)
 	})
 	r.Run(`NAMESPACE=($(kubectl create -f namespace.yaml)[0])` + "\n" + `NAMESPACE=${NAMESPACE:10}`)
 	r.Run(`kubectl exec -n spire spire-server-0 -- \` + "\n" + `/opt/spire/bin/spire-server entry create \` + "\n" + `-spiffeID spiffe://example.org/ns/${NAMESPACE}/sa/default \` + "\n" + `-parentID spiffe://example.org/ns/spire/sa/spire-agent \` + "\n" + `-selector k8s:ns:${NAMESPACE} \` + "\n" + `-selector k8s:sa:default`)
-	r.Run(`cat > kustomization.yaml <<EOF` + "\n" + `---` + "\n" + `apiVersion: kustomize.config.k8s.io/v1beta1` + "\n" + `kind: Kustomization` + "\n" + `` + "\n" + `namespace: ${NAMESPACE}` + "\n" + `` + "\n" + `bases:` + "\n" + `- ../../apps/kernel-nsc` + "\n" + `- ../../apps/kernel-nse` + "\n" + `- ../../apps/kernel-ponger` + "\n" + `` + "\n" + `` + "\n" + `patchesStrategicMerge:` + "\n" + `- patch-nsc.yaml` + "\n" + `- patch-nse.yaml` + "\n" + `EOF`)
+	r.Run(`cat > kustomization.yaml <<EOF` + "\n" + `---` + "\n" + `apiVersion: kustomize.config.k8s.io/v1beta1` + "\n" + `kind: Kustomization` + "\n" + `` + "\n" + `namespace: ${NAMESPACE}` + "\n" + `` + "\n" + `bases:` + "\n" + `- ../../../apps/nsc-kernel` + "\n" + `- ../../../apps/nse-kernel` + "\n" + `- ../../../apps/nsc-kernel-ponger` + "\n" + `` + "\n" + `` + "\n" + `patchesStrategicMerge:` + "\n" + `- patch-nsc.yaml` + "\n" + `- patch-nse.yaml` + "\n" + `EOF`)
 	r.Run(`cat > patch-nsc.yaml <<EOF` + "\n" + `---` + "\n" + `apiVersion: apps/v1` + "\n" + `kind: Deployment` + "\n" + `metadata:` + "\n" + `  name: nsc` + "\n" + `spec:` + "\n" + `  template:` + "\n" + `    spec:` + "\n" + `      containers:` + "\n" + `        - name: nsc` + "\n" + `          env:` + "\n" + `            - name: NSM_NETWORK_SERVICES` + "\n" + `              value: kernel://icmp-responder/nsm-1?sriovToken=worker.domain/10G` + "\n" + `          resources:` + "\n" + `            limits:` + "\n" + `              worker.domain/10G: 1` + "\n" + `EOF`)
 	r.Run(`cat > patch-nse.yaml <<EOF` + "\n" + `---` + "\n" + `apiVersion: apps/v1` + "\n" + `kind: Deployment` + "\n" + `metadata:` + "\n" + `  name: nse` + "\n" + `spec:` + "\n" + `  template:` + "\n" + `    spec:` + "\n" + `      containers:` + "\n" + `        - name: nse` + "\n" + `          env:` + "\n" + `            - name: NSE_LABELS` + "\n" + `              value: serviceDomain:worker.domain` + "\n" + `            - name: NSE_CIDR_PREFIX` + "\n" + `              value: 10.0.0.200/31` + "\n" + `          resources:` + "\n" + `            limits:` + "\n" + `              master.domain/10G: 1` + "\n" + `EOF`)
 	r.Run(`kubectl apply -k .`)
@@ -48,15 +48,15 @@ func (s *Suite) TestSRIOVKernelConnection() {
 	r.Run(`test "${PACKET_LOSS}" -ne 100 \` + "\n" + `  || (echo "${PING_RESULTS}" 1>&2 && false)`)
 }
 func (s *Suite) TestVFIOConnection() {
-	r := s.Runner("../deployments-k8s/examples/VFIOConnection")
+	r := s.Runner("../deployments-k8s/examples/use-cases/VFIOConnection")
 	s.T().Cleanup(func() {
 		r.Run(`NSE_POD=$(kubectl -n ${NAMESPACE} get pods -l app=nse |` + "\n" + `  grep -v "NAME" |` + "\n" + `  sed -E "s/([.]*) .*/\1/g")`)
 		r.Run(`kubectl -n ${NAMESPACE} exec ${NSE_POD} --container ponger -- /bin/bash -c '                  \` + "\n" + `  sleep 10 && kill $(ps -A | grep "pingpong" | sed -E "s/ *([0-9]*).*/\1/g") 1>/dev/null 2>&1 & \` + "\n" + `'`)
 		r.Run(`kubectl delete ns ${NAMESPACE}`)
 	})
-	r.Run(`NAMESPACE=($(kubectl create -f namespace.yaml)[0])` + "\n" + `NAMESPACE=${NAMESPACE:10}`)
+	r.Run(`NAMESPACE=($(kubectl create -f ../namespace.yaml)[0])` + "\n" + `NAMESPACE=${NAMESPACE:10}`)
 	r.Run(`kubectl exec -n spire spire-server-0 -- \` + "\n" + `/opt/spire/bin/spire-server entry create \` + "\n" + `-spiffeID spiffe://example.org/ns/${NAMESPACE}/sa/default \` + "\n" + `-parentID spiffe://example.org/ns/spire/sa/spire-agent \` + "\n" + `-selector k8s:ns:${NAMESPACE} \` + "\n" + `-selector k8s:sa:default`)
-	r.Run(`cat > kustomization.yaml <<EOF` + "\n" + `---` + "\n" + `apiVersion: kustomize.config.k8s.io/v1beta1` + "\n" + `kind: Kustomization` + "\n" + `` + "\n" + `namespace: ${NAMESPACE}` + "\n" + `` + "\n" + `bases:` + "\n" + `- ../../apps/vfio-nsc` + "\n" + `- ../../apps/vfio-nse` + "\n" + `EOF`)
+	r.Run(`cat > kustomization.yaml <<EOF` + "\n" + `---` + "\n" + `apiVersion: kustomize.config.k8s.io/v1beta1` + "\n" + `kind: Kustomization` + "\n" + `` + "\n" + `namespace: ${NAMESPACE}` + "\n" + `` + "\n" + `bases:` + "\n" + `- ../../../apps/vfio-nsc` + "\n" + `- ../../../apps/nse-vfio` + "\n" + `EOF`)
 	r.Run(`kubectl apply -k .`)
 	r.Run(`kubectl -n ${NAMESPACE} wait --for=condition=ready --timeout=1m pod -l app=nsc`)
 	r.Run(`kubectl -n ${NAMESPACE} wait --for=condition=ready --timeout=1m pod -l app=nse`)
