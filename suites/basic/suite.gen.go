@@ -61,7 +61,6 @@ func (s *Suite) TestRemoteConnection() {
 	r.Run(`kubectl apply -k .`)
 	r.Run(`kubectl wait --for=condition=ready --timeout=1m pod -l app=nsc -n ${NAMESPACE}`)
 	r.Run(`kubectl wait --for=condition=ready --timeout=1m pod -l app=nse -n ${NAMESPACE}`)
-	r.Run(`kubectl logs -l app=nsc -n ${NAMESPACE} | grep "All client init operations are done."`)
 	r.Run(`NSC=$(kubectl get pods -l app=nsc -n ${NAMESPACE} --template '{{range .items}}{{.metadata.name}}{{"\n"}}{{end}}')`)
 	r.Run(`NSE=$(kubectl get pods -l app=nse -n ${NAMESPACE} --template '{{range .items}}{{.metadata.name}}{{"\n"}}{{end}}')`)
 	r.Run(`kubectl exec ${NSC} -n ${NAMESPACE} -- ping -c 4 172.16.1.100`)
