@@ -14,11 +14,15 @@ type Suite struct {
 }
 
 func (s *Suite) SetupSuite() {
-	var base interface{} = &s.Suite
-	if v, ok := base.(suite.SetupAllSuite); ok {
-		v.SetupSuite()
+	parents := []interface{}{&s.Suite, &s.spireSuite}
+	for _, p := range parents {
+		if v, ok := p.(suite.TestingSuite); ok {
+			v.SetT(s.T())
+		}
+		if v, ok := p.(suite.SetupAllSuite); ok {
+			v.SetupSuite()
+		}
 	}
-	suite.Run(s.T(), &s.spireSuite)
 	r := s.Runner("../deployments-k8s/examples/memory")
 	s.T().Cleanup(func() {
 		r.Run(`kubectl delete ns nsm-system`)
