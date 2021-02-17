@@ -31,12 +31,12 @@ func (s *Suite) SetupSuite() {
 	r.Run(`kubectl exec -n spire spire-server-0 -- \` + "\n" + `/opt/spire/bin/spire-server entry create \` + "\n" + `-spiffeID spiffe://example.org/ns/nsm-system/sa/default \` + "\n" + `-parentID spiffe://example.org/ns/spire/sa/spire-agent \` + "\n" + `-selector k8s:ns:nsm-system \` + "\n" + `-selector k8s:sa:default`)
 	r.Run(`kubectl apply -k .`)
 }
-func (s *Suite) TestSRIOVKernelConnection() {
-	r := s.Runner("../deployments-k8s/examples/use-cases/SRIOVKernelConnection")
+func (s *Suite) TestSriovKernel2Noop() {
+	r := s.Runner("../deployments-k8s/examples/use-cases/SriovKernel2Noop")
 	s.T().Cleanup(func() {
 		r.Run(`kubectl delete ns ${NAMESPACE}`)
 	})
-	r.Run(`NAMESPACE=($(kubectl create -f namespace.yaml)[0])` + "\n" + `NAMESPACE=${NAMESPACE:10}`)
+	r.Run(`NAMESPACE=($(kubectl create -f ../namespace.yaml)[0])` + "\n" + `NAMESPACE=${NAMESPACE:10}`)
 	r.Run(`kubectl exec -n spire spire-server-0 -- \` + "\n" + `/opt/spire/bin/spire-server entry create \` + "\n" + `-spiffeID spiffe://example.org/ns/${NAMESPACE}/sa/default \` + "\n" + `-parentID spiffe://example.org/ns/spire/sa/spire-agent \` + "\n" + `-selector k8s:ns:${NAMESPACE} \` + "\n" + `-selector k8s:sa:default`)
 	r.Run(`cat > kustomization.yaml <<EOF` + "\n" + `---` + "\n" + `apiVersion: kustomize.config.k8s.io/v1beta1` + "\n" + `kind: Kustomization` + "\n" + `` + "\n" + `namespace: ${NAMESPACE}` + "\n" + `` + "\n" + `bases:` + "\n" + `- ../../../apps/nsc-kernel` + "\n" + `- ../../../apps/nse-kernel` + "\n" + `- ../../../apps/nsc-kernel-ponger` + "\n" + `` + "\n" + `` + "\n" + `patchesStrategicMerge:` + "\n" + `- patch-nsc.yaml` + "\n" + `- patch-nse.yaml` + "\n" + `EOF`)
 	r.Run(`cat > patch-nsc.yaml <<EOF` + "\n" + `---` + "\n" + `apiVersion: apps/v1` + "\n" + `kind: Deployment` + "\n" + `metadata:` + "\n" + `  name: nsc` + "\n" + `spec:` + "\n" + `  template:` + "\n" + `    spec:` + "\n" + `      containers:` + "\n" + `        - name: nsc` + "\n" + `          env:` + "\n" + `            - name: NSM_NETWORK_SERVICES` + "\n" + `              value: kernel://icmp-responder/nsm-1?sriovToken=worker.domain/10G` + "\n" + `          resources:` + "\n" + `            limits:` + "\n" + `              worker.domain/10G: 1` + "\n" + `EOF`)
@@ -51,8 +51,8 @@ func (s *Suite) TestSRIOVKernelConnection() {
 	r.Run(`PACKET_LOSS="$(echo "${PING_RESULTS}" |` + "\n" + `  grep "packet loss" |` + "\n" + `  sed -E 's/.* ([0-9]*)(\.[0-9]*)?% packet loss/\1/g')" \` + "\n" + `  || (echo "${PING_RESULTS}" 1>&2 && false)`)
 	r.Run(`test "${PACKET_LOSS}" -ne 100 \` + "\n" + `  || (echo "${PING_RESULTS}" 1>&2 && false)`)
 }
-func (s *Suite) TestVFIOConnection() {
-	r := s.Runner("../deployments-k8s/examples/use-cases/VFIOConnection")
+func (s *Suite) TestVfio2Noop() {
+	r := s.Runner("../deployments-k8s/examples/use-cases/Vfio2Noop")
 	s.T().Cleanup(func() {
 		r.Run(`NSE_POD=$(kubectl -n ${NAMESPACE} get pods -l app=nse |` + "\n" + `  grep -v "NAME" |` + "\n" + `  sed -E "s/([.]*) .*/\1/g")`)
 		r.Run(`kubectl -n ${NAMESPACE} exec ${NSE_POD} --container ponger -- /bin/bash -c '                  \` + "\n" + `  sleep 10 && kill $(ps -A | grep "pingpong" | sed -E "s/ *([0-9]*).*/\1/g") 1>/dev/null 2>&1 & \` + "\n" + `'`)
