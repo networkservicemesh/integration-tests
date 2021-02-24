@@ -30,13 +30,18 @@ import (
 	"github.com/networkservicemesh/gotestmd/pkg/suites/shell"
 )
 
-var once sync.Once
+const (
+	defaultDomain = "docker.io/"
+	defaultTag    = ":latest"
+)
 
 // Suite creates `ctr-pull` daemonset which pulls all test images for all cluster nodes.
 type Suite struct {
 	shell.Suite
 	Dir string
 }
+
+var once sync.Once
 
 func (s *Suite) SetupSuite() {
 	once.Do(func() {
@@ -61,13 +66,14 @@ func (s *Suite) SetupSuite() {
 	})
 }
 
-func (s *Suite) findTestImages() (testImages []string, err error) {
+func (s *Suite) findTestImages() ([]string, error) {
 	imagePattern := regexp.MustCompile(".*image: (?P<image>.*)")
 	imageSubexpIndex := imagePattern.SubexpIndex("image")
 
-	err = filepath.Walk(filepath.Join(s.Dir, "apps"), func(path string, info os.FileInfo, err error) error {
-		if err != nil || info.IsDir() || !strings.HasSuffix(info.Name(), ".yaml") {
-			return err
+	var testImages []string
+	walkFunc := func(path string, info os.FileInfo, err error) error {
+		if ok, skipErr := s.shouldSkipWithError(info, err); ok {
+			return skipErr
 		}
 
 		file, err := os.Open(path)
@@ -79,12 +85,64 @@ func (s *Suite) findTestImages() (testImages []string, err error) {
 		for scanner.Scan() {
 			if imagePattern.MatchString(scanner.Text()) {
 				image := imagePattern.FindAllStringSubmatch(scanner.Text(), -1)[0][imageSubexpIndex]
-				testImages = append(testImages, image)
+				testImages = append(testImages, s.fullImageName(image))
 			}
 		}
 
 		return nil
-	})
+	}
 
-	return testImages, err
+	if err := filepath.Walk(filepath.Join(s.Dir, "apps"), walkFunc); err != nil {
+		return nil, err
+	}
+	if err := filepath.Walk(filepath.Join(s.Dir, "examples", "spire"), walkFunc); err != nil {
+		return nil, err
+	}
+
+	return testImages, nil
+}
+
+func (s *Suite) shouldSkipWithError(info os.FileInfo, err error) (bool, error) {
+	if err != nil {
+		return true, err
+	}
+
+	if info.IsDir() {
+		if _, ok := ignored[info.Name()]; ok {
+			return true, filepath.SkipDir
+		}
+		return true, nil
+	}
+
+	if !strings.HasSuffix(info.Name(), ".yaml") {
+		return true, nil
+	}
+
+	return false, nil
+}
+
+func (s *Suite) fullImageName(image string) string {
+	// domain/library/name:tag
+
+	split := strings.Split(image, "/")
+	switch len(split) {
+	case 3:
+		// nothing to do
+	case 2:
+		image = defaultDomain + image
+	default:
+		return ""
+	}
+
+	split = strings.Split(image, ":")
+	switch len(split) {
+	case 2:
+		// nothing to do
+	case 1:
+		image += defaultTag
+	default:
+		return ""
+	}
+
+	return image
 }
