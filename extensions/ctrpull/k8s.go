@@ -39,7 +39,7 @@ data:
 
     for image in {{.TestImages}}; do
       if ! ctr -n=k8s.io image ls -q | grep "\${image}"; then
-        ctr -n=k8s.io image pull "docker.io/\${image}"
+        ctr -n=k8s.io image pull "\${image}"
       fi
     done
 EOF
