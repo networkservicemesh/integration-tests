@@ -108,8 +108,10 @@ func (s *Suite) shouldSkipWithError(info os.FileInfo, err error) (bool, error) {
 	}
 
 	if info.IsDir() {
-		if _, ok := ignored[info.Name()]; ok {
-			return true, filepath.SkipDir
+		for _, ignoredPattern := range ignored() {
+			if ignoredPattern.MatchString(info.Name()) {
+				return true, filepath.SkipDir
+			}
 		}
 		return true, nil
 	}

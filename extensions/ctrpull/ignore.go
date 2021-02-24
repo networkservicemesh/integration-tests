@@ -16,21 +16,23 @@
 
 package ctrpull
 
-var ignored map[string]struct{}
+import "regexp"
 
-// SetClusterKind sets ignored for cluster type `kind`
-func SetClusterKind() {
-	ignored = map[string]struct{}{
-		"forwarder-sriov":   {},
-		"nsc-kernel-ponger": {},
-		"nsc-vfio":          {},
-		"nse-vfio":          {},
+var (
+	ignoreSRIOV = true
+
+	ignoreSRIOVPattern = regexp.MustCompile(".*-sriov")
+	ignoreVFIOPattern  = regexp.MustCompile(".*-vfio")
+)
+
+func ignored() (ignoreList []*regexp.Regexp) {
+	if ignoreSRIOV {
+		ignoreList = append(ignoreList, ignoreSRIOVPattern, ignoreVFIOPattern)
 	}
+	return ignoreList
 }
 
-// SetClusterPacket sets ignored for cluster type `packet`
-func SetClusterPacket() {
-	ignored = map[string]struct{}{
-		"registry-k8s": {},
-	}
+// WithSRIOV enables prefetching SR-IOV test applications
+func WithSRIOV() {
+	ignoreSRIOV = false
 }
