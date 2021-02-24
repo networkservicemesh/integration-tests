@@ -17,25 +17,19 @@
 package base
 
 import (
+	"github.com/networkservicemesh/gotestmd/pkg/suites/shell"
 	"github.com/networkservicemesh/integration-tests/extensions/checkout"
+	"github.com/networkservicemesh/integration-tests/extensions/ctrpull"
 	"github.com/networkservicemesh/integration-tests/extensions/logs"
 )
 
 // Suite is a base suite for generating tests. Contains extensions that can be used for assertion and automation goals.
 type Suite struct {
-	checkout.Suite
+	shell.Suite
+	checkout                      checkout.Suite
+	ctrPull                       ctrpull.Suite
 	storeTestLogs, storeSuiteLogs func()
 	// Add other extensions here
-}
-
-func (s *Suite) SetupSuite() {
-	s.Repository = "networkservicemesh/deployments-k8s"
-	s.Version = "dcaced16"
-	s.Dir = "../" // Note: this should be synced with input parameters in gen.go file
-
-	s.Suite.SetupSuite()
-
-	s.storeSuiteLogs = logs.Capture(s.T().Name())
 }
 
 func (s *Suite) AfterTest(_, _ string) {
@@ -48,4 +42,21 @@ func (s *Suite) BeforeTest(_, _ string) {
 
 func (s *Suite) TearDownSuite() {
 	s.storeSuiteLogs()
+}
+
+func (s *Suite) SetupSuite() {
+	// checkout
+	s.checkout.Repository = "networkservicemesh/deployments-k8s"
+	s.checkout.Version = "0530e54c"
+	s.checkout.Dir = "../" // Note: this should be synced with input parameters in gen.go file
+
+	s.checkout.SetT(s.T())
+	s.checkout.SetupSuite()
+
+	s.storeSuiteLogs = logs.Capture(s.T().Name())
+	// CTR pull
+	s.ctrPull.Dir = "../deployments-k8s" // Note: this should be synced with input parameters in gen.go file
+
+	s.ctrPull.SetT(s.T())
+	s.ctrPull.SetupSuite()
 }
