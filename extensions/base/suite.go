@@ -17,18 +17,32 @@
 package base
 
 import (
+	"github.com/networkservicemesh/gotestmd/pkg/suites/shell"
+
 	"github.com/networkservicemesh/integration-tests/extensions/checkout"
+	"github.com/networkservicemesh/integration-tests/extensions/ctrpull"
 )
 
 // Suite is a base suite for generating tests. Contains extensions that can be used for assertion and automation goals.
 type Suite struct {
-	checkout.Suite
-	// Add other extensions here
+	shell.Suite
+	// Add extensions here
+	checkout checkout.Suite
+	ctrPull  ctrpull.Suite
 }
 
 func (s *Suite) SetupSuite() {
-	s.Repository = "networkservicemesh/deployments-k8s"
-	s.Version = "0530e54c"
-	s.Dir = "../" // Note: this should be synced with input parameters in gen.go file
-	s.Suite.SetupSuite()
+	// checkout
+	s.checkout.Repository = "networkservicemesh/deployments-k8s"
+	s.checkout.Version = "0530e54c"
+	s.checkout.Dir = "../" // Note: this should be synced with input parameters in gen.go file
+
+	s.checkout.SetT(s.T())
+	s.checkout.SetupSuite()
+
+	// CTR pull
+	s.ctrPull.Dir = "../deployments-k8s" // Note: this should be synced with input parameters in gen.go file
+
+	s.ctrPull.SetT(s.T())
+	s.ctrPull.SetupSuite()
 }

@@ -3,6 +3,7 @@ module github.com/networkservicemesh/integration-tests
 go 1.15
 
 require (
+	github.com/google/uuid v1.2.0
 	github.com/magefile/mage v1.11.0 // indirect
 	github.com/networkservicemesh/gotestmd v0.0.0-20210216193754-cdd0b6126789
 	github.com/sirupsen/logrus v1.7.1 // indirect
