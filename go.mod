@@ -3,6 +3,7 @@ module github.com/networkservicemesh/integration-tests
 go 1.15
 
 require (
+	github.com/kelseyhightower/envconfig v1.4.0
 	github.com/networkservicemesh/gotestmd v0.0.0-20210318180458-eadec9c69fee
 	github.com/sirupsen/logrus v1.8.1 // indirect
 	github.com/stretchr/testify v1.6.1

@@ -36,13 +36,21 @@ import (
 	"github.com/stretchr/testify/suite"
 )
 
+const (
+	allNamespaces = ""
+	configPrefix  = "LOG"
+)
+
+var initConfig sync.Once
 var config Config
 
 type Config struct {
-	ArtifactsDir   string        `default:"logs" desc:"Directory for storing container logs" split_words:"true"`
-	ExcludeK8sNs   string        `default:"kube-system,local-path-storage" desc:"Comma-separated list of excluded kubernetes namespaces" split_words:"true"`
+	KubeConfig   string `default:"~/.kube/config" desc:"Kubernetes configuration file" envconfig:"KUBECONFIG"`
+	ArtifactsDir string `default:"logs" desc:"Directory for storing container logs" envconfig:"ARTIFACTS_DIR"`
+
+	ExcludeK8sNs   []string      `default:"kube-system,local-path-storage" desc:"Comma-separated list of excluded kubernetes namespaces" split_words:"true"`
 	ContextTimeout time.Duration `default:"15s" desc:"Context timeout for kubernetes queries" split_words:"true"`
-	LogWorkerCount int           `default:"4" desc:"Number of log collector workers" split_words:"true"`
+	WorkerCount    int           `default:"4" desc:"Number of log collector workers" split_words:"true"`
 }
 
 type Suite struct {
@@ -63,24 +71,24 @@ type logItem struct {
 	logOptions *corev1.PodLogOptions
 }
 
-func init() {
-	if err := envconfig.Usage("", &config); err != nil {
-		panic(err)
-	}
-
-	if err := envconfig.Process("", &config); err != nil {
-		panic(err)
-	}
-}
-
 func (s *Suite) SetupSuite() {
+	initConfig.Do(func() {
+		if err := envconfig.Usage(configPrefix, &config); err != nil {
+			panic(err)
+		}
+
+		if err := envconfig.Process(configPrefix, &config); err != nil {
+			panic(err)
+		}
+	})
+
 	var err error
 
 	s.kubeClient, err = newKubeClient()
 	require.NoError(s.T(), err)
 
 	s.logQueue = make(chan logItem)
-	for i := 0; i < config.LogWorkerCount; i++ {
+	for i := 0; i < config.WorkerCount; i++ {
 		s.waitGroup.Add(1)
 		go func() {
 			defer s.waitGroup.Done()
@@ -103,7 +111,7 @@ func (s *Suite) SetupTest() {
 	ctx, cancel := context.WithTimeout(context.Background(), config.ContextTimeout)
 	defer cancel()
 
-	pods, err := s.kubeClient.CoreV1().Pods("").List(ctx, metav1.ListOptions{})
+	pods, err := s.kubeClient.CoreV1().Pods(allNamespaces).List(ctx, metav1.ListOptions{})
 	require.NoError(s.T(), err)
 
 	for podIdx := range pods.Items {
@@ -127,7 +135,7 @@ func (s *Suite) AfterTest(suiteName, testName string) {
 	ctx, cancel := context.WithTimeout(context.Background(), config.ContextTimeout)
 	defer cancel()
 
-	pods, err := s.kubeClient.CoreV1().Pods("").List(ctx, metav1.ListOptions{})
+	pods, err := s.kubeClient.CoreV1().Pods(allNamespaces).List(ctx, metav1.ListOptions{})
 	require.NoError(s.T(), err)
 
 	var waitGroup sync.WaitGroup
@@ -177,34 +185,25 @@ func (s *Suite) saveLog(src logItem) {
 	}
 }
 
-func envOrDefault(key, defaultValue string) string {
-	value, ok := os.LookupEnv(key)
-	if !ok {
-		value = defaultValue
-	}
-
-	return value
-}
-
 // newKubeClient creates new k8s client
 func newKubeClient() (kubernetes.Interface, error) {
-	defaultPath := filepath.Join(os.Getenv("HOME"), ".kube", "config")
-	path := envOrDefault("KUBECONFIG", defaultPath)
+	if strings.HasPrefix(config.KubeConfig, "~") {
+		config.KubeConfig = strings.Replace(config.KubeConfig, "~", os.Getenv("HOME"), 1)
+	}
 
-	kubeconfig, err := clientcmd.BuildConfigFromFlags("", path)
+	kubeconfig, err := clientcmd.BuildConfigFromFlags("", config.KubeConfig)
 	if err != nil {
 		return nil, err
 	}
 
-	kubeconfig.Burst = config.LogWorkerCount * 100
-	kubeconfig.QPS = float32(config.LogWorkerCount) * 100
+	kubeconfig.Burst = config.WorkerCount * 100
+	kubeconfig.QPS = float32(config.WorkerCount) * 100
 
 	return kubernetes.NewForConfig(kubeconfig)
 }
 
 func isExcludedNamespace(ns string) bool {
-	excludeList := strings.Split(config.ExcludeK8sNs, `,`)
-	for _, excluded := range excludeList {
+	for _, excluded := range config.ExcludeK8sNs {
 		if ns == excluded {
 			return true
 		}
