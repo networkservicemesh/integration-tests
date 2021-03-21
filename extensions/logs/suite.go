@@ -41,6 +41,7 @@ const (
 	configPrefix  = "LOG"
 )
 
+var instanceExists = false
 var initConfig sync.Once
 var config Config
 
@@ -58,6 +59,7 @@ type Suite struct {
 
 	kubeClient kubernetes.Interface
 
+	firstInstance bool
 	testStartTime time.Time
 	nsmContainers map[types.UID]bool
 	logQueue      chan logItem
@@ -82,6 +84,12 @@ func (s *Suite) SetupSuite() {
 		}
 	})
 
+	if instanceExists {
+		return
+	}
+
+	instanceExists = true
+	s.firstInstance = true
 	var err error
 
 	s.kubeClient, err = newKubeClient()
@@ -100,11 +108,20 @@ func (s *Suite) SetupSuite() {
 }
 
 func (s *Suite) TearDownSuite() {
+	if !s.firstInstance {
+		return
+	}
+
+	instanceExists = false
 	close(s.logQueue)
 	s.waitGroup.Wait()
 }
 
 func (s *Suite) SetupTest() {
+	if !s.firstInstance {
+		return
+	}
+
 	s.testStartTime = time.Now()
 	s.nsmContainers = make(map[types.UID]bool)
 
@@ -124,6 +141,10 @@ func (s *Suite) SetupTest() {
 }
 
 func (s *Suite) AfterTest(suiteName, testName string) {
+	if !s.firstInstance {
+		return
+	}
+
 	logDir := filepath.Join(config.ArtifactsDir, suiteName, testName)
 	require.NoError(s.T(), os.MkdirAll(logDir, os.ModePerm))
 
