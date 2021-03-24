@@ -18,24 +18,17 @@ package base
 
 import (
 	"github.com/networkservicemesh/integration-tests/extensions/checkout"
-	"github.com/networkservicemesh/integration-tests/extensions/logs"
-	"github.com/networkservicemesh/integration-tests/extensions/multisuite"
 )
 
 // Suite is a base suite for generating tests. Contains extensions that can be used for assertion and automation goals.
 type Suite struct {
-	multisuite.Suite
+	checkout.Suite
+	// Add other extensions here
 }
 
 func (s *Suite) SetupSuite() {
-	// Add other extensions here
-	s.Suite = multisuite.New(s.T(),
-		new(logs.Suite),
-		&checkout.Suite{
-			Repository: "networkservicemesh/deployments-k8s",
-			Version:    "e2954268",
-			Dir:        "../", // Note: this should be synced with input parameters in gen.go file
-		})
-
+	s.Repository = "networkservicemesh/deployments-k8s"
+	s.Version = "9f8c7047"
+	s.Dir = "../" // Note: this should be synced with input parameters in gen.go file
 	s.Suite.SetupSuite()
 }
