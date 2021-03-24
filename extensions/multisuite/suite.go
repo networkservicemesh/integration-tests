@@ -30,10 +30,8 @@ type Suite struct {
 	suits []suite.TestingSuite
 }
 
-func New(t *testing.T, suits ...suite.TestingSuite) Suite {
-	s := Suite{suits: suits}
-	s.SetT(t)
-	return s
+func (s *Suite) WithSuits(suits ...suite.TestingSuite) {
+	s.suits = suits
 }
 
 func (s *Suite) SetT(t *testing.T) {

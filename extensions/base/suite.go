@@ -29,7 +29,7 @@ type Suite struct {
 
 func (s *Suite) SetupSuite() {
 	// Add other extensions here
-	s.Suite = multisuite.New(s.T(),
+	s.Suite.WithSuits(
 		new(logs.Suite),
 		&checkout.Suite{
 			Repository: "networkservicemesh/deployments-k8s",
@@ -37,5 +37,6 @@ func (s *Suite) SetupSuite() {
 			Dir:        "../", // Note: this should be synced with input parameters in gen.go file
 		})
 
+	s.Suite.SetT(s.T())
 	s.Suite.SetupSuite()
 }
