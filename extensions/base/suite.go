@@ -18,11 +18,13 @@ package base
 
 import (
 	"github.com/networkservicemesh/integration-tests/extensions/checkout"
+	"github.com/networkservicemesh/integration-tests/extensions/logs"
 )
 
 // Suite is a base suite for generating tests. Contains extensions that can be used for assertion and automation goals.
 type Suite struct {
 	checkout.Suite
+	storeTestLogs, storeSuiteLogs func()
 	// Add other extensions here
 }
 
@@ -30,5 +32,20 @@ func (s *Suite) SetupSuite() {
 	s.Repository = "networkservicemesh/deployments-k8s"
 	s.Version = "007aabf1"
 	s.Dir = "../" // Note: this should be synced with input parameters in gen.go file
+
 	s.Suite.SetupSuite()
+
+	s.storeSuiteLogs = logs.Capture(s.T().Name())
+}
+
+func (s *Suite) AfterTest(_, _ string) {
+	s.storeTestLogs()
+}
+
+func (s *Suite) BeforeTest(_, _ string) {
+	s.storeTestLogs = logs.Capture(s.T().Name())
+}
+
+func (s *Suite) TearDownSuite() {
+	s.storeSuiteLogs()
 }
