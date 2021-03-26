@@ -73,7 +73,7 @@ func retrieveLogsFromPod(ctx context.Context, pod *corev1.Pod, opts *corev1.PodL
 func saveLogs(path string, data []byte) {
 	err := ioutil.WriteFile(path, data, os.ModePerm)
 	if err != nil {
-		logrus.Errorf("An error during saivng logs: %v", err.Error())
+		logrus.Errorf("An error during saving logs: %v", err.Error())
 	}
 }
 
@@ -82,7 +82,7 @@ func captureLogs(from time.Time, dir string) {
 	defer cancel()
 	resp, err := kubeClient.CoreV1().Pods(fromAllNamespaces).List(operationCtx, metav1.ListOptions{})
 	if err != nil {
-		logrus.Errorf("An error while retrieving logs: %v", err.Error())
+		logrus.Errorf("An error while retrieving list of pods: %v", err.Error())
 	}
 	var wg sync.WaitGroup
 
