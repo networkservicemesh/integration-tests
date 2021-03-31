@@ -30,7 +30,7 @@ type Suite struct {
 
 func (s *Suite) SetupSuite() {
 	s.Repository = "networkservicemesh/deployments-k8s"
-	s.Version = "6c7ebf7d"
+	s.Version = "17bed4b5"
 	s.Dir = "../" // Note: this should be synced with input parameters in gen.go file
 
 	s.Suite.SetupSuite()
