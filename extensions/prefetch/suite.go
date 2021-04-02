@@ -35,7 +35,7 @@ const (
 	defaultTag    = ":latest"
 )
 
-// Suite creates `ctr-pull` daemonset which pulls all test images for all cluster nodes.
+// Suite creates `prefetch` daemonset which pulls all test images for all cluster nodes.
 type Suite struct {
 	shell.Suite
 	Dir string
