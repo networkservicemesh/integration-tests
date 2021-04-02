@@ -13,6 +13,8 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
+
+// Package logs exports helper functions for storing logs from containers.
 package logs
 
 import (
@@ -48,6 +50,7 @@ var (
 	matchRegex *regexp.Regexp
 )
 
+// Config is env config to setup log collecting.
 type Config struct {
 	KubeConfig        string        `default:"" desc:".kube config file path" envconfig:"KUBECONFIG"`
 	ArtifactsDir      string        `default:"logs" desc:"Directory for storing container logs" envconfig:"ARTIFACTS_DIR"`

@@ -1,4 +1,4 @@
-// Copyright (c) 2020-2021 Doc.ai and/or its affiliates.
+// Copyright (c) 2021 Doc.ai and/or its affiliates.
 //
 // SPDX-License-Identifier: Apache-2.0
 //
@@ -14,9 +14,15 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// Package suites contains go:generate commands.
-package suites
+// Package sriov can be used to enable prefetching of SRIOV related applications
+package sriov
 
-//go:generate gotestmd ../deployments-k8s/examples ./suites github.com/networkservicemesh/integration-tests/extensions/base
-//go:generate goimports -w -local github.com/networkservicemesh -d "./suites"
-//go:generate goimports -w -local github.com/networkservicemesh/integration-tests -d "./suites"
+import (
+	"regexp"
+
+	"github.com/networkservicemesh/integration-tests/extensions/prefetch"
+)
+
+func init() {
+	prefetch.ExcludeRegex = regexp.MustCompile(".*")
+}

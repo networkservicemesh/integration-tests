@@ -14,38 +14,54 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+// Package base exports base suite type that will be injected into each generated suite.
 package base
 
 import (
+	"github.com/networkservicemesh/gotestmd/pkg/suites/shell"
 	"github.com/networkservicemesh/integration-tests/extensions/checkout"
 	"github.com/networkservicemesh/integration-tests/extensions/logs"
+	"github.com/networkservicemesh/integration-tests/extensions/prefetch"
 )
 
 // Suite is a base suite for generating tests. Contains extensions that can be used for assertion and automation goals.
 type Suite struct {
-	checkout.Suite
-	storeTestLogs, storeSuiteLogs func()
+	shell.Suite
 	// Add other extensions here
+	checkout                      checkout.Suite
+	prefetch                      prefetch.Suite
+	storeTestLogs, storeSuiteLogs func()
 }
 
-func (s *Suite) SetupSuite() {
-	s.Repository = "networkservicemesh/deployments-k8s"
-	s.Version = "dcaced16"
-	s.Dir = "../" // Note: this should be synced with input parameters in gen.go file
-
-	s.Suite.SetupSuite()
-
-	s.storeSuiteLogs = logs.Capture(s.T().Name())
-}
-
+// AfterTest stores logs after each test in the suite.
 func (s *Suite) AfterTest(_, _ string) {
 	s.storeTestLogs()
 }
 
+// BeforeTest starts capture logs for each test in the suite.
 func (s *Suite) BeforeTest(_, _ string) {
 	s.storeTestLogs = logs.Capture(s.T().Name())
 }
 
+// TearDownSuite stores logs from containers that spawned during SuiteSetup.
 func (s *Suite) TearDownSuite() {
 	s.storeSuiteLogs()
+}
+
+// SetupSuite runs all extensions
+func (s *Suite) SetupSuite() {
+	s.checkout.Repository = "networkservicemesh/deployments-k8s"
+	s.checkout.Version = "0530e54c"
+	s.checkout.Dir = "../" // Note: this should be synced with input parameters in gen.go file
+
+	s.checkout.SetT(s.T())
+	s.checkout.SetupSuite()
+
+	// prefetch
+	s.prefetch.Dir = "../deployments-k8s" // Note: this should be synced with input parameters in gen.go file
+
+	s.prefetch.SetT(s.T())
+	s.prefetch.SetupSuite()
+
+	s.storeSuiteLogs = logs.Capture(s.T().Name())
 }
