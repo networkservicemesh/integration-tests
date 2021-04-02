@@ -14,7 +14,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package ctrpull
+package prefetch
 
 import (
 	"bufio"
@@ -59,9 +59,9 @@ func (s *Suite) SetupSuite() {
 		r.Run(createKustomization)
 
 		r.Run("kubectl apply -k .")
-		r.Run("kubectl -n ctr-pull wait --timeout=10m --for=condition=ready pod -l app=ctr-pull")
+		r.Run("kubectl -n prefetch wait --timeout=10m --for=condition=ready pod -l app=ctr-pull")
 
-		r.Run("kubectl delete ns ctr-pull")
+		r.Run("kubectl delete ns prefetch")
 		_ = os.RemoveAll(tmpDir)
 	})
 }
@@ -108,10 +108,8 @@ func (s *Suite) shouldSkipWithError(info os.FileInfo, err error) (bool, error) {
 	}
 
 	if info.IsDir() {
-		for _, ignoredPattern := range ignored() {
-			if ignoredPattern.MatchString(info.Name()) {
-				return true, filepath.SkipDir
-			}
+		if ExcludeRegex.MatchString(info.Name()) {
+			return true, filepath.SkipDir
 		}
 		return true, nil
 	}

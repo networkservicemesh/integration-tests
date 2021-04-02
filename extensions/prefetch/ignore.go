@@ -14,25 +14,11 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package ctrpull
+package prefetch
 
 import "regexp"
 
 var (
-	ignoreSRIOV = true
-
-	ignoreSRIOVPattern = regexp.MustCompile(".*-sriov")
-	ignoreVFIOPattern  = regexp.MustCompile(".*-vfio")
+	// ExcludeRegex is using for filtering applications that should not be used in the prefetching.
+	ExcludeRegex = regexp.MustCompile("(.*-sriov)|(.*-vfio)")
 )
-
-func ignored() (ignoreList []*regexp.Regexp) {
-	if ignoreSRIOV {
-		ignoreList = append(ignoreList, ignoreSRIOVPattern, ignoreVFIOPattern)
-	}
-	return ignoreList
-}
-
-// WithSRIOV enables prefetching SR-IOV test applications
-func WithSRIOV() {
-	ignoreSRIOV = false
-}

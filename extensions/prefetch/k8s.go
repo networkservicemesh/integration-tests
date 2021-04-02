@@ -14,27 +14,27 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package ctrpull
+package prefetch
 
 const createNamespace = `
-cat > ctr-pull-namespace.yaml <<EOF
+cat >prefetch-namespace.yaml <<EOF
 ---
 apiVersion: v1
 kind: Namespace
 metadata:
-  name: ctr-pull
+  name:prefetch
 EOF
 `
 
 const createConfigMap = `
-cat > ctr-pull-configmap.yaml <<EOF
+cat >prefetch-configmap.yaml <<EOF
 ---
 apiVersion: v1
 kind: ConfigMap
 metadata:
-  name: ctr-pull
+  name:prefetch
 data:
-  ctr-pull.sh: |
+ prefetch.sh: |
     #!/bin/sh
 
     for image in {{.TestImages}}; do
@@ -46,25 +46,25 @@ EOF
 `
 
 const createDaemonSet = `
-cat > ctr-pull.yaml <<EOF
+cat >prefetch.yaml <<EOF
 ---
 apiVersion: apps/v1
 kind: DaemonSet
 metadata:
-  name: ctr-pull
+  name:prefetch
   labels:
-    app: ctr-pull
+    app:prefetch
 spec:
   selector:
     matchLabels:
-      app: ctr-pull
+      app:prefetch
   template:
     metadata:
       labels:
-        app: ctr-pull
+        app:prefetch
     spec:
       initContainers:
-        - name: ctr-pull
+        - name:prefetch
           image: docker:latest
           imagePullPolicy: IfNotPresent
           command: ["/bin/sh", "/root/scripts/ctr-pull.sh"]
@@ -82,7 +82,7 @@ spec:
             path: /run/containerd/containerd.sock
         - name: scripts
           configMap:
-            name: ctr-pull
+            name:prefetch
 EOF
 `
 
@@ -92,11 +92,11 @@ cat > kustomization.yaml <<EOF
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 
-namespace: ctr-pull
+namespace:prefetch
 
 resources:
-- ctr-pull-namespace.yaml
-- ctr-pull-configmap.yaml
-- ctr-pull.yaml
+-prefetch-namespace.yaml
+-prefetch-configmap.yaml
+-prefetch.yaml
 EOF
 `
