@@ -13,6 +13,8 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
+
+// Package suites contains go:generate commands.
 package suites
 
 //go:generate gotestmd ../deployments-k8s/examples ./suites github.com/networkservicemesh/integration-tests/extensions/base

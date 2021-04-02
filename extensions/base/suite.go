@@ -14,6 +14,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+// Package base exports base suite type that will be injected into each generated suite.
 package base
 
 import (
@@ -32,18 +33,22 @@ type Suite struct {
 	storeTestLogs, storeSuiteLogs func()
 }
 
+// AfterTest stores logs after each test in the suite.
 func (s *Suite) AfterTest(_, _ string) {
 	s.storeTestLogs()
 }
 
+// BeforeTest starts capture logs for each test in the suite.
 func (s *Suite) BeforeTest(_, _ string) {
 	s.storeTestLogs = logs.Capture(s.T().Name())
 }
 
+// TearDownSuite stores logs from containers that spawned during SuiteSetup.
 func (s *Suite) TearDownSuite() {
 	s.storeSuiteLogs()
 }
 
+// SetupSuite runs all extensions
 func (s *Suite) SetupSuite() {
 	s.checkout.Repository = "networkservicemesh/deployments-k8s"
 	s.checkout.Version = "0530e54c"

@@ -14,6 +14,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+// Package checkout contains a suite that checkouts missed repository.
 package checkout
 
 import (
@@ -35,11 +36,13 @@ type Suite struct {
 
 const urlFormat = "https://github.com/%v.git"
 
+// SetupSuite clones repository if it is not presented on the local machine.
 func (s *Suite) SetupSuite() {
 	r := s.Runner(s.Dir)
 	u := fmt.Sprintf(urlFormat, s.Repository)
 	_, dir := path.Split(s.Repository)
 	repoDir := filepath.Join(r.Dir(), dir)
+	// #nosec
 	if _, err := os.Open(repoDir); err != nil {
 		r.Run("git clone " + u)
 		r.Run("cd " + repoDir)

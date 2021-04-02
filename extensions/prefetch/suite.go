@@ -14,6 +14,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+// Package prefetch exports suite that can do prefetch of required images once per suite.
 package prefetch
 
 import (
@@ -43,6 +44,7 @@ type Suite struct {
 
 var once sync.Once
 
+// SetupSuite prefetches docker images for each k8s node.
 func (s *Suite) SetupSuite() {
 	once.Do(func() {
 		testImages, err := s.findTestImages()
@@ -75,7 +77,7 @@ func (s *Suite) findTestImages() ([]string, error) {
 		if ok, skipErr := s.shouldSkipWithError(info, err); ok {
 			return skipErr
 		}
-
+		// #nosec
 		file, err := os.Open(path)
 		if err != nil {
 			return err
