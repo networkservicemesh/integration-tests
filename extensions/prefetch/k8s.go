@@ -22,7 +22,7 @@ cat >prefetch-namespace.yaml <<EOF
 apiVersion: v1
 kind: Namespace
 metadata:
-  name:prefetch
+  name: prefetch
 EOF
 `
 
@@ -32,7 +32,7 @@ cat >prefetch-configmap.yaml <<EOF
 apiVersion: v1
 kind: ConfigMap
 metadata:
-  name:prefetch
+  name: prefetch
 data:
  prefetch.sh: |
     #!/bin/sh
@@ -51,23 +51,23 @@ cat >prefetch.yaml <<EOF
 apiVersion: apps/v1
 kind: DaemonSet
 metadata:
-  name:prefetch
+  name: prefetch
   labels:
-    app:prefetch
+    app: prefetch
 spec:
   selector:
     matchLabels:
-      app:prefetch
+      app: prefetch
   template:
     metadata:
       labels:
-        app:prefetch
+        app: prefetch
     spec:
       initContainers:
-        - name:prefetch
+        - name: prefetch
           image: docker:latest
           imagePullPolicy: IfNotPresent
-          command: ["/bin/sh", "/root/scripts/ctr-pull.sh"]
+          command: ["/bin/sh", "/root/scripts/prefetch.sh"]
           volumeMounts:
             - name: containerd
               mountPath: /run/containerd/containerd.sock
@@ -82,7 +82,7 @@ spec:
             path: /run/containerd/containerd.sock
         - name: scripts
           configMap:
-            name:prefetch
+            name: prefetch
 EOF
 `
 
@@ -92,11 +92,11 @@ cat > kustomization.yaml <<EOF
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 
-namespace:prefetch
+namespace: prefetch
 
 resources:
--prefetch-namespace.yaml
--prefetch-configmap.yaml
--prefetch.yaml
+- prefetch-namespace.yaml
+- prefetch-configmap.yaml
+- prefetch.yaml
 EOF
 `
