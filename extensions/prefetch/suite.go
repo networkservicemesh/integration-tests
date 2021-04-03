@@ -61,7 +61,7 @@ func (s *Suite) SetupSuite() {
 		r.Run(createKustomization)
 
 		r.Run("kubectl apply -k .")
-		r.Run("kubectl -n prefetch wait --timeout=10m --for=condition=ready pod -l app=ctr-pull")
+		r.Run("kubectl -n prefetch wait --timeout=10m --for=condition=ready pod -l app=prefetch")
 
 		r.Run("kubectl delete ns prefetch")
 		_ = os.RemoveAll(tmpDir)
@@ -110,7 +110,7 @@ func (s *Suite) shouldSkipWithError(info os.FileInfo, err error) (bool, error) {
 	}
 
 	if info.IsDir() {
-		if ExcludeRegex.MatchString(info.Name()) {
+		if IsExcluded(info.Name()) {
 			return true, filepath.SkipDir
 		}
 		return true, nil

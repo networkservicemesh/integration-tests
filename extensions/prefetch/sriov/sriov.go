@@ -18,11 +18,11 @@
 package sriov
 
 import (
-	"regexp"
-
 	"github.com/networkservicemesh/integration-tests/extensions/prefetch"
 )
 
 func init() {
-	prefetch.ExcludeRegex = regexp.MustCompile(".*")
+	prefetch.IsExcluded = func(_ string) bool {
+		return false
+	}
 }

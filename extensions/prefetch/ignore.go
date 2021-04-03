@@ -19,6 +19,6 @@ package prefetch
 import "regexp"
 
 var (
-	// ExcludeRegex is using for filtering applications that should not be used in the prefetching.
-	ExcludeRegex = regexp.MustCompile("(.*-sriov)|(.*-vfio)")
+	// IsExcluded is using for filtering applications that should not be used in the prefetching.
+	IsExcluded = regexp.MustCompile("(.*-sriov)|(.*-vfio)").MatchString
 )
