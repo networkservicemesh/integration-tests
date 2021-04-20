@@ -51,7 +51,7 @@ func (s *Suite) TearDownSuite() {
 // SetupSuite runs all extensions
 func (s *Suite) SetupSuite() {
 	s.checkout.Repository = "networkservicemesh/deployments-k8s"
-	s.checkout.Version = "7c9d4e8c"
+	s.checkout.Version = "e9b51787"
 	s.checkout.Dir = "../" // Note: this should be synced with input parameters in gen.go file
 
 	s.checkout.SetT(s.T())
