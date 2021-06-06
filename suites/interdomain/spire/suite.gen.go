@@ -30,7 +30,7 @@ func (s *Suite) SetupSuite() {
 	})
 	r.Run(`[[ ! -z $KUBECONFIG1 ]]`)
 	r.Run(`[[ ! -z $KUBECONFIG2 ]]`)
-	r.Run(`bash ../../spire/selfsignedsert.sh ../../spire/`)
+	r.Run(`openssl req -x509 -newkey rsa:4096 -keyout "../../spire/bootstrap.key" -out "../../spire/bootstrap.crt" -days 365 -nodes -subj '/CN=localhost' 2>/dev/null`)
 	r.Run(`export KUBECONFIG=$KUBECONFIG1`)
 	r.Run(`kubectl apply -k ../../spire/`)
 	r.Run(`kubectl wait -n spire --timeout=1m --for=condition=ready pod -l app=spire-agent`)
