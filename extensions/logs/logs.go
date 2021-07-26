@@ -59,24 +59,42 @@ type Config struct {
 	AllowedNamespaces string        `default:"(ns-.*)|(nsm-system)" desc:"Regex of allowed namespaces" split_words:"true"`
 }
 
-func retrieveLogsFromPod(ctx context.Context, pod *corev1.Pod, opts *corev1.PodLogOptions) []byte {
-	data, err := kubeClient.CoreV1().
-		Pods(pod.Namespace).
-		GetLogs(pod.Name, opts).
-		DoRaw(ctx)
-
-	if err != nil {
-		logrus.Errorf("%v: An error while retrieving logs: %v", pod.Name, err.Error())
-		return nil
+func savePodLogs(ctx context.Context, pod *corev1.Pod, opts *corev1.PodLogOptions, fromInitContainers bool, dir string) {
+	containers := pod.Spec.Containers
+	if fromInitContainers {
+		containers = pod.Spec.InitContainers
 	}
+	for _, prev := range []bool{false, true} {
+		opts.Previous = prev
+		for i := 0; i < len(containers); i++ {
+			opts.Container = containers[i].Name
 
-	return data
-}
+			// Add container name to log filename in case of init-containers or multiple containers in the pod
+			containerName := ""
+			if fromInitContainers || len(containers) > 1 {
+				containerName = "-" + containers[i].Name
+			}
 
-func saveLogs(path string, data []byte) {
-	err := ioutil.WriteFile(path, data, os.ModePerm)
-	if err != nil {
-		logrus.Errorf("An error during saving logs: %v", err.Error())
+			// Retrieve logs
+			data, err := kubeClient.CoreV1().
+				Pods(pod.Namespace).
+				GetLogs(pod.Name, opts).
+				DoRaw(ctx)
+			if err != nil {
+				logrus.Errorf("%v: An error while retrieving logs: %v", pod.Name, err.Error())
+				return
+			}
+
+			// Save logs
+			suffix := ".logs"
+			if opts.Previous {
+				suffix = "-previous.logs"
+			}
+			err = ioutil.WriteFile(filepath.Join(dir, pod.Name+containerName+suffix), data, os.ModePerm)
+			if err != nil {
+				logrus.Errorf("An error during saving logs: %v", err.Error())
+			}
+		}
 	}
 }
 
@@ -100,15 +118,9 @@ func captureLogs(from time.Time, dir string) {
 				Timestamps: true,
 				SinceTime:  &metav1.Time{Time: from},
 			}
-			logs := retrieveLogsFromPod(operationCtx, pod, opts)
-			if len(logs) != 0 {
-				saveLogs(filepath.Join(dir, pod.Name+".logs"), logs)
-			}
-			opts.Previous = true
-			logs = retrieveLogsFromPod(operationCtx, pod, opts)
-			if len(logs) != 0 {
-				saveLogs(filepath.Join(dir, pod.Name+"-previous.logs"), logs)
-			}
+			savePodLogs(operationCtx, pod, opts, false, dir)
+			savePodLogs(operationCtx, pod, opts, true, dir)
+
 			wg.Done()
 		}
 		select {
