@@ -32,7 +32,8 @@ import (
 )
 
 const (
-	defaultDomain = "docker.io/"
+	defaultDomain = "docker.io"
+	officialLib   = "library"
 	defaultTag    = ":latest"
 )
 
@@ -124,27 +125,25 @@ func (s *Suite) shouldSkipWithError(info os.FileInfo, err error) (bool, error) {
 }
 
 func (s *Suite) fullImageName(image string) string {
-	// domain/library/name:tag
-
-	split := strings.Split(image, "/")
-	switch len(split) {
-	case 3:
-		// nothing to do
-	case 2:
-		image = defaultDomain + image
-	default:
-		return ""
+	var domain, remainder string
+	i := strings.IndexRune(image, '/')
+	if i == -1 || (!strings.ContainsAny(image[:i], ".:")) {
+		domain, remainder = defaultDomain, image
+	} else {
+		domain, remainder = image[:i], image[i+1:]
+	}
+	if domain == defaultDomain && !strings.ContainsRune(remainder, '/') {
+		remainder = officialLib + "/" + remainder
 	}
 
-	split = strings.Split(image, ":")
-	switch len(split) {
+	switch len(strings.Split(remainder, ":")) {
 	case 2:
 		// nothing to do
 	case 1:
-		image += defaultTag
+		remainder += defaultTag
 	default:
 		return ""
 	}
 
-	return image
+	return domain + "/" + remainder
 }
