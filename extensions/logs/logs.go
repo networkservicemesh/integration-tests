@@ -19,6 +19,7 @@ package logs
 
 import (
 	"context"
+	"fmt"
 	"io/ioutil"
 	"os"
 	"os/signal"
@@ -39,6 +40,7 @@ import (
 const (
 	defaultQPS        = 5 // this is default value for QPS of kubeconfig. See at documentation.
 	fromAllNamespaces = ""
+	kubeconfigEnv     = "KUBECONFIG"
 )
 
 var (
@@ -189,9 +191,9 @@ func initialize() {
 	}()
 }
 
-// Capture returns a function that saves logs since Capture function has been called.
-func Capture(name string) context.CancelFunc {
+func capture(name string) context.CancelFunc {
 	once.Do(initialize)
+
 	now := time.Now()
 
 	dir := filepath.Join(config.ArtifactsDir, name)
@@ -199,5 +201,26 @@ func Capture(name string) context.CancelFunc {
 
 	return func() {
 		captureLogs(now, dir)
+	}
+}
+
+// Capture returns a function that saves logs since Capture function has been called.
+func Capture(name string) context.CancelFunc {
+	c := capture(name)
+
+	return func() {
+		kubeconfigValue := os.Getenv(kubeconfigEnv)
+		c()
+		for i := 0; ; i++ {
+			val := os.Getenv(kubeconfigEnv + fmt.Sprint(i))
+
+			if val == "" {
+				break
+			}
+
+			_ = os.Setenv(kubeconfigEnv, val)
+			c()
+		}
+		_ = os.Setenv(kubeconfigEnv, kubeconfigValue)
 	}
 }
