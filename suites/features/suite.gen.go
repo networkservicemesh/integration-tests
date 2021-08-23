@@ -41,8 +41,9 @@ func (s *Suite) TestDns() {
 	r.Run(`kubectl wait --for=condition=ready --timeout=5m pod -l app=nse-kernel -n ${NAMESPACE}`)
 	r.Run(`NSC=$(kubectl get pods -l app=alpine -n ${NAMESPACE} --template '{{range .items}}{{.metadata.name}}{{"\n"}}{{end}}')`)
 	r.Run(`NSE=$(kubectl get pods -l app=nse-kernel -n ${NAMESPACE} --template '{{range .items}}{{.metadata.name}}{{"\n"}}{{end}}')`)
+	r.Run(`kubectl exec ${NSC} -c alpine -n ${NAMESPACE} -- nslookup my.coredns.service`)
 	r.Run(`kubectl exec ${NSC} -c alpine -n ${NAMESPACE} -- ping -c 4 my.coredns.service`)
-	r.Run(`kubectl exec ${NSC} -c alpine -n ${NAMESPACE} -- ping -c 4 google.com`)
+	r.Run(`kubectl exec ${NSC} -c alpine -n ${NAMESPACE} -- nslookup google.com`)
 }
 func (s *Suite) TestKernel2Kernel() {
 	r := s.Runner("../deployments-k8s/examples/features/ipv6/Kernel2Kernel")
