@@ -117,8 +117,7 @@ func captureLogs(from time.Time, dir string) {
 		wg.Add(1)
 		captureLogsTask := func() {
 			opts := &corev1.PodLogOptions{
-				Timestamps: true,
-				SinceTime:  &metav1.Time{Time: from},
+				SinceTime: &metav1.Time{Time: from},
 			}
 			savePodLogs(operationCtx, pod, opts, false, dir)
 			savePodLogs(operationCtx, pod, opts, true, dir)
