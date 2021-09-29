@@ -25,7 +25,7 @@ func (s *Suite) SetupSuite() {
 	s.T().Cleanup(func() {
 		r.Run(`kubectl delete ns spire`)
 	})
-	r.Run(`kubectl apply -k https://github.com/networkservicemesh/deployments-k8s/examples/spire?ref=c20b9b0be858485afa6a5760fce3a100c453550b`)
+	r.Run(`kubectl apply -k https://github.com/networkservicemesh/deployments-k8s/examples/spire?ref=3cfc8b7c01018e38949cdfd31611d8105e74079f`)
 	r.Run(`kubectl wait -n spire --timeout=1m --for=condition=ready pod -l app=spire-agent`)
 	r.Run(`kubectl wait -n spire --timeout=1m --for=condition=ready pod -l app=spire-server`)
 	r.Run(`kubectl exec -n spire spire-server-0 -- \` + "\n" + `/opt/spire/bin/spire-server entry create \` + "\n" + `-spiffeID spiffe://example.org/ns/spire/sa/spire-agent \` + "\n" + `-selector k8s_sat:cluster:nsm-cluster \` + "\n" + `-selector k8s_sat:agent_ns:spire \` + "\n" + `-selector k8s_sat:agent_sa:spire-agent \` + "\n" + `-node`)
