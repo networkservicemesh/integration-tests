@@ -39,7 +39,7 @@ func (s *Suite) SetupSuite() {
 	r.Run(`kubectl wait --for=condition=ready --timeout=5m pod -l app=metallb -n metallb-system`)
 	r.Run(`export KUBECONFIG=$KUBECONFIG3`)
 	r.Run(`kubectl apply -f https://raw.githubusercontent.com/metallb/metallb/v0.10.2/manifests/namespace.yaml` + "\n" + `kubectl create secret generic -n metallb-system memberlist --from-literal=secretkey="$(openssl rand -base64 128)" ` + "\n" + `kubectl apply -f https://raw.githubusercontent.com/metallb/metallb/v0.10.2/manifests/metallb.yaml`)
-	r.Run(`cat > metallb-config.yaml <<EOF` + "\n" + `apiVersion: v1` + "\n" + `kind: ConfigMap` + "\n" + `metadata:` + "\n" + `  namespace: metallb-system` + "\n" + `  name: config` + "\n" + `data:` + "\n" + `  config: |` + "\n" + `    address-pools:` + "\n" + `    - name: default` + "\n" + `      protocol: layer2` + "\n" + `      addresses:` + "\n" + `      - $CLUSTER_CIDR3` + "\n" + `EOF`)
+	r.Run(`cat > metallb-config.yaml <<EOF` + "\n" + `---` + "\n" + `apiVersion: v1` + "\n" + `kind: ConfigMap` + "\n" + `metadata:` + "\n" + `  namespace: metallb-system` + "\n" + `  name: config` + "\n" + `data:` + "\n" + `  config: |` + "\n" + `    address-pools:` + "\n" + `    - name: default` + "\n" + `      protocol: layer2` + "\n" + `      addresses:` + "\n" + `      - $CLUSTER_CIDR3` + "\n" + `EOF`)
 	r.Run(`kubectl apply -f metallb-config.yaml`)
 	r.Run(`kubectl wait --for=condition=ready --timeout=5m pod -l app=metallb -n metallb-system`)
 }
