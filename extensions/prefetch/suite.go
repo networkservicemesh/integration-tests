@@ -18,10 +18,9 @@
 package prefetch
 
 import (
-	"bufio"
+	"fmt"
 	"os"
 	"path/filepath"
-	"regexp"
 	"strings"
 	"sync"
 
@@ -48,80 +47,62 @@ var once sync.Once
 // SetupSuite prefetches docker images for each k8s node.
 func (s *Suite) SetupSuite() {
 	once.Do(func() {
-		testImages, err := s.findTestImages()
-		require.NoError(s.T(), err)
+		images := s.findImages()
 
 		tmpDir := uuid.NewString()
 		require.NoError(s.T(), os.MkdirAll(tmpDir, 0750))
+		s.T().Cleanup(func() { _ = os.RemoveAll(tmpDir) })
 
 		r := s.Runner(tmpDir)
 
-		r.Run(createNamespace)
-		r.Run(strings.ReplaceAll(createConfigMap, "{{.TestImages}}", strings.Join(testImages, " ")))
-		r.Run(createDaemonSet)
-		r.Run(createKustomization)
+		var daemonSets []string
+		for d := 0; d*10 < len(images); d++ {
+			var containers string
+			for c := 0; c < 10 && d*10+c < len(images); c++ {
+				containers += container(uuid.NewString(), images[d*10+c])
+			}
 
-		r.Run("kubectl apply -k .")
-		r.Run("kubectl -n prefetch wait --timeout=10m --for=condition=ready pod -l app=prefetch")
+			r.Run(createDaemonSet(d, containers))
 
-		r.Run("kubectl delete ns prefetch")
-		_ = os.RemoveAll(tmpDir)
+			daemonSets = append(daemonSets, fmt.Sprintf("prefetch-%d", d))
+		}
+
+		r.Run("kubectl create ns prefetch")
+		s.T().Cleanup(func() { r.Run("kubectl delete ns prefetch") })
+
+		var wg sync.WaitGroup
+		for _, daemonSet := range daemonSets {
+			wg.Add(1)
+			go func(daemonSet string) {
+				defer wg.Done()
+
+				dr := s.Runner(tmpDir)
+				dr.Run(fmt.Sprintf("kubectl -n prefetch apply -f %s.yaml", daemonSet))
+				dr.Run(fmt.Sprintf("kubectl -n prefetch rollout status daemonset/%s --timeout=5m", daemonSet))
+				dr.Run(fmt.Sprintf("kubectl -n prefetch delete -f %s.yaml", daemonSet))
+			}(daemonSet)
+		}
+		wg.Wait()
 	})
 }
 
-func (s *Suite) findTestImages() ([]string, error) {
-	imagePattern := regexp.MustCompile(".*image: (?P<image>.*)")
-	imageSubexpIndex := imagePattern.SubexpIndex("image")
+func (s *Suite) findImages() []string {
+	rawImages, err := find(filepath.Join(s.Dir, "examples"), filepath.Join(s.Dir, "apps"))
+	require.NoError(s.T(), err)
 
-	var testImages []string
-	walkFunc := func(path string, info os.FileInfo, err error) error {
-		if ok, skipErr := s.shouldSkipWithError(info, err); ok {
-			return skipErr
+	preparedImages := make(map[string]struct{})
+	for image := range rawImages {
+		preparedImages[s.fullImageName(image)] = struct{}{}
+	}
+
+	var images []string
+	for image := range preparedImages {
+		if image != "" {
+			images = append(images, image)
 		}
-		// #nosec
-		file, err := os.Open(path)
-		if err != nil {
-			return err
-		}
-
-		scanner := bufio.NewScanner(file)
-		for scanner.Scan() {
-			if imagePattern.MatchString(scanner.Text()) {
-				image := imagePattern.FindAllStringSubmatch(scanner.Text(), -1)[0][imageSubexpIndex]
-				testImages = append(testImages, s.fullImageName(image))
-			}
-		}
-
-		return nil
 	}
 
-	if err := filepath.Walk(filepath.Join(s.Dir, "apps"), walkFunc); err != nil {
-		return nil, err
-	}
-	if err := filepath.Walk(filepath.Join(s.Dir, "examples", "spire"), walkFunc); err != nil {
-		return nil, err
-	}
-
-	return testImages, nil
-}
-
-func (s *Suite) shouldSkipWithError(info os.FileInfo, err error) (bool, error) {
-	if err != nil {
-		return true, err
-	}
-
-	if info.IsDir() {
-		if IsExcluded(info.Name()) {
-			return true, filepath.SkipDir
-		}
-		return true, nil
-	}
-
-	if !strings.HasSuffix(info.Name(), ".yaml") {
-		return true, nil
-	}
-
-	return false, nil
+	return images
 }
 
 func (s *Suite) fullImageName(image string) string {
