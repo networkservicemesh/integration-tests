@@ -18,9 +18,10 @@
 package prefetch
 
 import (
+	"bufio"
 	"fmt"
+	"net/http"
 	"os"
-	"path/filepath"
 	"strings"
 	"sync"
 
@@ -29,12 +30,6 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/networkservicemesh/gotestmd/pkg/suites/shell"
-)
-
-const (
-	defaultDomain = "docker.io"
-	officialLib   = "library"
-	defaultTag    = ":latest"
 )
 
 // Config is env config to setup images prefetching.
@@ -46,7 +41,7 @@ type Config struct {
 // Suite creates `prefetch` daemonset which pulls all test images for all cluster nodes.
 type Suite struct {
 	shell.Suite
-	Dir string
+	ImagesURL string
 }
 
 var once sync.Once
@@ -99,46 +94,42 @@ func (s *Suite) initialize() {
 	wg.Wait()
 }
 
-func (s *Suite) findImages() []string {
-	rawImages, err := find(filepath.Join(s.Dir, "examples"))
+func (s *Suite) findImages() (images []string) {
+	in, err := http.Get(s.ImagesURL)
 	require.NoError(s.T(), err)
+	defer func() { _ = in.Body.Close() }()
 
-	preparedImages := make(map[string]struct{})
-	for image := range rawImages {
-		preparedImages[s.fullImageName(image)] = struct{}{}
-	}
+	for scanner := bufio.NewScanner(in.Body); scanner.Scan(); {
+		line := strings.TrimSpace(scanner.Text())
+		if !strings.HasPrefix(line, "- ") {
+			continue
+		}
+		line = strings.TrimPrefix(line, "- ")
 
-	var images []string
-	for image := range preparedImages {
-		// TODO: remove special image after https://github.com/networkservicemesh/cmd-forwarder-ovs/issues/26 being fixed
-		if image != "" && image != "ghcr.io/networkservicemesh/ci/cmd-forwarder-ovs-use-host-ovs:811ba56" {
+		var image string
+		var tags []string
+		switch split := strings.Split(line, "#"); {
+		case len(split) > 2:
+			require.Fail(s.T(), "line is invalid: %s", line)
+		case len(split) == 2:
+			tags = strings.Split(strings.TrimSpace(split[1]), ",")
+			fallthrough
+		default:
+			image = strings.TrimSpace(split[0])
+		}
+
+		if len(tags) == 0 {
 			images = append(images, image)
+			continue
+		}
+
+		for _, tag := range tags {
+			if _, ok := Tags[tag]; ok {
+				images = append(images, image)
+				break
+			}
 		}
 	}
 
 	return images
-}
-
-func (s *Suite) fullImageName(image string) string {
-	var domain, remainder string
-	i := strings.IndexRune(image, '/')
-	if i == -1 || (!strings.ContainsAny(image[:i], ".:")) {
-		domain, remainder = defaultDomain, image
-	} else {
-		domain, remainder = image[:i], image[i+1:]
-	}
-	if domain == defaultDomain && !strings.ContainsRune(remainder, '/') {
-		remainder = officialLib + "/" + remainder
-	}
-
-	switch len(strings.Split(remainder, ":")) {
-	case 2:
-		// nothing to do
-	case 1:
-		remainder += defaultTag
-	default:
-		return ""
-	}
-
-	return domain + "/" + remainder
 }

@@ -22,7 +22,5 @@ import (
 )
 
 func init() {
-	prefetch.IsExcluded = func(_ string) bool {
-		return false
-	}
+	prefetch.Tags["sriov"] = struct{}{}
 }
