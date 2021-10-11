@@ -86,13 +86,9 @@ func (f *finder) find(baseSources []string) (map[string]struct{}, error) {
 func (f *finder) processSource(source string) (files []string, err error) {
 	err = filepath.WalkDir(source, func(path string, d fs.DirEntry, err error) error {
 		if err != nil {
-			return err
+			return filepath.SkipDir
 		}
-
 		if d.IsDir() {
-			if IsExcluded(d.Name()) {
-				return filepath.SkipDir
-			}
 			return nil
 		}
 
@@ -110,6 +106,14 @@ func (f *finder) processSource(source string) (files []string, err error) {
 }
 
 func (f *finder) processFile(file string) (files []string, err error) {
+	logger := logrus.WithField("file", file)
+
+	dir, _ := filepath.Split(file)
+	if IsExcluded(dir) {
+		logger.Warn("file is excluded")
+		return nil, nil
+	}
+
 	// #nosec
 	in, err := os.Open(file)
 	if err != nil {
@@ -132,7 +136,7 @@ func (f *finder) processFile(file string) (files []string, err error) {
 			continue
 		}
 
-		newFiles, err = f.processLine(file, trim, base, resource)
+		newFiles, err = f.processLine(trim, base, resource, dir, logger)
 	}
 	return files, err
 }
@@ -150,7 +154,7 @@ func (f *finder) baseResourceSkip(base, resource bool, raw, trim string) (newBas
 	return base, resource, false
 }
 
-func (f *finder) processLine(file, trim string, base, resource bool) ([]string, error) {
+func (f *finder) processLine(trim string, base, resource bool, dir string, logger *logrus.Entry) ([]string, error) {
 	if imagePattern.MatchString(trim) {
 		f.images[imagePattern.FindStringSubmatch(trim)[imageSubexpIndex]] = struct{}{}
 		return nil, nil
@@ -163,8 +167,6 @@ func (f *finder) processLine(file, trim string, base, resource bool) ([]string, 
 	}
 
 	if base || resource {
-		dir, _ := filepath.Split(file)
-
 		var newFile string
 		if base {
 			newFile = filepath.Clean(filepath.Join(dir, strings.TrimSpace(trim[1:]), kustomization))
@@ -172,10 +174,9 @@ func (f *finder) processLine(file, trim string, base, resource bool) ([]string, 
 		if resource {
 			newFile = filepath.Clean(filepath.Join(dir, strings.TrimSpace(trim[1:])))
 		}
-		if validateErr := f.validateFile(newFile, logrus.WithField("file", file)); validateErr != nil {
+		if validateErr := f.validateFile(newFile, logger); validateErr != nil {
 			return nil, nil
 		}
-
 		return []string{newFile}, nil
 	}
 
