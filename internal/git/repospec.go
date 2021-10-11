@@ -28,6 +28,10 @@ import (
 	"time"
 )
 
+// TODO: remove this in one of the following cases:
+//  1. https://github.com/kubernetes-sigs/kustomize/issues/4231 solves
+//  2. go-getter fixes git url processing
+
 // RepoSpec specifies a git repository and a branch and path therein.
 type RepoSpec struct {
 	// Host, e.g. github.com

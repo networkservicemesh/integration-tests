@@ -25,6 +25,7 @@ import (
 	"sync"
 
 	"github.com/google/uuid"
+	"github.com/kelseyhightower/envconfig"
 	"github.com/stretchr/testify/require"
 
 	"github.com/networkservicemesh/gotestmd/pkg/suites/shell"
@@ -36,6 +37,12 @@ const (
 	defaultTag    = ":latest"
 )
 
+// Config is env config to setup images prefetching.
+type Config struct {
+	ImagesPerDaemonset int    `default:"10" desc:"Number of images created per DaemonSet" split_words:"true"`
+	Timeout            string `default:"10m" desc:"Kubectl rollout status timeout for the DaemonSet" split_words:"true"`
+}
+
 // Suite creates `prefetch` daemonset which pulls all test images for all cluster nodes.
 type Suite struct {
 	shell.Suite
@@ -46,48 +53,54 @@ var once sync.Once
 
 // SetupSuite prefetches docker images for each k8s node.
 func (s *Suite) SetupSuite() {
-	once.Do(func() {
-		images := s.findImages()
+	once.Do(s.initialize)
+}
 
-		tmpDir := uuid.NewString()
-		require.NoError(s.T(), os.MkdirAll(tmpDir, 0750))
-		s.T().Cleanup(func() { _ = os.RemoveAll(tmpDir) })
+func (s *Suite) initialize() {
+	var config Config
+	require.NoError(s.T(), envconfig.Usage("prefetch", &config))
+	require.NoError(s.T(), envconfig.Process("prefetch", &config))
 
-		r := s.Runner(tmpDir)
+	images := s.findImages()
 
-		var daemonSets []string
-		for d := 0; d*10 < len(images); d++ {
-			var containers string
-			for c := 0; c < 10 && d*10+c < len(images); c++ {
-				containers += container(uuid.NewString(), images[d*10+c])
-			}
+	tmpDir := uuid.NewString()
+	require.NoError(s.T(), os.MkdirAll(tmpDir, 0750))
+	s.T().Cleanup(func() { _ = os.RemoveAll(tmpDir) })
 
-			r.Run(createDaemonSet(d, containers))
+	r := s.Runner(tmpDir)
 
-			daemonSets = append(daemonSets, fmt.Sprintf("prefetch-%d", d))
+	var daemonSets []string
+	for d := 0; d*config.ImagesPerDaemonset < len(images); d++ {
+		var containers string
+		for c := 0; c < config.ImagesPerDaemonset && d*config.ImagesPerDaemonset+c < len(images); c++ {
+			containers += container(uuid.NewString(), images[d*config.ImagesPerDaemonset+c])
 		}
 
-		r.Run("kubectl create ns prefetch")
-		s.T().Cleanup(func() { r.Run("kubectl delete ns prefetch") })
+		r.Run(createDaemonSet(d, containers))
 
-		var wg sync.WaitGroup
-		for _, daemonSet := range daemonSets {
-			wg.Add(1)
-			go func(daemonSet string) {
-				defer wg.Done()
+		daemonSets = append(daemonSets, fmt.Sprintf("prefetch-%d", d))
+	}
 
-				dr := s.Runner(tmpDir)
-				dr.Run(fmt.Sprintf("kubectl -n prefetch apply -f %s.yaml", daemonSet))
-				dr.Run(fmt.Sprintf("kubectl -n prefetch rollout status daemonset/%s --timeout=5m", daemonSet))
-				dr.Run(fmt.Sprintf("kubectl -n prefetch delete -f %s.yaml", daemonSet))
-			}(daemonSet)
-		}
-		wg.Wait()
-	})
+	r.Run("kubectl create ns prefetch")
+	s.T().Cleanup(func() { r.Run("kubectl delete ns prefetch") })
+
+	var wg sync.WaitGroup
+	for _, daemonSet := range daemonSets {
+		wg.Add(1)
+		go func(daemonSet string) {
+			defer wg.Done()
+
+			dr := s.Runner(tmpDir)
+			dr.Run(fmt.Sprintf("kubectl -n prefetch apply -f %s.yaml", daemonSet))
+			dr.Run(fmt.Sprintf("kubectl -n prefetch rollout status daemonset/%s --timeout=%s", daemonSet, config.Timeout))
+			dr.Run(fmt.Sprintf("kubectl -n prefetch delete -f %s.yaml", daemonSet))
+		}(daemonSet)
+	}
+	wg.Wait()
 }
 
 func (s *Suite) findImages() []string {
-	rawImages, err := find(filepath.Join(s.Dir, "examples"), filepath.Join(s.Dir, "apps"))
+	rawImages, err := find(filepath.Join(s.Dir, "examples"))
 	require.NoError(s.T(), err)
 
 	preparedImages := make(map[string]struct{})
@@ -97,7 +110,8 @@ func (s *Suite) findImages() []string {
 
 	var images []string
 	for image := range preparedImages {
-		if image != "" {
+		// TODO: remove special image after https://github.com/networkservicemesh/cmd-forwarder-ovs/issues/26 being fixed
+		if image != "" && image != "ghcr.io/networkservicemesh/ci/cmd-forwarder-ovs-use-host-ovs:811ba56" {
 			images = append(images, image)
 		}
 	}
