@@ -20,12 +20,13 @@
 package git
 
 import (
-	"fmt"
 	"net/url"
 	"path/filepath"
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/pkg/errors"
 )
 
 // TODO: remove this in one of the following cases:
@@ -72,14 +73,14 @@ func (x *RepoSpec) CloneSpec() string {
 // the parts.
 func NewRepoSpecFromURL(n string) (*RepoSpec, error) {
 	if filepath.IsAbs(n) {
-		return nil, fmt.Errorf("uri looks like abs path: %s", n)
+		return nil, errors.Errorf("uri looks like abs path: %s", n)
 	}
 	host, orgRepo, path, gitRef, gitSubmodules, suffix, gitTimeout := parseGitURL(n)
 	if orgRepo == "" {
-		return nil, fmt.Errorf("url lacks orgRepo: %s", n)
+		return nil, errors.Errorf("url lacks orgRepo: %s", n)
 	}
 	if host == "" {
-		return nil, fmt.Errorf("url lacks host: %s", n)
+		return nil, errors.Errorf("url lacks host: %s", n)
 	}
 	return &RepoSpec{
 		Host: host, OrgRepo: orgRepo,
