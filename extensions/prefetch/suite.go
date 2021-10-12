@@ -19,131 +19,117 @@ package prefetch
 
 import (
 	"bufio"
+	"fmt"
+	"net/http"
 	"os"
-	"path/filepath"
-	"regexp"
 	"strings"
 	"sync"
 
 	"github.com/google/uuid"
+	"github.com/kelseyhightower/envconfig"
 	"github.com/stretchr/testify/require"
 
 	"github.com/networkservicemesh/gotestmd/pkg/suites/shell"
 )
 
-const (
-	defaultDomain = "docker.io"
-	officialLib   = "library"
-	defaultTag    = ":latest"
-)
+// Config is env config to setup images prefetching.
+type Config struct {
+	ImagesPerDaemonset int    `default:"10" desc:"Number of images created per DaemonSet" split_words:"true"`
+	Timeout            string `default:"10m" desc:"Kubectl rollout status timeout for the DaemonSet" split_words:"true"`
+}
 
 // Suite creates `prefetch` daemonset which pulls all test images for all cluster nodes.
 type Suite struct {
 	shell.Suite
-	Dir string
+	ImagesURL string
 }
 
 var once sync.Once
 
 // SetupSuite prefetches docker images for each k8s node.
 func (s *Suite) SetupSuite() {
-	once.Do(func() {
-		testImages, err := s.findTestImages()
-		require.NoError(s.T(), err)
-
-		tmpDir := uuid.NewString()
-		require.NoError(s.T(), os.MkdirAll(tmpDir, 0750))
-
-		r := s.Runner(tmpDir)
-
-		r.Run(createNamespace)
-		r.Run(strings.ReplaceAll(createConfigMap, "{{.TestImages}}", strings.Join(testImages, " ")))
-		r.Run(createDaemonSet)
-		r.Run(createKustomization)
-
-		r.Run("kubectl apply -k .")
-		r.Run("kubectl -n prefetch wait --timeout=10m --for=condition=ready pod -l app=prefetch")
-
-		r.Run("kubectl delete ns prefetch")
-		_ = os.RemoveAll(tmpDir)
-	})
+	once.Do(s.initialize)
 }
 
-func (s *Suite) findTestImages() ([]string, error) {
-	imagePattern := regexp.MustCompile(".*image: (?P<image>.*)")
-	imageSubexpIndex := imagePattern.SubexpIndex("image")
+func (s *Suite) initialize() {
+	var config Config
+	require.NoError(s.T(), envconfig.Usage("prefetch", &config))
+	require.NoError(s.T(), envconfig.Process("prefetch", &config))
 
-	var testImages []string
-	walkFunc := func(path string, info os.FileInfo, err error) error {
-		if ok, skipErr := s.shouldSkipWithError(info, err); ok {
-			return skipErr
-		}
-		// #nosec
-		file, err := os.Open(path)
-		if err != nil {
-			return err
+	images := s.findImages()
+
+	tmpDir := uuid.NewString()
+	require.NoError(s.T(), os.MkdirAll(tmpDir, 0750))
+	s.T().Cleanup(func() { _ = os.RemoveAll(tmpDir) })
+
+	r := s.Runner(tmpDir)
+
+	var daemonSets []string
+	for d := 0; d*config.ImagesPerDaemonset < len(images); d++ {
+		var containers string
+		for c := 0; c < config.ImagesPerDaemonset && d*config.ImagesPerDaemonset+c < len(images); c++ {
+			containers += container(uuid.NewString(), images[d*config.ImagesPerDaemonset+c])
 		}
 
-		scanner := bufio.NewScanner(file)
-		for scanner.Scan() {
-			if imagePattern.MatchString(scanner.Text()) {
-				image := imagePattern.FindAllStringSubmatch(scanner.Text(), -1)[0][imageSubexpIndex]
-				testImages = append(testImages, s.fullImageName(image))
+		r.Run(createDaemonSet(d, containers))
+
+		daemonSets = append(daemonSets, fmt.Sprintf("prefetch-%d", d))
+	}
+
+	r.Run("kubectl create ns prefetch")
+	s.T().Cleanup(func() { r.Run("kubectl delete ns prefetch") })
+
+	var wg sync.WaitGroup
+	for _, daemonSet := range daemonSets {
+		wg.Add(1)
+		go func(daemonSet string) {
+			defer wg.Done()
+
+			dr := s.Runner(tmpDir)
+			dr.Run(fmt.Sprintf("kubectl -n prefetch apply -f %s.yaml", daemonSet))
+			dr.Run(fmt.Sprintf("kubectl -n prefetch rollout status daemonset/%s --timeout=%s", daemonSet, config.Timeout))
+			dr.Run(fmt.Sprintf("kubectl -n prefetch delete -f %s.yaml", daemonSet))
+		}(daemonSet)
+	}
+	wg.Wait()
+}
+
+func (s *Suite) findImages() (images []string) {
+	in, err := http.Get(s.ImagesURL)
+	require.NoError(s.T(), err)
+	defer func() { _ = in.Body.Close() }()
+
+	for scanner := bufio.NewScanner(in.Body); scanner.Scan(); {
+		line := strings.TrimSpace(scanner.Text())
+		if !strings.HasPrefix(line, "- ") {
+			continue
+		}
+		line = strings.TrimPrefix(line, "- ")
+
+		var image string
+		var tags []string
+		switch split := strings.Split(line, "#"); {
+		case len(split) > 2:
+			require.Fail(s.T(), "line is invalid: %s", line)
+		case len(split) == 2:
+			tags = strings.Split(strings.TrimSpace(split[1]), ",")
+			fallthrough
+		default:
+			image = strings.TrimSpace(split[0])
+		}
+
+		if len(tags) == 0 {
+			images = append(images, image)
+			continue
+		}
+
+		for _, tag := range tags {
+			if _, ok := Tags[tag]; ok {
+				images = append(images, image)
+				break
 			}
 		}
-
-		return nil
 	}
 
-	if err := filepath.Walk(filepath.Join(s.Dir, "apps"), walkFunc); err != nil {
-		return nil, err
-	}
-	if err := filepath.Walk(filepath.Join(s.Dir, "examples", "spire"), walkFunc); err != nil {
-		return nil, err
-	}
-
-	return testImages, nil
-}
-
-func (s *Suite) shouldSkipWithError(info os.FileInfo, err error) (bool, error) {
-	if err != nil {
-		return true, err
-	}
-
-	if info.IsDir() {
-		if IsExcluded(info.Name()) {
-			return true, filepath.SkipDir
-		}
-		return true, nil
-	}
-
-	if !strings.HasSuffix(info.Name(), ".yaml") {
-		return true, nil
-	}
-
-	return false, nil
-}
-
-func (s *Suite) fullImageName(image string) string {
-	var domain, remainder string
-	i := strings.IndexRune(image, '/')
-	if i == -1 || (!strings.ContainsAny(image[:i], ".:")) {
-		domain, remainder = defaultDomain, image
-	} else {
-		domain, remainder = image[:i], image[i+1:]
-	}
-	if domain == defaultDomain && !strings.ContainsRune(remainder, '/') {
-		remainder = officialLib + "/" + remainder
-	}
-
-	switch len(strings.Split(remainder, ":")) {
-	case 2:
-		// nothing to do
-	case 1:
-		remainder += defaultTag
-	default:
-		return ""
-	}
-
-	return domain + "/" + remainder
+	return images
 }

@@ -18,6 +18,8 @@
 package base
 
 import (
+	"fmt"
+
 	"github.com/networkservicemesh/gotestmd/pkg/suites/shell"
 	"github.com/networkservicemesh/integration-tests/extensions/checkout"
 	"github.com/networkservicemesh/integration-tests/extensions/logs"
@@ -48,17 +50,21 @@ func (s *Suite) TearDownSuite() {
 	s.storeSuiteLogs()
 }
 
+const (
+	sha = "61e3eb260f1fc0f66e4d7bdab513fd7cecd8c0d7"
+)
+
 // SetupSuite runs all extensions
 func (s *Suite) SetupSuite() {
 	s.checkout.Repository = "networkservicemesh/deployments-k8s"
-	s.checkout.Version = "bf12efe5"
+	s.checkout.Version = sha[:8]
 	s.checkout.Dir = "../" // Note: this should be synced with input parameters in gen.go file
 
 	s.checkout.SetT(s.T())
 	s.checkout.SetupSuite()
 
 	// prefetch
-	s.prefetch.Dir = "../deployments-k8s" // Note: this should be synced with input parameters in gen.go file
+	s.prefetch.ImagesURL = fmt.Sprintf("https://raw.githubusercontent.com/networkservicemesh/deployments-k8s/%s/images.yaml", sha)
 
 	s.prefetch.SetT(s.T())
 	s.prefetch.SetupSuite()
