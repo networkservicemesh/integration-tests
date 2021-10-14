@@ -171,6 +171,12 @@ func reteriveGithubFileList(rawurl string, match func(string) bool) []string {
 	}
 
 	for _, obj := range objects {
+		if _, ok := obj["path"]; !ok {
+			continue
+		}
+		if _, ok := obj["type"]; !ok {
+			continue
+		}
 		var p = obj["path"].(string)
 
 		if obj["type"] == "file" {
