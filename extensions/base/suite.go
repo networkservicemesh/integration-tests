@@ -18,8 +18,6 @@
 package base
 
 import (
-	"fmt"
-
 	"github.com/networkservicemesh/gotestmd/pkg/suites/shell"
 	"github.com/networkservicemesh/integration-tests/extensions/checkout"
 	"github.com/networkservicemesh/integration-tests/extensions/logs"
@@ -64,7 +62,7 @@ func (s *Suite) SetupSuite() {
 	s.checkout.SetupSuite()
 
 	// prefetch
-	s.prefetch.ImagesURL = fmt.Sprintf("https://raw.githubusercontent.com/networkservicemesh/deployments-k8s/%s/images.yaml", sha)
+	s.prefetch.Dir = "../deployments-k8s" // Note: this should be synced with input parameters in gen.go file
 
 	s.prefetch.SetT(s.T())
 	s.prefetch.SetupSuite()
