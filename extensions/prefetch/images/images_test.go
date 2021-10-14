@@ -23,40 +23,24 @@ import (
 	"github.com/networkservicemesh/integration-tests/extensions/prefetch/images"
 )
 
-var anyFileMatch = func(string) bool { return true }
 var yamlFileMatch = func(s string) bool { return strings.HasSuffix(s, ".yaml") }
 
 func ExampleReteriveList() {
-	var list = images.ReteriveList([]string{"file://samples/prefetch.yaml"}, yamlFileMatch)
+	var sources = []string{
+		"file://samples/prefetch.yaml",
+		"https://raw.githubusercontent.com/networkservicemesh/deployments-k8s/v1.0.0/apps/nsc-kernel/nsc.yaml",
+		"https://api.github.com/repos/networkservicemesh/deployments-k8s/contents/apps/nsc-kernel/nsc.yaml?ref=v1.0.0",
+		"https://api.github.com/repos/networkservicemesh/deployments-k8s/contents/apps/nsc-kernel?ref=v1.0.0",
+		"file://samples",
+		"file://./",
+		"file://samples/alpine.yaml",
+	}
 
-	fmt.Println(list.Images[0])
-	fmt.Println(list.Images[1])
+	var list = images.ReteriveList(sources, yamlFileMatch)
 
-	list = images.ReteriveList([]string{"https://raw.githubusercontent.com/networkservicemesh/deployments-k8s/v1.0.0/apps/nsc-kernel/nsc.yaml"}, anyFileMatch)
-
-	fmt.Println(list.Images[0])
-
-	list = images.ReteriveList([]string{"https://api.github.com/repos/networkservicemesh/deployments-k8s/contents/apps/nsc-kernel/nsc.yaml?ref=v1.0.0"}, anyFileMatch)
-
-	fmt.Println(list.Images[0])
-
-	list = images.ReteriveList([]string{"https://api.github.com/repos/networkservicemesh/deployments-k8s/contents/apps/nsc-kernel?ref=v1.0.0"}, anyFileMatch)
-
-	fmt.Println(list.Images[0])
-
-	list = images.ReteriveList([]string{"file://samples"}, yamlFileMatch)
-
-	fmt.Println(list.Images[0])
-	fmt.Println(list.Images[1])
-	fmt.Println(list.Images[2])
-
-	list = images.ReteriveList([]string{"file://./"}, yamlFileMatch)
-	fmt.Println(list.Images[0])
-	fmt.Println(list.Images[1])
-	fmt.Println(list.Images[2])
-
-	list = images.ReteriveList([]string{"file://samples/alpine.yaml"}, yamlFileMatch)
-	fmt.Println(list.Images[0])
+	for _, image := range list.Images {
+		fmt.Println(image)
+	}
 
 	// Output:
 	// image1
