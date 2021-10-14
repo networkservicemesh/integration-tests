@@ -16,7 +16,9 @@
 
 package prefetch
 
+import "regexp"
+
 var (
-	// Tags is used for filtering images that should not be used in the prefetching.
-	Tags = make(map[string]struct{})
+	// IsExcluded is using for filtering applications that should not be used in the prefetching.
+	IsExcluded = regexp.MustCompile("(.*-sriov)|(.*-vfio)").MatchString
 )

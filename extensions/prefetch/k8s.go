@@ -16,79 +16,87 @@
 
 package prefetch
 
-import (
-	"bytes"
-	"text/template"
-)
+const createNamespace = `
+cat >prefetch-namespace.yaml <<EOF
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: prefetch
+EOF
+`
 
-func createDaemonSet(number int, containers string) string {
-	const text = `
-cat > prefetch-{{.Number}}.yaml <<EOF
+const createConfigMap = `
+cat >prefetch-configmap.yaml <<EOF
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: prefetch
+data:
+ prefetch.sh: |
+    #!/bin/sh
+
+    for image in {{.TestImages}}; do
+      if ! ctr -n=k8s.io image ls -q | grep "\${image}"; then
+        ctr -n=k8s.io image pull "\${image}"
+      fi
+    done
+EOF
+`
+
+const createDaemonSet = `
+cat >prefetch.yaml <<EOF
 ---
 apiVersion: apps/v1
 kind: DaemonSet
 metadata:
-  name: prefetch-{{.Number}}
+  name: prefetch
   labels:
-    app: prefetch-{{.Number}}
+    app: prefetch
 spec:
   selector:
     matchLabels:
-      app: prefetch-{{.Number}}
+      app: prefetch
   template:
     metadata:
       labels:
-        app: prefetch-{{.Number}}
+        app: prefetch
     spec:
       initContainers:
-        - name: return
-          image: rrandom312/return
+        - name: prefetch
+          image: docker:latest
           imagePullPolicy: IfNotPresent
-          command: ["cp", "/bin/return", "/out/return"]
+          command: ["/bin/sh", "/root/scripts/prefetch.sh"]
           volumeMounts:
-            - name: bin
-              mountPath: /out
-{{.Containers}}
+            - name: containerd
+              mountPath: /run/containerd/containerd.sock
+            - name: scripts
+              mountPath: /root/scripts
       containers:
         - name: pause
           image: google/pause:latest
       volumes:
-        - name: bin
-          emptyDir: { }
+        - name: containerd
+          hostPath:
+            path: /run/containerd/containerd.sock
+        - name: scripts
+          configMap:
+            name: prefetch
 EOF
 `
-	return substitute(text, &struct {
-		Number     int
-		Containers string
-	}{
-		Number:     number,
-		Containers: containers,
-	})
-}
 
-func container(name, image string) string {
-	const text = `
-        - name: {{.Name}}
-          image: {{.Image}}
-          imagePullPolicy: IfNotPresent
-          command: ["/bin/return"]
-          volumeMounts:
-            - name: bin
-              mountPath: /bin
+const createKustomization = `
+cat > kustomization.yaml <<EOF
+---
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+namespace: prefetch
+
+resources:
+- prefetch-namespace.yaml
+- prefetch-configmap.yaml
+- prefetch.yaml
+EOF
 `
-	return substitute(text, &struct {
-		Name, Image string
-	}{
-		Name:  name,
-		Image: image,
-	})
-}
-
-func substitute(text string, data interface{}) string {
-	t, _ := template.New("").Parse(text)
-
-	buf := new(bytes.Buffer)
-	_ = t.Execute(buf, data)
-
-	return buf.String()
-}
