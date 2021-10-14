@@ -59,6 +59,8 @@ func (s *Suite) initialize() {
 		return strings.HasSuffix(s, ".yaml") && !IsExcluded(s)
 	}).Images
 
+	prefetchImages = removeDuplicates(prefetchImages)
+
 	tmpDir := uuid.NewString()
 	require.NoError(s.T(), os.MkdirAll(tmpDir, 0750))
 	s.T().Cleanup(func() { _ = os.RemoveAll(tmpDir) })
@@ -93,4 +95,16 @@ func (s *Suite) initialize() {
 		}(daemonSet)
 	}
 	wg.Wait()
+}
+
+func removeDuplicates(source []string) []string {
+	var allKeys = make(map[string]bool)
+	var result []string
+	for _, item := range source {
+		if _, value := allKeys[item]; !value {
+			allKeys[item] = true
+			result = append(result, item)
+		}
+	}
+	return result
 }
