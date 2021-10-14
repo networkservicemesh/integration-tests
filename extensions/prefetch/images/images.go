@@ -31,6 +31,11 @@ import (
 	"gopkg.in/yaml.v3"
 )
 
+const (
+	fileScheme = "file"
+)
+
+// ImageList represents list of open container images
 type ImageList struct {
 	Images []string
 }
@@ -80,20 +85,23 @@ func getImages(content []byte) []string {
 
 func readContent(rawurl string) []byte {
 	var u, _ = url.Parse(rawurl)
-	if u.Scheme == "file" {
+	if u.Scheme == fileScheme {
 		var p = filepath.Join(u.Hostname(), u.Path)
-		b, err := ioutil.ReadFile(p)
+		b, err := ioutil.ReadFile(filepath.Clean(p))
 		if err == nil {
 			return b
 		}
 		return nil
 	}
 	if u.Scheme == "http" || u.Scheme == "https" {
+		// #nosec
 		resp, err := http.Get(rawurl)
 		if err != nil {
 			return nil
 		}
-		defer resp.Body.Close()
+		defer func() {
+			_ = resp.Body.Close()
+		}()
 		b, err := ioutil.ReadAll(resp.Body)
 		if err != nil {
 			return nil
@@ -112,7 +120,7 @@ func reteriveLocalFileList(rawurl string, match func(string) bool) []string {
 
 	basePath := filepath.Join(u.Hostname(), u.Path)
 
-	root, err := os.Open(basePath)
+	root, err := os.Open(filepath.Clean(basePath))
 	if err != nil {
 		return nil
 	}
@@ -123,7 +131,7 @@ func reteriveLocalFileList(rawurl string, match func(string) bool) []string {
 	}
 
 	if !stat.IsDir() {
-		return []string{fmt.Sprintf("file://%v", basePath)}
+		return []string{fmt.Sprintf("%v://%v", fileScheme, basePath)}
 	}
 
 	var result []string
@@ -134,7 +142,7 @@ func reteriveLocalFileList(rawurl string, match func(string) bool) []string {
 	}
 
 	for _, f := range files {
-		var p = fmt.Sprintf("file://%v", filepath.Join(basePath, f.Name()))
+		var p = fmt.Sprintf("%v://%v", fileScheme, filepath.Join(basePath, f.Name()))
 		if f.IsDir() {
 			result = append(result, reteriveFileList(p, match)...)
 		} else if match(f.Name()) {
@@ -145,7 +153,7 @@ func reteriveLocalFileList(rawurl string, match func(string) bool) []string {
 }
 
 func reteriveGithubFileList(rawurl string, match func(string) bool) []string {
-	var b []byte = readContent(rawurl)
+	var b = readContent(rawurl)
 
 	if b == nil {
 		return nil
@@ -193,7 +201,7 @@ func reteriveFileList(u string, match func(string) bool) []string {
 	return nil
 }
 
-func apiContentsURL(contentsURL string, newPath string) string {
+func apiContentsURL(contentsURL, newPath string) string {
 	var u, _ = url.Parse(contentsURL)
 	var segments = strings.Split(u.Path, string(filepath.Separator))
 

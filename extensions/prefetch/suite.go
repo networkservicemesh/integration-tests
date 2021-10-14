@@ -55,7 +55,7 @@ func (s *Suite) initialize() {
 	require.NoError(s.T(), envconfig.Usage("prefetch", &config))
 	require.NoError(s.T(), envconfig.Process("prefetch", &config))
 
-	images := images.ReteriveList(s.SourcesURLs, func(s string) bool {
+	prefetchImages := images.ReteriveList(s.SourcesURLs, func(s string) bool {
 		return strings.HasSuffix(s, ".yaml") && !IsExcluded(s)
 	}).Images
 
@@ -66,10 +66,10 @@ func (s *Suite) initialize() {
 	r := s.Runner(tmpDir)
 
 	var daemonSets []string
-	for d := 0; d*config.ImagesPerDaemonset < len(images); d++ {
+	for d := 0; d*config.ImagesPerDaemonset < len(prefetchImages); d++ {
 		var containers string
-		for c := 0; c < config.ImagesPerDaemonset && d*config.ImagesPerDaemonset+c < len(images); c++ {
-			containers += container(uuid.NewString(), images[d*config.ImagesPerDaemonset+c])
+		for c := 0; c < config.ImagesPerDaemonset && d*config.ImagesPerDaemonset+c < len(prefetchImages); c++ {
+			containers += container(uuid.NewString(), prefetchImages[d*config.ImagesPerDaemonset+c])
 		}
 
 		r.Run(createDaemonSet(d, containers))
