@@ -14,3 +14,5 @@ require (
 	k8s.io/apimachinery v0.20.5
 	k8s.io/client-go v0.20.5
 )
+
+replace github.com/networkservicemesh/gotestmd => github.com/Mixaster995/gotestmd v0.0.0-20211022102757-ca2cb4b9f76d

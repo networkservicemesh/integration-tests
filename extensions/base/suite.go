@@ -21,7 +21,6 @@ import (
 	"fmt"
 
 	"github.com/networkservicemesh/gotestmd/pkg/suites/shell"
-	"github.com/networkservicemesh/integration-tests/extensions/checkout"
 	"github.com/networkservicemesh/integration-tests/extensions/logs"
 	"github.com/networkservicemesh/integration-tests/extensions/prefetch"
 )
@@ -30,7 +29,6 @@ import (
 type Suite struct {
 	shell.Suite
 	// Add other extensions here
-	checkout                      checkout.Suite
 	prefetch                      prefetch.Suite
 	storeTestLogs, storeSuiteLogs func()
 }
@@ -57,12 +55,6 @@ const (
 // SetupSuite runs all extensions
 func (s *Suite) SetupSuite() {
 	repo := "networkservicemesh/deployments-k8s"
-
-	s.checkout.Version = sha[:8]
-	s.checkout.Dir = "../" // Note: this should be synced with input parameters in gen.go file
-	s.checkout.Repository = repo
-	s.checkout.SetT(s.T())
-	s.checkout.SetupSuite()
 
 	// prefetch
 	s.prefetch.SourcesURLs = []string{

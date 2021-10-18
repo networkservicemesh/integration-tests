@@ -19,7 +19,6 @@ package prefetch
 
 import (
 	"fmt"
-	"os"
 	"strings"
 	"sync"
 
@@ -61,11 +60,7 @@ func (s *Suite) initialize() {
 
 	prefetchImages = removeDuplicates(prefetchImages)
 
-	tmpDir := uuid.NewString()
-	require.NoError(s.T(), os.MkdirAll(tmpDir, 0750))
-	s.T().Cleanup(func() { _ = os.RemoveAll(tmpDir) })
-
-	r := s.Runner(tmpDir)
+	r := s.Runner()
 
 	var daemonSets []string
 	for d := 0; d*config.ImagesPerDaemonset < len(prefetchImages); d++ {
@@ -88,7 +83,7 @@ func (s *Suite) initialize() {
 		go func(daemonSet string) {
 			defer wg.Done()
 
-			dr := s.Runner(tmpDir)
+			dr := s.Runner()
 			dr.Run(fmt.Sprintf("kubectl -n prefetch apply -f %s.yaml", daemonSet))
 			dr.Run(fmt.Sprintf("kubectl -n prefetch rollout status daemonset/%s --timeout=%s", daemonSet, config.Timeout))
 			dr.Run(fmt.Sprintf("kubectl -n prefetch delete -f %s.yaml", daemonSet))
