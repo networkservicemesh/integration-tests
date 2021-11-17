@@ -88,9 +88,9 @@ func savePodLogs(ctx context.Context, pod *corev1.Pod, opts *corev1.PodLogOption
 			}
 
 			// Save logs
-			suffix := ".logs"
+			suffix := ".log"
 			if opts.Previous {
-				suffix = "-previous.logs"
+				suffix = "-previous.log"
 			}
 			err = ioutil.WriteFile(filepath.Join(dir, pod.Name+containerName+suffix), data, os.ModePerm)
 			if err != nil {
@@ -190,7 +190,7 @@ func initialize() {
 	}()
 }
 
-func capture(name string) context.CancelFunc {
+func capture(name string) (captureFunc context.CancelFunc, resultDir string) {
 	once.Do(initialize)
 
 	now := time.Now()
@@ -200,12 +200,12 @@ func capture(name string) context.CancelFunc {
 
 	return func() {
 		captureLogs(now, dir)
-	}
+	}, dir
 }
 
 // Capture returns a function that saves logs since Capture function has been called.
-func Capture(name string) context.CancelFunc {
-	c := capture(name)
+func Capture(name string) (captureFunc context.CancelFunc, dir string) {
+	c, dir := capture(name)
 
 	return func() {
 		kubeconfigValue := os.Getenv(kubeconfigEnv)
@@ -221,5 +221,5 @@ func Capture(name string) context.CancelFunc {
 			c()
 		}
 		_ = os.Setenv(kubeconfigEnv, kubeconfigValue)
-	}
+	}, dir
 }

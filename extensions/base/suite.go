@@ -19,6 +19,7 @@ package base
 
 import (
 	"fmt"
+	"path/filepath"
 
 	"github.com/networkservicemesh/gotestmd/pkg/suites/shell"
 	"github.com/networkservicemesh/integration-tests/extensions/checkout"
@@ -33,16 +34,18 @@ type Suite struct {
 	checkout                      checkout.Suite
 	prefetch                      prefetch.Suite
 	storeTestLogs, storeSuiteLogs func()
+	testDir                       string
 }
 
 // AfterTest stores logs after each test in the suite.
 func (s *Suite) AfterTest(_, _ string) {
 	s.storeTestLogs()
+	s.Runner("").Run("kubectl describe pods --all-namespaces >" + filepath.Join(s.testDir, "describe"))
 }
 
 // BeforeTest starts capture logs for each test in the suite.
 func (s *Suite) BeforeTest(_, _ string) {
-	s.storeTestLogs = logs.Capture(s.T().Name())
+	s.storeTestLogs, s.testDir = logs.Capture(s.T().Name())
 }
 
 // TearDownSuite stores logs from containers that spawned during SuiteSetup.
@@ -77,5 +80,5 @@ func (s *Suite) SetupSuite() {
 	s.prefetch.SetT(s.T())
 	s.prefetch.SetupSuite()
 
-	s.storeSuiteLogs = logs.Capture(s.T().Name())
+	s.storeSuiteLogs, _ = logs.Capture(s.T().Name())
 }
