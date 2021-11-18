@@ -204,10 +204,12 @@ func capture(name string) (captureFunc context.CancelFunc, resultDir string) {
 }
 
 // Capture returns a function that saves logs since Capture function has been called.
-func Capture(name string) (captureFunc context.CancelFunc, dir string) {
+func Capture(name string, runner func(cmd string)) context.CancelFunc {
 	c, dir := capture(name)
 
 	return func() {
+		runner("kubectl describe pods -n nsm-system >" + filepath.Join(dir, "describe"))
+
 		kubeconfigValue := os.Getenv(kubeconfigEnv)
 		c()
 		for i := 0; ; i++ {
@@ -221,5 +223,5 @@ func Capture(name string) (captureFunc context.CancelFunc, dir string) {
 			c()
 		}
 		_ = os.Setenv(kubeconfigEnv, kubeconfigValue)
-	}, dir
+	}
 }
