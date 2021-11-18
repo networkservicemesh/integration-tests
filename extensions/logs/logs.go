@@ -36,7 +36,7 @@ import (
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/tools/clientcmd"
 
-	"github.com/networkservicemesh/gotestmd/pkg/suites/shell"
+	"github.com/networkservicemesh/gotestmd/pkg/bash"
 )
 
 const (
@@ -205,6 +205,7 @@ func capture(name string) context.CancelFunc {
 	}
 }
 
+//nolint
 func describePods(name string) {
 	getCtx, cancel := context.WithTimeout(ctx, config.Timeout)
 	defer cancel()
@@ -214,7 +215,11 @@ func describePods(name string) {
 		return
 	}
 
-	var runner shell.Runner
+	runner, err := bash.New()
+	if err != nil {
+		return
+	}
+
 	runner.Run("kubectl describe pods -n nsm-system >" + filepath.Join(config.ArtifactsDir, name, "describe.log"))
 }
 
