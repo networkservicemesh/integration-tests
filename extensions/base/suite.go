@@ -42,9 +42,7 @@ func (s *Suite) AfterTest(_, _ string) {
 
 // BeforeTest starts capture logs for each test in the suite.
 func (s *Suite) BeforeTest(_, _ string) {
-	s.storeTestLogs = logs.Capture(s.T().Name(), func(cmd string) {
-		s.Runner("").Run(cmd)
-	})
+	s.storeTestLogs = logs.Capture(s.T().Name())
 }
 
 // TearDownSuite stores logs from containers that spawned during SuiteSetup.
@@ -79,7 +77,5 @@ func (s *Suite) SetupSuite() {
 	s.prefetch.SetT(s.T())
 	s.prefetch.SetupSuite()
 
-	s.storeSuiteLogs = logs.Capture(s.T().Name(), func(cmd string) {
-		s.Runner("").Run(cmd)
-	})
+	s.storeSuiteLogs = logs.Capture(s.T().Name())
 }

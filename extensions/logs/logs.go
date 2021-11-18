@@ -35,6 +35,8 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/tools/clientcmd"
+
+	"github.com/networkservicemesh/gotestmd/pkg/suites/shell"
 )
 
 const (
@@ -190,7 +192,7 @@ func initialize() {
 	}()
 }
 
-func capture(name string) (captureFunc context.CancelFunc, resultDir string) {
+func capture(name string) context.CancelFunc {
 	once.Do(initialize)
 
 	now := time.Now()
@@ -200,15 +202,28 @@ func capture(name string) (captureFunc context.CancelFunc, resultDir string) {
 
 	return func() {
 		captureLogs(now, dir)
-	}, dir
+	}
+}
+
+func describePods(name string) {
+	getCtx, cancel := context.WithTimeout(ctx, config.Timeout)
+	defer cancel()
+
+	_, err := kubeClient.CoreV1().Namespaces().Get(getCtx, "nsm-system", metav1.GetOptions{})
+	if err != nil {
+		return
+	}
+
+	var runner shell.Runner
+	runner.Run("kubectl describe pods -n nsm-system >" + filepath.Join(config.ArtifactsDir, name, "describe.log"))
 }
 
 // Capture returns a function that saves logs since Capture function has been called.
-func Capture(name string, runner func(cmd string)) context.CancelFunc {
-	c, dir := capture(name)
+func Capture(name string) context.CancelFunc {
+	c := capture(name)
 
 	return func() {
-		runner("kubectl describe pods -n nsm-system >" + filepath.Join(dir, "describe"))
+		describePods(name)
 
 		kubeconfigValue := os.Getenv(kubeconfigEnv)
 		c()
