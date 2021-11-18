@@ -205,7 +205,7 @@ func capture(name string) context.CancelFunc {
 	}
 }
 
-func describePods(name string) {
+func describePods(name string, runner *shell.Runner) {
 	getCtx, cancel := context.WithTimeout(ctx, config.Timeout)
 	defer cancel()
 
@@ -214,16 +214,15 @@ func describePods(name string) {
 		return
 	}
 
-	var runner shell.Runner
 	runner.Run("kubectl describe pods -n nsm-system >" + filepath.Join(config.ArtifactsDir, name, "describe.log"))
 }
 
 // Capture returns a function that saves logs since Capture function has been called.
-func Capture(name string) context.CancelFunc {
+func Capture(name string, runner *shell.Runner) context.CancelFunc {
 	c := capture(name)
 
 	return func() {
-		describePods(name)
+		describePods(name, runner)
 
 		kubeconfigValue := os.Getenv(kubeconfigEnv)
 		c()
