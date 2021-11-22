@@ -25,6 +25,7 @@ import (
 	"os/signal"
 	"path/filepath"
 	"regexp"
+	"strings"
 	"sync"
 	"syscall"
 	"time"
@@ -205,12 +206,11 @@ func capture(name string) context.CancelFunc {
 	}
 }
 
-//nolint
 func describePods(name string) {
 	getCtx, cancel := context.WithTimeout(ctx, config.Timeout)
 	defer cancel()
 
-	_, err := kubeClient.CoreV1().Namespaces().Get(getCtx, "nsm-system", metav1.GetOptions{})
+	nsList, err := kubeClient.CoreV1().Namespaces().List(getCtx, metav1.ListOptions{})
 	if err != nil {
 		return
 	}
@@ -220,7 +220,24 @@ func describePods(name string) {
 		return
 	}
 
-	runner.Run("kubectl describe pods -n nsm-system >" + filepath.Join(config.ArtifactsDir, name, "describe.log"))
+	for _, ns := range getNamespaces(nsList) {
+		_, _, exitCode, err := runner.Run("kubectl describe pods -n " + ns + ">" + filepath.Join(config.ArtifactsDir, name, "describe-"+ns+".log"))
+		if exitCode != 0 || err != nil {
+			logrus.Errorf("An error while retrieving describe for namespace: %v", ns)
+		}
+	}
+}
+
+func getNamespaces(nsList *corev1.NamespaceList) []string {
+	var rv []string
+
+	for i := 0; i < len(nsList.Items); i++ {
+		if (nsList.Items[i].Name == "spire" || nsList.Items[i].Name == "nsm-system" || strings.HasPrefix(nsList.Items[i].Name, "ns-")) && nsList.Items[i].Status.Phase == corev1.NamespaceActive {
+			rv = append(rv, nsList.Items[i].Name)
+		}
+	}
+
+	return rv
 }
 
 // Capture returns a function that saves logs since Capture function has been called.
