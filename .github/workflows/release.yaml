@@ -5,7 +5,7 @@ on:
     types:
       - completed
     workflows:
-      - 'ci'
+      - "ci"
 jobs:
   print-debug-info:
     name: Print debug info for Release workflow
@@ -48,6 +48,7 @@ jobs:
           - integration-k8s-gke
           - integration-k8s-aks
           - integration-k8s-aws
+          - integration-k8s-kind
           - integration-interdomain-k8s
     name: Update ${{ matrix.repository }}
     needs: create-release
