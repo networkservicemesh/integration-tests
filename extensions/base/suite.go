@@ -19,6 +19,7 @@ package base
 
 import (
 	"fmt"
+	"strings"
 
 	"github.com/networkservicemesh/gotestmd/pkg/suites/shell"
 	"github.com/networkservicemesh/integration-tests/extensions/checkout"
@@ -59,6 +60,11 @@ func (s *Suite) SetupSuite() {
 	repo := "networkservicemesh/deployments-k8s"
 
 	s.checkout.Version = sha[:8]
+
+	if strings.Contains(sha, "tags") {
+		s.checkout.Version = sha
+	}
+
 	s.checkout.Dir = "../" // Note: this should be synced with input parameters in gen.go file
 	s.checkout.Repository = repo
 	s.checkout.SetT(s.T())
