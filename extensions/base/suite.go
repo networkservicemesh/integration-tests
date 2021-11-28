@@ -58,7 +58,7 @@ const (
 func (s *Suite) SetupSuite() {
 	repo := "networkservicemesh/deployments-k8s"
 
-	s.checkout.Version = sha[:8]
+	s.checkout.Version = "tags/v1.1.0"
 	s.checkout.Dir = "../" // Note: this should be synced with input parameters in gen.go file
 	s.checkout.Repository = repo
 	s.checkout.SetT(s.T())
