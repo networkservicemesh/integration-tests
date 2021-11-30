@@ -220,7 +220,7 @@ func describePods(name string) {
 		return
 	}
 
-	for _, ns := range getNamespaces(nsList) {
+	for _, ns := range filterNamespaces(nsList) {
 		_, _, exitCode, err := runner.Run("kubectl describe pods -n " + ns + ">" + filepath.Join(config.ArtifactsDir, name, "describe-"+ns+".log"))
 		if exitCode != 0 || err != nil {
 			logrus.Errorf("An error while retrieving describe for namespace: %v", ns)
@@ -228,7 +228,7 @@ func describePods(name string) {
 	}
 }
 
-func getNamespaces(nsList *corev1.NamespaceList) []string {
+func filterNamespaces(nsList *corev1.NamespaceList) []string {
 	var rv []string
 
 	for i := 0; i < len(nsList.Items); i++ {
