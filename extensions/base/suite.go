@@ -22,6 +22,7 @@ import (
 	"strings"
 
 	"github.com/networkservicemesh/gotestmd/pkg/suites/shell"
+	suites "github.com/networkservicemesh/integration-tests"
 	"github.com/networkservicemesh/integration-tests/extensions/checkout"
 	"github.com/networkservicemesh/integration-tests/extensions/logs"
 	"github.com/networkservicemesh/integration-tests/extensions/prefetch"
@@ -51,13 +52,11 @@ func (s *Suite) TearDownSuite() {
 	s.storeSuiteLogs()
 }
 
-const (
-	sha = "64be8e76801ae74d8fef40203e1420e1c5fc11f4"
-)
-
 // SetupSuite runs all extensions
 func (s *Suite) SetupSuite() {
 	repo := "networkservicemesh/deployments-k8s"
+
+	sha := suites.SHA
 
 	s.checkout.Version = sha[:8]
 
