@@ -21,20 +21,24 @@ package prefetch_test
 import (
 	"fmt"
 	"os"
+	"runtime"
 	"strings"
 	"testing"
+
+	"github.com/sirupsen/logrus"
+	"github.com/stretchr/testify/require"
+	"go.uber.org/goleak"
 
 	"github.com/networkservicemesh/gotestmd/pkg/bash"
 	suites "github.com/networkservicemesh/integration-tests"
 	"github.com/networkservicemesh/integration-tests/extensions/prefetch/images"
-	"github.com/sirupsen/logrus"
-	"github.com/stretchr/testify/require"
 )
 
-func Test_ImagesCanBePrefetch(t *testing.T) {
+func Test_ImagesCanBePrefetched(t *testing.T) {
+	t.Cleanup(func() {
+		goleak.VerifyNone(t)
+	})
 	var repo = "networkservicemesh/deployments-k8s"
-	var b, err = bash.New(bash.WithEnv(os.Environ()))
-	require.NoError(t, err)
 
 	var list = images.ReteriveList(
 		[]string{
@@ -46,20 +50,44 @@ func Test_ImagesCanBePrefetch(t *testing.T) {
 		},
 	)
 
-	for _, img := range list.Images {
-		var cmd = "docker pull " + img
-		var logger = logrus.WithFields(map[string]interface{}{
-			"run": cmd,
-		})
-		var out, errOut, exitCode, cmdErr = b.Run(cmd)
-		if out != "" {
-			logger.Info(out)
-		}
-		if errOut != "" {
-			logrus.Error(errOut)
-		}
-		require.Zero(t, exitCode)
-		require.NoError(t, cmdErr)
+	var errCh = make(chan error, len(list.Images))
+	var imageCh = make(chan string, len(list.Images))
+
+	for i := 0; i < runtime.NumCPU(); i++ {
+		go func() {
+			var b, err = bash.New(bash.WithEnv(os.Environ()))
+			if err != nil {
+				errCh <- err
+				return
+			}
+			for img := range imageCh {
+				var cmd = "docker pull " + img
+				var logger = logrus.WithFields(map[string]interface{}{
+					"run": cmd,
+				})
+				var out, errOut, _, cmdErr = b.Run(cmd)
+				if out != "" {
+					logger.Info(out)
+				}
+				if errOut != "" {
+					logrus.Error(errOut)
+				}
+				if cmdErr != nil {
+					errCh <- cmdErr
+					return
+				}
+			}
+			errCh <- nil
+		}()
 	}
 
+	for _, image := range list.Images {
+		imageCh <- image
+	}
+
+	close(imageCh)
+
+	for i := 0; i < len(list.Images); i++ {
+		require.NoError(t, <-errCh)
+	}
 }

@@ -8,6 +8,7 @@ require (
 	github.com/networkservicemesh/gotestmd v0.0.0-20211116145945-871d2aaf07ab
 	github.com/sirupsen/logrus v1.8.1
 	github.com/stretchr/testify v1.7.0
+	go.uber.org/goleak v1.1.10
 	golang.org/x/sys v0.0.0-20211116061358-0a5406a5449c // indirect
 	gopkg.in/yaml.v3 v3.0.0-20200313102051-9f266ea9e77c
 	k8s.io/api v0.20.5
