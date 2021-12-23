@@ -80,7 +80,10 @@ func (s *Suite) initialize() {
 	}
 
 	r.Run("kubectl create ns prefetch")
-	s.T().Cleanup(func() { r.Run("kubectl delete ns prefetch") })
+	s.T().Cleanup(func() {
+		r.Run("kubectl describe pods -n prefetch")
+		r.Run("kubectl delete ns prefetch")
+	})
 
 	var wg sync.WaitGroup
 	for _, daemonSet := range daemonSets {
