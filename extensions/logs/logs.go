@@ -25,7 +25,6 @@ import (
 	"os/signal"
 	"path/filepath"
 	"regexp"
-	"strings"
 	"sync"
 	"syscall"
 	"time"
@@ -61,7 +60,7 @@ type Config struct {
 	ArtifactsDir      string        `default:"logs" desc:"Directory for storing container logs" envconfig:"ARTIFACTS_DIR"`
 	Timeout           time.Duration `default:"5s" desc:"Context timeout for kubernetes queries" split_words:"true"`
 	WorkerCount       int           `default:"8" desc:"Number of log collector workers" split_words:"true"`
-	AllowedNamespaces string        `default:"(ns-.*)|(nsm-system)" desc:"Regex of allowed namespaces" split_words:"true"`
+	AllowedNamespaces string        `default:"(^ns-.*)|(nsm-system)|spire|calico-vpp-dataplane" desc:"Regex of allowed namespaces" split_words:"true"`
 }
 
 func savePodLogs(ctx context.Context, pod *corev1.Pod, opts *corev1.PodLogOptions, fromInitContainers bool, dir string) {
@@ -109,6 +108,7 @@ func captureLogs(from time.Time, dir string) {
 	resp, err := kubeClient.CoreV1().Pods(fromAllNamespaces).List(operationCtx, metav1.ListOptions{})
 	if err != nil {
 		logrus.Errorf("An error while retrieving list of pods: %v", err.Error())
+		return
 	}
 	var wg sync.WaitGroup
 
@@ -232,7 +232,7 @@ func filterNamespaces(nsList *corev1.NamespaceList) []string {
 	var rv []string
 
 	for i := 0; i < len(nsList.Items); i++ {
-		if (nsList.Items[i].Name == "spire" || nsList.Items[i].Name == "nsm-system" || strings.HasPrefix(nsList.Items[i].Name, "ns-")) && nsList.Items[i].Status.Phase == corev1.NamespaceActive {
+		if matchRegex.MatchString(nsList.Items[i].Name) && nsList.Items[i].Status.Phase == corev1.NamespaceActive {
 			rv = append(rv, nsList.Items[i].Name)
 		}
 	}
