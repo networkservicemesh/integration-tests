@@ -25,6 +25,7 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/kelseyhightower/envconfig"
+	"github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/require"
 
 	"github.com/networkservicemesh/gotestmd/pkg/bash"
@@ -87,10 +88,26 @@ func (s *Suite) initialize() {
 	var b, err = bash.New(bash.WithDir(tmpDir))
 	s.Require().NoError(err)
 	for _, daemonSet := range daemonSets {
-		b.Run(fmt.Sprintf("kubectl -n prefetch apply -f %s.yaml", daemonSet))
-		b.Run(fmt.Sprintf("kubectl -n prefetch rollout status daemonset/%s --timeout=%s", daemonSet, config.Timeout))
-		b.Run("kubectl -n prefetch describe pods")
-		b.Run(fmt.Sprintf("kubectl -n prefetch delete -f %s.yaml", daemonSet))
+		mustLog(b.Run(fmt.Sprintf("kubectl -n prefetch apply -f %s.yaml", daemonSet)))
+		mustLog(b.Run(fmt.Sprintf("kubectl -n prefetch rollout status daemonset/%s --timeout=%s", daemonSet, config.Timeout)))
+		mustLog(b.Run("kubectl -n prefetch describe pods"))
+		mustLog(b.Run(fmt.Sprintf("kubectl -n prefetch delete -f %s.yaml", daemonSet)))
+	}
+}
+
+func mustLog(stdout, stderr string, exitCode int, err error) {
+	var logger = logrus.WithField("bash", "runner")
+	if stdout != "" {
+		logger.Info(stdout)
+	}
+	if stderr != "" {
+		logger.Error(stderr)
+	}
+	if exitCode != 0 {
+		logger.Errorf("exit code %d", exitCode)
+	}
+	if err != nil {
+		logger.Error(err.Error())
 	}
 }
 
