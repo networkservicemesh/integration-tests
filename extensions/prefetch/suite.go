@@ -91,6 +91,7 @@ func (s *Suite) initialize() {
 		mustLog(b.Run(fmt.Sprintf("kubectl -n prefetch apply -f %s.yaml", daemonSet)))
 		mustLog(b.Run(fmt.Sprintf("kubectl -n prefetch rollout status daemonset/%s --timeout=%s", daemonSet, config.Timeout)))
 		mustLog(b.Run("kubectl -n prefetch describe pods"))
+		mustLog(b.Run("kubectl get mutatingwebhookconfigurations"))
 		mustLog(b.Run(fmt.Sprintf("kubectl -n prefetch delete -f %s.yaml", daemonSet)))
 	}
 }
