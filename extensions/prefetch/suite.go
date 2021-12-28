@@ -27,6 +27,7 @@ import (
 	"github.com/kelseyhightower/envconfig"
 	"github.com/stretchr/testify/require"
 
+	"github.com/networkservicemesh/gotestmd/pkg/bash"
 	"github.com/networkservicemesh/gotestmd/pkg/suites/shell"
 	"github.com/networkservicemesh/integration-tests/extensions/prefetch/images"
 )
@@ -82,22 +83,15 @@ func (s *Suite) initialize() {
 	r.Run("kubectl create ns prefetch")
 	s.T().Cleanup(func() {
 		r.Run("kubectl describe pods -n prefetch")
-		r.Run("kubectl delete ns prefetch")
 	})
-
-	var wg sync.WaitGroup
+	var b, err = bash.New(bash.WithDir(tmpDir))
+	s.Require().NoError(err)
 	for _, daemonSet := range daemonSets {
-		wg.Add(1)
-		go func(daemonSet string) {
-			defer wg.Done()
-
-			dr := s.Runner(tmpDir)
-			dr.Run(fmt.Sprintf("kubectl -n prefetch apply -f %s.yaml", daemonSet))
-			dr.Run(fmt.Sprintf("kubectl -n prefetch rollout status daemonset/%s --timeout=%s", daemonSet, config.Timeout))
-			dr.Run(fmt.Sprintf("kubectl -n prefetch delete -f %s.yaml", daemonSet))
-		}(daemonSet)
+		b.Run(fmt.Sprintf("kubectl -n prefetch apply -f %s.yaml", daemonSet))
+		b.Run(fmt.Sprintf("kubectl -n prefetch rollout status daemonset/%s --timeout=%s", daemonSet, config.Timeout))
+		b.Run("kubectl -n prefetch describe pods")
+		b.Run(fmt.Sprintf("kubectl -n prefetch delete -f %s.yaml", daemonSet))
 	}
-	wg.Wait()
 }
 
 func removeDuplicates(source []string) []string {
