@@ -25,7 +25,7 @@ func (s *Suite) SetupSuite() {
 	}
 	r := s.Runner("../deployments-k8s/examples/memory")
 	s.T().Cleanup(func() {
-		r.Run(`kubectl delete ns nsm-system`)
+		r.Run(`kubectl delete mutatingwebhookconfiguration --all` + "\n" + `kubectl delete ns nsm-system`)
 	})
 	r.Run(`kubectl create ns nsm-system`)
 	r.Run(`kubectl apply -k https://github.com/networkservicemesh/deployments-k8s/examples/memory?ref=4b5d4eebaf82b54ccfceb418d9446b91d3191e8f`)
