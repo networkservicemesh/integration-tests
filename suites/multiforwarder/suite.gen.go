@@ -25,10 +25,11 @@ func (s *Suite) SetupSuite() {
 	}
 	r := s.Runner("../deployments-k8s/examples/multiforwarder")
 	s.T().Cleanup(func() {
-		r.Run(`kubectl delete ns nsm-system`)
+		r.Run(`kubectl delete mutatingwebhookconfiguration --all` + "\n" + `kubectl delete ns nsm-system`)
 	})
 	r.Run(`kubectl create ns nsm-system`)
 	r.Run(`kubectl apply -k https://github.com/networkservicemesh/deployments-k8s/examples/multiforwarder?ref=4b5d4eebaf82b54ccfceb418d9446b91d3191e8f`)
+	r.Run(`WH=$(kubectl get pods -l app=admission-webhook-k8s -n nsm-system --template '{{range .items}}{{.metadata.name}}{{"\n"}}{{end}}')` + "\n" + `kubectl wait --for=condition=ready --timeout=1m pod ${WH} -n nsm-system`)
 }
 func (s *Suite) TestKernel2Kernel() {
 	r := s.Runner("../deployments-k8s/examples/use-cases/Kernel2Kernel")

@@ -29,6 +29,7 @@ func (s *Suite) SetupSuite() {
 	})
 	r.Run(`kubectl create ns nsm-system`)
 	r.Run(`kubectl apply -k https://github.com/networkservicemesh/deployments-k8s/examples/ovs?ref=4b5d4eebaf82b54ccfceb418d9446b91d3191e8f`)
+	r.Run(`WH=$(kubectl get pods -l app=admission-webhook-k8s -n nsm-system --template '{{range .items}}{{.metadata.name}}{{"\n"}}{{end}}')` + "\n" + `kubectl wait --for=condition=ready --timeout=1m pod ${WH} -n nsm-system`)
 }
 func (s *Suite) TestWebhook_smartvf() {
 	r := s.Runner("../deployments-k8s/examples/features/webhook-smartvf")
