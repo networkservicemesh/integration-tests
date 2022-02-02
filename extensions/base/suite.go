@@ -58,11 +58,13 @@ const (
 // SetupSuite runs all extensions
 func (s *Suite) SetupSuite() {
 	repo := "networkservicemesh/deployments-k8s"
+	version := sha[:8]
 
-	s.checkout.Version = sha[:8]
+	s.checkout.Version = version
 
 	if strings.Contains(sha, "tags") {
 		s.checkout.Version = sha
+		version = strings.ReplaceAll(sha, "tags/", "")
 	}
 
 	s.checkout.Dir = "../" // Note: this should be synced with input parameters in gen.go file
@@ -76,8 +78,8 @@ func (s *Suite) SetupSuite() {
 		// For example:
 		//    "file://my-debug-images-for-prefetch.yaml"
 		//    "file://deployments-k8s/apps/"
-		fmt.Sprintf("https://raw.githubusercontent.com/%v/%v/external-images.yaml", repo, sha),
-		fmt.Sprintf("https://api.github.com/repos/%v/contents/apps?ref=%v", repo, sha),
+		fmt.Sprintf("https://raw.githubusercontent.com/%v/%v/external-images.yaml", repo, version),
+		fmt.Sprintf("https://api.github.com/repos/%v/contents/apps?ref=%v", repo, version),
 	}
 
 	s.prefetch.SetT(s.T())
