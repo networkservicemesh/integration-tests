@@ -5,6 +5,7 @@ import (
 	"github.com/stretchr/testify/suite"
 
 	"github.com/networkservicemesh/integration-tests/extensions/base"
+	"github.com/networkservicemesh/integration-tests/suites/remotevlan/rvlanovs"
 	"github.com/networkservicemesh/integration-tests/suites/remotevlan/rvlanvpp"
 	"github.com/networkservicemesh/integration-tests/suites/spire"
 )
@@ -12,6 +13,7 @@ import (
 type Suite struct {
 	base.Suite
 	spireSuite    spire.Suite
+	rvlanovsSuite rvlanovs.Suite
 	rvlanvppSuite rvlanvpp.Suite
 }
 
@@ -27,15 +29,16 @@ func (s *Suite) SetupSuite() {
 	}
 	r := s.Runner("../deployments-k8s/examples/remotevlan")
 	s.T().Cleanup(func() {
-		r.Run(`WH=$(kubectl get pods -l app=admission-webhook-k8s -n nsm-system --template '{{range .items}}{{.metadata.name}}{{"\n"}}{{end}}')` + "\n" + `    kubectl delete mutatingwebhookconfiguration ${WH}` + "\n" + `    kubectl delete ns nsm-system`)
-		r.Run(`docker network disconnect bridge-2 kind-worker` + "\n" + `    docker network disconnect bridge-2 kind-worker2` + "\n" + `    docker network rm bridge-2` + "\n" + `    docker exec kind-worker ip link del eth1` + "\n" + `    docker exec kind-worker2 ip link del eth1` + "\n" + `    true`)
+		r.Run(`WH=$(kubectl get pods -l app=admission-webhook-k8s -n nsm-system --template '{{range .items}}{{.metadata.name}}{{"\n"}}{{end}}')` + "\n" + `kubectl delete mutatingwebhookconfiguration ${WH}` + "\n" + `kubectl delete ns nsm-system`)
+		r.Run(`docker network disconnect bridge-2 kind-worker` + "\n" + `docker network disconnect bridge-2 kind-worker2` + "\n" + `docker network rm bridge-2` + "\n" + `docker exec kind-worker ip link del eth1` + "\n" + `docker exec kind-worker2 ip link del eth1` + "\n" + `true`)
 	})
-	r.Run(`docker network create bridge-2` + "\n" + `    docker network connect bridge-2 kind-worker` + "\n" + `    docker network connect bridge-2 kind-worker2`)
-	r.Run(`ifw1=$(echo $(docker exec kind-worker ip link | tail -2 | head -1) | cut -f1 -d"@" | cut -f2 -d" ")` + "\n" + `    docker exec kind-worker ip link set $ifw1 down` + "\n" + `    docker exec kind-worker ip link set $ifw1 name eth1` + "\n" + `    docker exec kind-worker ip link set eth1 up` + "\n" + `    ifw2=$(echo $(docker exec kind-worker2 ip link | tail -2 | head -1) | cut -f1 -d"@" | cut -f2 -d" ")` + "\n" + `    docker exec kind-worker2 ip link set $ifw2 down` + "\n" + `    docker exec kind-worker2 ip link set $ifw2 name eth1` + "\n" + `    docker exec kind-worker2 ip link set eth1 up`)
+	r.Run(`docker network create bridge-2` + "\n" + `docker network connect bridge-2 kind-worker` + "\n" + `docker network connect bridge-2 kind-worker2`)
+	r.Run(`ifw1=$(echo $(docker exec kind-worker ip link | tail -2 | head -1) | cut -f1 -d"@" | cut -f2 -d" ")` + "\n" + `docker exec kind-worker ip link set $ifw1 down` + "\n" + `docker exec kind-worker ip link set $ifw1 name eth1` + "\n" + `docker exec kind-worker ip link set eth1 up` + "\n" + `ifw2=$(echo $(docker exec kind-worker2 ip link | tail -2 | head -1) | cut -f1 -d"@" | cut -f2 -d" ")` + "\n" + `docker exec kind-worker2 ip link set $ifw2 down` + "\n" + `docker exec kind-worker2 ip link set $ifw2 name eth1` + "\n" + `docker exec kind-worker2 ip link set eth1 up`)
 	r.Run(`kubectl create ns nsm-system`)
+	r.Run(`cat > patch-nse.yaml <<EOF` + "\n" + `---` + "\n" + `apiVersion: apps/v1` + "\n" + `kind: Deployment` + "\n" + `metadata:` + "\n" + `    name: nse-remote-vlan` + "\n" + `spec:` + "\n" + `  template:` + "\n" + `    spec:` + "\n" + `      containers:` + "\n" + `        - name: nse` + "\n" + `          env:` + "\n" + `          - name: NSM_CONNECT_TO` + "\n" + `            value: "registry:5002"` + "\n" + `          - name: NSM_SERVICES` + "\n" + `            value: "finance-bridge { vlan: 100; via: gw1}"` + "\n" + `          - name: NSM_CIDR_PREFIX` + "\n" + `            value: "172.10.0.0/24"` + "\n" + `          - name: NSM_IPV6_PREFIX` + "\n" + `            value: "100:200::/64"` + "\n" + `EOF`)
 	r.Run(`kubectl apply -k .`)
 	r.Run(`kubectl -n nsm-system wait --for=condition=ready --timeout=2m pod -l app=nse-remote-vlan`)
-	r.Run(`WH=$(kubectl get pods -l app=admission-webhook-k8s -n nsm-system --template '{{range .items}}{{.metadata.name}}{{"\n"}}{{end}}')` + "\n" + `    kubectl wait --for=condition=ready --timeout=1m pod ${WH} -n nsm-system`)
+	r.Run(`WH=$(kubectl get pods -l app=admission-webhook-k8s -n nsm-system --template '{{range .items}}{{.metadata.name}}{{"\n"}}{{end}}')` + "\n" + `kubectl wait --for=condition=ready --timeout=1m pod ${WH} -n nsm-system`)
 	s.RunIncludedSuites()
 }
 func (s *Suite) RunIncludedSuites() {
@@ -60,10 +63,19 @@ func (s *Suite) RunIncludedSuites() {
 		// Run test
 		subSuite.(runner).Run(testName, subtest)
 	}
+	s.Run("Rvlanovs", func() {
+		s.rvlanovsSuite.SetT(s.T())
+		s.rvlanovsSuite.SetupSuite()
+		runTest(&s.rvlanovsSuite, "Rvlanovs", "TestKernel2RVlanBreakout", s.rvlanovsSuite.TestKernel2RVlanBreakout)
+		runTest(&s.rvlanovsSuite, "Rvlanovs", "TestKernel2RVlanInternal", s.rvlanovsSuite.TestKernel2RVlanInternal)
+		runTest(&s.rvlanovsSuite, "Rvlanovs", "TestKernel2RVlanMultiNS", s.rvlanovsSuite.TestKernel2RVlanMultiNS)
+	})
 	s.Run("Rvlanvpp", func() {
 		s.rvlanvppSuite.SetT(s.T())
 		s.rvlanvppSuite.SetupSuite()
-		runTest(&s.rvlanvppSuite, "Rvlanvpp", "TestKernel2RVlan", s.rvlanvppSuite.TestKernel2RVlan)
+		runTest(&s.rvlanvppSuite, "Rvlanvpp", "TestKernel2RVlanBreakout", s.rvlanvppSuite.TestKernel2RVlanBreakout)
+		runTest(&s.rvlanvppSuite, "Rvlanvpp", "TestKernel2RVlanInternal", s.rvlanvppSuite.TestKernel2RVlanInternal)
+		runTest(&s.rvlanvppSuite, "Rvlanvpp", "TestKernel2RVlanMultiNS", s.rvlanvppSuite.TestKernel2RVlanMultiNS)
 	})
 }
 func (s *Suite) Test() {}
