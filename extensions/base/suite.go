@@ -52,7 +52,7 @@ func (s *Suite) TearDownSuite() {
 }
 
 const (
-	sha = "483d991cab9d73ed368a93775485e2a77a122506"
+	sha = "tags/v1.3.0-rc.1"
 )
 
 // SetupSuite runs all extensions
