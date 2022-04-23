@@ -1,3 +1,5 @@
+// Copyright (c) 2022 Cisco and/or its affiliates.
+//
 // Copyright (c) 2021 Doc.ai and/or its affiliates.
 //
 // SPDX-License-Identifier: Apache-2.0
@@ -62,7 +64,7 @@ func (s *Suite) initialize() {
 	prefetchImages = removeDuplicates(prefetchImages)
 
 	tmpDir := uuid.NewString()
-	require.NoError(s.T(), os.MkdirAll(tmpDir, 0750))
+	require.NoError(s.T(), os.MkdirAll(tmpDir, 0o750))
 	s.T().Cleanup(func() { _ = os.RemoveAll(tmpDir) })
 
 	r := s.Runner(tmpDir)
