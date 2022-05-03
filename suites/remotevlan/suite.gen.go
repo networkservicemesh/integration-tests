@@ -5,6 +5,7 @@ import (
 	"github.com/stretchr/testify/suite"
 
 	"github.com/networkservicemesh/integration-tests/extensions/base"
+	"github.com/networkservicemesh/integration-tests/suites/remotevlan/rvlanovs"
 	"github.com/networkservicemesh/integration-tests/suites/remotevlan/rvlanvpp"
 	"github.com/networkservicemesh/integration-tests/suites/spire"
 )
@@ -12,6 +13,7 @@ import (
 type Suite struct {
 	base.Suite
 	spireSuite    spire.Suite
+	rvlanovsSuite rvlanovs.Suite
 	rvlanvppSuite rvlanvpp.Suite
 }
 
@@ -61,6 +63,13 @@ func (s *Suite) RunIncludedSuites() {
 		// Run test
 		subSuite.(runner).Run(testName, subtest)
 	}
+	s.Run("Rvlanovs", func() {
+		s.rvlanovsSuite.SetT(s.T())
+		s.rvlanovsSuite.SetupSuite()
+		runTest(&s.rvlanovsSuite, "Rvlanovs", "TestKernel2RVlanBreakout", s.rvlanovsSuite.TestKernel2RVlanBreakout)
+		runTest(&s.rvlanovsSuite, "Rvlanovs", "TestKernel2RVlanInternal", s.rvlanovsSuite.TestKernel2RVlanInternal)
+		runTest(&s.rvlanovsSuite, "Rvlanovs", "TestKernel2RVlanMultiNS", s.rvlanovsSuite.TestKernel2RVlanMultiNS)
+	})
 	s.Run("Rvlanvpp", func() {
 		s.rvlanvppSuite.SetT(s.T())
 		s.rvlanvppSuite.SetupSuite()
