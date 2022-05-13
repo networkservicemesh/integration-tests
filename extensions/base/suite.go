@@ -52,7 +52,7 @@ func (s *Suite) TearDownSuite() {
 }
 
 const (
-	sha = "b6582e13e559ccc7185a260ea9f2431a4620ce8d"
+	sha = "5547003b386b65f8f1183776473358a3907b66c1"
 )
 
 // SetupSuite runs all extensions
