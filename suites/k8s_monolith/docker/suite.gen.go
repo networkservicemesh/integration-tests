@@ -23,9 +23,10 @@ func (s *Suite) SetupSuite() {
 	}
 	r := s.Runner("../deployments-k8s/examples/k8s_monolith/docker")
 	s.T().Cleanup(func() {
-		r.Run(`docker compose -f https://raw.githubusercontent.com/networkservicemesh/deployments-k8s/c458b6c8cbb233b5b60c5b216c435fd7d7188838/apps/nse-simple-vl3-docker/docker-compose.yaml -f docker-compose.override.yaml down`)
+		r.Run(`docker compose -f docker-compose.yaml -f docker-compose.override.yaml down`)
 	})
 	r.Run(`cat > docker-compose.override.yaml <<EOF` + "\n" + `---` + "\n" + `networks:` + "\n" + `  kind:` + "\n" + `    external: true` + "\n" + `` + "\n" + `services:` + "\n" + `  nse-simple-vl3-docker:` + "\n" + `    networks:` + "\n" + `      kind:` + "\n" + `        ipv4_address: 172.18.0.50` + "\n" + `    environment:` + "\n" + `      NSM_TUNNEL_IP: 172.18.0.50` + "\n" + `EOF`)
-	r.Run(`docker compose -f https://raw.githubusercontent.com/networkservicemesh/deployments-k8s/c458b6c8cbb233b5b60c5b216c435fd7d7188838/apps/nse-simple-vl3-docker/docker-compose.yaml -f docker-compose.override.yaml up -d`)
+	r.Run(`curl https://raw.githubusercontent.com/networkservicemesh/deployments-k8s/9f6a4448acd27cc6bc6f210f647410025141854d/apps/nse-simple-vl3-docker/docker-compose.yaml -o docker-compose.yaml`)
+	r.Run(`docker compose -f docker-compose.yaml -f docker-compose.override.yaml up -d`)
 }
 func (s *Suite) Test() {}
