@@ -1,5 +1,7 @@
 // Copyright (c) 2021 Doc.ai and/or its affiliates.
 //
+// Copyright (c) 2022 Cisco and/or its affiliates.
+//
 // SPDX-License-Identifier: Apache-2.0
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
@@ -20,6 +22,7 @@ package prefetch
 import (
 	"fmt"
 	"os"
+	"path/filepath"
 	"strings"
 	"sync"
 
@@ -61,7 +64,9 @@ func (s *Suite) initialize() {
 
 	prefetchImages = removeDuplicates(prefetchImages)
 
-	tmpDir := uuid.NewString()
+	wd, err := os.Getwd()
+	require.NoError(s.T(), err)
+	tmpDir := filepath.Join(wd, uuid.NewString())
 	require.NoError(s.T(), os.MkdirAll(tmpDir, 0750))
 	s.T().Cleanup(func() { _ = os.RemoveAll(tmpDir) })
 
