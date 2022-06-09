@@ -57,8 +57,8 @@ const (
 
 // SetupSuite runs all extensions
 func (s *Suite) SetupSuite() {
-	repo := "networkservicemesh/deployments-k8s"
-	version := sha[:8]
+	repo := "anastasia-malysheva/deployments-k8s"
+	version := "floating-interdomain-vl3-autoscale"
 
 	s.checkout.Version = version
 
