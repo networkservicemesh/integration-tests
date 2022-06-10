@@ -52,13 +52,13 @@ func (s *Suite) TearDownSuite() {
 }
 
 const (
-	sha = "467c58d970a97e78188180ef559f41f5f57d23b3"
+	sha = "11be02477d1620ee5692d01c3bb95974fad568a9"
 )
 
 // SetupSuite runs all extensions
 func (s *Suite) SetupSuite() {
 	repo := "anastasia-malysheva/deployments-k8s"
-	version := "floating-interdomain-vl3-autoscale"
+	version := sha[:8]
 
 	s.checkout.Version = version
 
