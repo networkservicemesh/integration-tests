@@ -5,16 +5,16 @@ import (
 	"github.com/stretchr/testify/suite"
 
 	"github.com/networkservicemesh/integration-tests/extensions/base"
-	"github.com/networkservicemesh/integration-tests/suites/interdomain"
+	"github.com/networkservicemesh/integration-tests/suites/floating_interdomain"
 )
 
 type Suite struct {
 	base.Suite
-	interdomainSuite interdomain.Suite
+	floating_interdomainSuite floating_interdomain.Suite
 }
 
 func (s *Suite) SetupSuite() {
-	parents := []interface{}{&s.Suite, &s.interdomainSuite}
+	parents := []interface{}{&s.Suite, &s.floating_interdomainSuite}
 	for _, p := range parents {
 		if v, ok := p.(suite.TestingSuite); ok {
 			v.SetT(s.T())
@@ -23,7 +23,7 @@ func (s *Suite) SetupSuite() {
 			v.SetupSuite()
 		}
 	}
-	r := s.Runner("../deployments-k8s/examples/interdomain/usecases/FloatingVl3")
+	r := s.Runner("../deployments-k8s/examples/floating_interdomain/usecases/FloatingVl3")
 	s.T().Cleanup(func() {
 		r.Run(`export KUBECONFIG=$KUBECONFIG3 kubectl delete -k ./cluster3`)
 		r.Run(`export KUBECONFIG=$KUBECONFIG2 kubectl delete -k ./cluster2`)
