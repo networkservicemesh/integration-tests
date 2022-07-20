@@ -21,7 +21,7 @@ func (s *Suite) SetupSuite() {
 			v.SetupSuite()
 		}
 	}
-	r := s.Runner("../deployments-k8s/examples/k8s_monolith/dns")
+	r := s.Runner("../deployments-k8s/examples/k8s_monolith/external_nse/dns")
 	s.T().Cleanup(func() {
 		r.Run(`kubectl delete service -n kube-system exposed-kube-dns`)
 	})
