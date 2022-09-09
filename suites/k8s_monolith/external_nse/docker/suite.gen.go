@@ -26,7 +26,7 @@ func (s *Suite) SetupSuite() {
 		r.Run(`docker compose -f docker-compose.yaml -f docker-compose.override.yaml down`)
 	})
 	r.Run(`cat > docker-compose.override.yaml <<EOF` + "\n" + `---` + "\n" + `networks:` + "\n" + `  kind:` + "\n" + `    external: true` + "\n" + `` + "\n" + `services:` + "\n" + `  nse-simple-vl3-docker:` + "\n" + `    networks:` + "\n" + `      - kind` + "\n" + `EOF`)
-	r.Run(`curl https://raw.githubusercontent.com/networkservicemesh/deployments-k8s/dd875e768190907804ee83ca1412eae997d67871/apps/nse-simple-vl3-docker/docker-compose.yaml -o docker-compose.yaml`)
+	r.Run(`curl https://raw.githubusercontent.com/networkservicemesh/deployments-k8s/b3b9066d54b23eee85de6a5b1578c7b49065fb89/apps/nse-simple-vl3-docker/docker-compose.yaml -o docker-compose.yaml`)
 	r.Run(`docker compose -f docker-compose.yaml -f docker-compose.override.yaml up -d`)
 }
 func (s *Suite) Test() {}

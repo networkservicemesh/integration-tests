@@ -32,7 +32,7 @@ func (s *Suite) SetupSuite() {
 		r.Run(`kubectl delete ns nsm-system`)
 	})
 	r.Run(`kubectl create ns nsm-system`)
-	r.Run(`kubectl apply -k https://github.com/networkservicemesh/deployments-k8s/examples/k8s_monolith/configuration/cluster?ref=dd875e768190907804ee83ca1412eae997d67871`)
+	r.Run(`kubectl apply -k https://github.com/networkservicemesh/deployments-k8s/examples/k8s_monolith/configuration/cluster?ref=b3b9066d54b23eee85de6a5b1578c7b49065fb89`)
 	r.Run(`kubectl get services registry -n nsm-system -o go-template='{{index (index (index (index .status "loadBalancer") "ingress") 0) "ip"}}'`)
 }
 func (s *Suite) TestKernel2Wireguard2Kernel() {
@@ -40,8 +40,8 @@ func (s *Suite) TestKernel2Wireguard2Kernel() {
 	s.T().Cleanup(func() {
 		r.Run(`kubectl delete ns ${NAMESPACE}`)
 	})
-	r.Run(`NAMESPACE=($(kubectl create -f https://raw.githubusercontent.com/networkservicemesh/deployments-k8s/dd875e768190907804ee83ca1412eae997d67871/examples/k8s_monolith/external_nse/usecases/namespace.yaml)[0])` + "\n" + `NAMESPACE=${NAMESPACE:10}`)
-	r.Run(`cat > kustomization.yaml <<EOF` + "\n" + `---` + "\n" + `apiVersion: kustomize.config.k8s.io/v1beta1` + "\n" + `kind: Kustomization` + "\n" + `` + "\n" + `namespace: ${NAMESPACE}` + "\n" + `` + "\n" + `bases:` + "\n" + `- https://github.com/networkservicemesh/deployments-k8s/apps/nsc-kernel?ref=dd875e768190907804ee83ca1412eae997d67871` + "\n" + `` + "\n" + `patchesStrategicMerge:` + "\n" + `- patch-nsc.yaml` + "\n" + `EOF`)
+	r.Run(`NAMESPACE=($(kubectl create -f https://raw.githubusercontent.com/networkservicemesh/deployments-k8s/b3b9066d54b23eee85de6a5b1578c7b49065fb89/examples/k8s_monolith/external_nse/usecases/namespace.yaml)[0])` + "\n" + `NAMESPACE=${NAMESPACE:10}`)
+	r.Run(`cat > kustomization.yaml <<EOF` + "\n" + `---` + "\n" + `apiVersion: kustomize.config.k8s.io/v1beta1` + "\n" + `kind: Kustomization` + "\n" + `` + "\n" + `namespace: ${NAMESPACE}` + "\n" + `` + "\n" + `bases:` + "\n" + `- https://github.com/networkservicemesh/deployments-k8s/apps/nsc-kernel?ref=b3b9066d54b23eee85de6a5b1578c7b49065fb89` + "\n" + `` + "\n" + `patchesStrategicMerge:` + "\n" + `- patch-nsc.yaml` + "\n" + `EOF`)
 	r.Run(`cat > patch-nsc.yaml <<EOF` + "\n" + `---` + "\n" + `apiVersion: apps/v1` + "\n" + `kind: Deployment` + "\n" + `metadata:` + "\n" + `  name: nsc-kernel` + "\n" + `spec:` + "\n" + `  replicas: 2` + "\n" + `  template:` + "\n" + `    spec:` + "\n" + `      containers:` + "\n" + `        - name: nsc` + "\n" + `          env:` + "\n" + `            - name: NSM_NETWORK_SERVICES` + "\n" + `              value: kernel://docker-vl3/nsm-1` + "\n" + `EOF`)
 	r.Run(`kubectl apply -k .`)
 	r.Run(`kubectl wait --for=condition=ready --timeout=1m pod -l app=nsc-kernel -n ${NAMESPACE}`)
