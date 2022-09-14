@@ -28,16 +28,16 @@ func (s *Suite) SetupSuite() {
 		r.Run(`WH=$(kubectl get pods -l app=admission-webhook-k8s -n nsm-system --template '{{range .items}}{{.metadata.name}}{{"\n"}}{{end}}')` + "\n" + `kubectl delete mutatingwebhookconfiguration ${WH}` + "\n" + `kubectl delete ns nsm-system`)
 	})
 	r.Run(`kubectl create ns nsm-system`)
-	r.Run(`kubectl apply -k https://github.com/networkservicemesh/deployments-k8s/examples/memory?ref=f35a46637f17f7addbb3fa20e5e676f770088ab1`)
+	r.Run(`kubectl apply -k https://github.com/networkservicemesh/deployments-k8s/examples/memory?ref=d223acfa8cbab4c3b13b97a9a82878a0966fdafd`)
 	r.Run(`WH=$(kubectl get pods -l app=admission-webhook-k8s -n nsm-system --template '{{range .items}}{{.metadata.name}}{{"\n"}}{{end}}')` + "\n" + `kubectl wait --for=condition=ready --timeout=1m pod ${WH} -n nsm-system`)
 }
 func (s *Suite) TestKernel2Kernel() {
-	r := s.Runner("../deployments-k8s/examples/use-cases/Kernel2Kernel")
+	r := s.Runner("../deployments-k8s/examples/memory/Kernel2Kernel")
 	s.T().Cleanup(func() {
 		r.Run(`kubectl delete ns ns-kernel2kernel`)
 	})
 	r.Run(`kubectl create ns ns-kernel2kernel`)
-	r.Run(`kubectl apply -k https://github.com/networkservicemesh/deployments-k8s/examples/use-cases/Kernel2Kernel?ref=f35a46637f17f7addbb3fa20e5e676f770088ab1`)
+	r.Run(`kubectl apply -k https://github.com/networkservicemesh/deployments-k8s/examples/memory/Kernel2Kernel?ref=d223acfa8cbab4c3b13b97a9a82878a0966fdafd`)
 	r.Run(`kubectl wait --for=condition=ready --timeout=1m pod -l app=alpine -n ns-kernel2kernel`)
 	r.Run(`kubectl wait --for=condition=ready --timeout=1m pod -l app=nse-kernel -n ns-kernel2kernel`)
 	r.Run(`NSC=$(kubectl get pods -l app=alpine -n ns-kernel2kernel --template '{{range .items}}{{.metadata.name}}{{"\n"}}{{end}}')`)
@@ -46,12 +46,12 @@ func (s *Suite) TestKernel2Kernel() {
 	r.Run(`kubectl exec ${NSE} -n ns-kernel2kernel -- ping -c 4 172.16.1.101`)
 }
 func (s *Suite) TestKernel2Vxlan2Kernel() {
-	r := s.Runner("../deployments-k8s/examples/use-cases/Kernel2Vxlan2Kernel")
+	r := s.Runner("../deployments-k8s/examples/memory/Kernel2Vxlan2Kernel")
 	s.T().Cleanup(func() {
 		r.Run(`kubectl delete ns ns-kernel2vxlan2kernel`)
 	})
 	r.Run(`kubectl create ns ns-kernel2vxlan2kernel`)
-	r.Run(`kubectl apply -k https://github.com/networkservicemesh/deployments-k8s/examples/use-cases/Kernel2Vxlan2Kernel?ref=f35a46637f17f7addbb3fa20e5e676f770088ab1`)
+	r.Run(`kubectl apply -k https://github.com/networkservicemesh/deployments-k8s/examples/memory/Kernel2Vxlan2Kernel?ref=d223acfa8cbab4c3b13b97a9a82878a0966fdafd`)
 	r.Run(`kubectl wait --for=condition=ready --timeout=1m pod -l app=alpine -n ns-kernel2vxlan2kernel`)
 	r.Run(`kubectl wait --for=condition=ready --timeout=1m pod -l app=nse-kernel -n ns-kernel2vxlan2kernel`)
 	r.Run(`NSC=$(kubectl get pods -l app=alpine -n ns-kernel2vxlan2kernel --template '{{range .items}}{{.metadata.name}}{{"\n"}}{{end}}')`)
@@ -60,12 +60,12 @@ func (s *Suite) TestKernel2Vxlan2Kernel() {
 	r.Run(`kubectl exec ${NSE} -n ns-kernel2vxlan2kernel -- ping -c 4 172.16.1.101`)
 }
 func (s *Suite) TestMemif2Memif() {
-	r := s.Runner("../deployments-k8s/examples/use-cases/Memif2Memif")
+	r := s.Runner("../deployments-k8s/examples/memory/Memif2Memif")
 	s.T().Cleanup(func() {
 		r.Run(`kubectl delete ns ns-memif2memif`)
 	})
 	r.Run(`kubectl create ns ns-memif2memif`)
-	r.Run(`kubectl apply -k https://github.com/networkservicemesh/deployments-k8s/examples/use-cases/Memif2Memif?ref=f35a46637f17f7addbb3fa20e5e676f770088ab1`)
+	r.Run(`kubectl apply -k https://github.com/networkservicemesh/deployments-k8s/examples/memory/Memif2Memif?ref=d223acfa8cbab4c3b13b97a9a82878a0966fdafd`)
 	r.Run(`kubectl wait --for=condition=ready --timeout=1m pod -l app=nsc-memif -n ns-memif2memif`)
 	r.Run(`kubectl wait --for=condition=ready --timeout=1m pod -l app=nse-memif -n ns-memif2memif`)
 	r.Run(`NSC=$(kubectl get pods -l app=nsc-memif -n ns-memif2memif --template '{{range .items}}{{.metadata.name}}{{"\n"}}{{end}}')`)
