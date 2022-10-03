@@ -28,7 +28,7 @@ func (s *Suite) SetupSuite() {
 		r.Run(`WH=$(kubectl get pods -l app=admission-webhook-k8s -n nsm-system --template '{{range .items}}{{.metadata.name}}{{"\n"}}{{end}}')` + "\n" + `kubectl delete mutatingwebhookconfiguration ${WH}` + "\n" + `kubectl delete ns nsm-system`)
 	})
 	r.Run(`kubectl create ns nsm-system`)
-	r.Run(`kubectl apply -k https://github.com/networkservicemesh/deployments-k8s/examples/sriov?ref=2dbc67a434ce864fe0aca418e578d2fa78e2fcb6`)
+	r.Run(`kubectl apply -k https://github.com/networkservicemesh/deployments-k8s/examples/sriov?ref=v1.6.0`)
 }
 func (s *Suite) TestSriovKernel2Noop() {
 	r := s.Runner("../deployments-k8s/examples/use-cases/SriovKernel2Noop")
@@ -36,7 +36,7 @@ func (s *Suite) TestSriovKernel2Noop() {
 		r.Run(`kubectl delete ns ns-sriov-kernel2noop`)
 	})
 	r.Run(`kubectl create ns ns-sriov-kernel2noop`)
-	r.Run(`kubectl apply -k https://github.com/networkservicemesh/deployments-k8s/examples/use-cases/SriovKernel2Noop?ref=2dbc67a434ce864fe0aca418e578d2fa78e2fcb6`)
+	r.Run(`kubectl apply -k https://github.com/networkservicemesh/deployments-k8s/examples/use-cases/SriovKernel2Noop?ref=v1.6.0`)
 	r.Run(`kubectl -n ns-sriov-kernel2noop wait --for=condition=ready --timeout=1m pod -l app=nsc-kernel`)
 	r.Run(`kubectl -n ns-sriov-kernel2noop wait --for=condition=ready --timeout=1m pod -l app=nse-kernel`)
 	r.Run(`kubectl -n ns-sriov-kernel2noop wait --for=condition=ready --timeout=1m pod -l app=ponger`)
@@ -55,7 +55,7 @@ func (s *Suite) TestVfio2Noop() {
 	r.Run(`CLIENT_MAC=$(mac_create)` + "\n" + `echo Client MAC: ${CLIENT_MAC}`)
 	r.Run(`SERVER_MAC=$(mac_create)` + "\n" + `echo Server MAC: ${SERVER_MAC}`)
 	r.Run(`cat > patch-nse-vfio.yaml <<EOF` + "\n" + `---` + "\n" + `apiVersion: apps/v1` + "\n" + `kind: Deployment` + "\n" + `metadata:` + "\n" + `  name: nse-vfio` + "\n" + `spec:` + "\n" + `  template:` + "\n" + `    spec:` + "\n" + `      containers:` + "\n" + `        - name: sidecar` + "\n" + `          env:` + "\n" + `            - name: NSM_SERVICES` + "\n" + `              value: "pingpong@worker.domain: { addr: ${SERVER_MAC} }"` + "\n" + `        - name: ponger` + "\n" + `          command: ["/bin/bash", "/root/scripts/pong.sh", "ens6f3", "31", ${SERVER_MAC}]` + "\n" + `EOF`)
-	r.Run(`kubectl apply -k https://github.com/networkservicemesh/deployments-k8s/examples/use-cases/Vfio2Noop?ref=2dbc67a434ce864fe0aca418e578d2fa78e2fcb6`)
+	r.Run(`kubectl apply -k https://github.com/networkservicemesh/deployments-k8s/examples/use-cases/Vfio2Noop?ref=v1.6.0`)
 	r.Run(`kubectl -n ns-vfio2noop wait --for=condition=ready --timeout=1m pod -l app=nsc-vfio`)
 	r.Run(`kubectl -n ns-vfio2noop wait --for=condition=ready --timeout=1m pod -l app=nse-vfio`)
 	r.Run(`NSC_VFIO=$(kubectl -n ns-vfio2noop get pods -l app=nsc-vfio --template '{{range .items}}{{.metadata.name}}{{"\n"}}{{end}}')`)
