@@ -5,20 +5,18 @@ import (
 	"github.com/stretchr/testify/suite"
 
 	"github.com/networkservicemesh/integration-tests/extensions/base"
-	"github.com/networkservicemesh/integration-tests/suites/k8s_monolith/configuration/loadbalancer"
 	"github.com/networkservicemesh/integration-tests/suites/k8s_monolith/external_nsc"
 	"github.com/networkservicemesh/integration-tests/suites/k8s_monolith/external_nse"
 )
 
 type Suite struct {
 	base.Suite
-	loadbalancerSuite loadbalancer.Suite
 	external_nscSuite external_nsc.Suite
 	external_nseSuite external_nse.Suite
 }
 
 func (s *Suite) SetupSuite() {
-	parents := []interface{}{&s.Suite, &s.loadbalancerSuite}
+	parents := []interface{}{&s.Suite}
 	for _, p := range parents {
 		if v, ok := p.(suite.TestingSuite); ok {
 			v.SetT(s.T())
