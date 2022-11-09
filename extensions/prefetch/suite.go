@@ -67,7 +67,7 @@ func (s *Suite) initialize() {
 	wd, err := os.Getwd()
 	require.NoError(s.T(), err)
 	tmpDir := filepath.Join(wd, uuid.NewString())
-	require.NoError(s.T(), os.MkdirAll(tmpDir, 0750))
+	require.NoError(s.T(), os.MkdirAll(tmpDir, 0o750))
 	s.T().Cleanup(func() { _ = os.RemoveAll(tmpDir) })
 
 	r := s.Runner(tmpDir)
