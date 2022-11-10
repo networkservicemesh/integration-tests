@@ -14,6 +14,7 @@ jobs:
     if: ${{ github.event.workflow_run.conclusion == 'success' && github.actor == 'nsmbot' || github.event_name == 'push' }}
     uses: networkservicemesh/.github/.github/workflows/update-dependent-repositories-gomod.yaml@main
     with:
-      dependent_repositories: "integration-k8s-kind"
+      dependent_repositories: |
+        ["integration-k8s-kind"]
     secrets:
       token: ${{ secrets.NSM_BOT_GITHUB_TOKEN }}
