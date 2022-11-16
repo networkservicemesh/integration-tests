@@ -21,7 +21,7 @@ func (s *Suite) SetupSuite() {
 			v.SetupSuite()
 		}
 	}
-	r := s.Runner("../deployments-k8s/examples/floating_interdomain/loadbalancer")
+	r := s.Runner("../deployments-k8s/examples/multicluster/loadbalancer")
 	s.T().Cleanup(func() {
 		r.Run(`export KUBECONFIG=$KUBECONFIG1 ` + "\n" + `if [[ ! -z $CLUSTER1_CIDR ]]; then` + "\n" + `  kubectl delete ns metallb-system  ` + "\n" + `fi`)
 		r.Run(`export KUBECONFIG=$KUBECONFIG2` + "\n" + `if [[ ! -z $CLUSTER2_CIDR ]]; then` + "\n" + `  kubectl delete ns metallb-system  ` + "\n" + `fi`)
