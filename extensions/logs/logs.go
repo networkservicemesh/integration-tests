@@ -22,11 +22,11 @@ package logs
 import (
 	"context"
 	"fmt"
-	"io/ioutil"
 	"os"
 	"os/signal"
 	"path/filepath"
 	"regexp"
+	"strings"
 	"sync"
 	"syscall"
 	"time"
@@ -65,78 +65,56 @@ type Config struct {
 	AllowedNamespaces string        `default:"(ns-.*)|(nsm-system)|(spire)|(observability)" desc:"Regex of allowed namespaces" split_words:"true"`
 }
 
-func savePodLogs(ctx context.Context, pod *corev1.Pod, opts *corev1.PodLogOptions, fromInitContainers bool, dir string) {
-	containers := pod.Spec.Containers
-	if fromInitContainers {
-		containers = pod.Spec.InitContainers
-	}
-	for _, prev := range []bool{false, true} {
-		opts.Previous = prev
-		for i := 0; i < len(containers); i++ {
-			opts.Container = containers[i].Name
-
-			// Add container name to log filename in case of init-containers or multiple containers in the pod
-			containerName := ""
-			if fromInitContainers || len(containers) > 1 {
-				containerName = "-" + containers[i].Name
-			}
-
-			// Retrieve logs
-			data, err := kubeClient.CoreV1().
-				Pods(pod.Namespace).
-				GetLogs(pod.Name, opts).
-				DoRaw(ctx)
-			if err != nil {
-				logrus.Errorf("%v: An error while retrieving logs: %v", pod.Name, err.Error())
-				return
-			}
-
-			// Save logs
-			suffix := ".log"
-			if opts.Previous {
-				suffix = "-previous.log"
-			}
-			err = ioutil.WriteFile(filepath.Join(dir, pod.Name+containerName+suffix), data, os.ModePerm)
-			if err != nil {
-				logrus.Errorf("An error during saving logs: %v", err.Error())
-			}
+func contains(s []string, e string) bool {
+	for _, a := range s {
+		if a == e {
+			return true
 		}
 	}
+	return false
 }
 
-func captureLogs(from time.Time, dir string) {
-	operationCtx, cancel := context.WithTimeout(ctx, config.Timeout)
-	defer cancel()
-	resp, err := kubeClient.CoreV1().Pods(fromAllNamespaces).List(operationCtx, metav1.ListOptions{})
+func captureLogs(initialNsList []string, name string) {
+	dir := filepath.Join(config.ArtifactsDir, name)
+	err := os.MkdirAll(dir, os.ModePerm)
 	if err != nil {
-		logrus.Errorf("An error while retrieving list of pods: %v", err.Error())
-	}
-	var wg sync.WaitGroup
-
-	for i := 0; i < len(resp.Items); i++ {
-		pod := &resp.Items[i]
-		if !matchRegex.MatchString(pod.Namespace) {
-			continue
-		}
-		wg.Add(1)
-		captureLogsTask := func() {
-			opts := &corev1.PodLogOptions{
-				SinceTime: &metav1.Time{Time: from},
-			}
-			savePodLogs(operationCtx, pod, opts, false, dir)
-			savePodLogs(operationCtx, pod, opts, true, dir)
-
-			wg.Done()
-		}
-		select {
-		case <-ctx.Done():
-			return
-		case jobsCh <- captureLogsTask:
-			continue
-		}
+		logrus.Errorf("captureLogs: MkdirAll failed: %v", err.Error())
+		return
 	}
 
-	wg.Wait()
+	nsList, err := listNamespaces()
+	if err != nil {
+		logrus.Errorf("captureLogs: can't list namespaces: %v", err.Error())
+		return
+	}
+
+	var newNamespaces []string
+	for _, ns := range nsList {
+		if contains(initialNsList, ns) {
+			continue
+		}
+		newNamespaces = append(newNamespaces, ns)
+	}
+
+	runner, err := bash.New()
+	if err != nil {
+		logrus.Errorf(err.Error())
+		return
+	}
+	dumpCommand := fmt.Sprintf(
+		"kubectl cluster-info dump"+
+			" --output yaml"+
+			" --output-directory \"%v\""+
+			" --namespaces %v",
+		dir,
+		strings.Join(newNamespaces, ","),
+	)
+	_, _, exitCode, err := runner.Run(dumpCommand)
+	if exitCode != 0 || err != nil {
+		logrus.Errorf("An error while retrieving cluster-info dump")
+		return
+	}
+	logrus.Infof("Successfully retrieved cluster-info dump")
 }
 
 func initialize() {
@@ -194,16 +172,37 @@ func initialize() {
 	}()
 }
 
+func listNamespaces() ([]string, error) {
+	operationCtx, cancel := context.WithTimeout(ctx, config.Timeout)
+	defer cancel()
+
+	resp, err := kubeClient.CoreV1().Namespaces().List(operationCtx, metav1.ListOptions{})
+	if err != nil {
+		return nil, err
+	}
+
+	var nsList []string
+	for _, ns := range resp.Items {
+		if !matchRegex.MatchString(ns.Name) {
+			continue
+		}
+		nsList = append(nsList, ns.Name)
+	}
+
+	return nsList, nil
+}
+
 func capture(name string) context.CancelFunc {
 	once.Do(initialize)
 
-	now := time.Now()
-
-	dir := filepath.Join(config.ArtifactsDir, name)
-	_ = os.MkdirAll(dir, os.ModePerm)
+	nsList, err := listNamespaces()
+	if err != nil {
+		logrus.Errorf("log saver init for %v: can't list namespaces: %v", name, err.Error())
+		return func() {}
+	}
 
 	return func() {
-		captureLogs(now, dir)
+		captureLogs(nsList, name)
 	}
 }
 
