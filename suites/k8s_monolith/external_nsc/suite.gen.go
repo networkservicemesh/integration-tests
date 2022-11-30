@@ -8,19 +8,21 @@ import (
 	"github.com/networkservicemesh/integration-tests/suites/k8s_monolith/configuration/loadbalancer"
 	"github.com/networkservicemesh/integration-tests/suites/k8s_monolith/external_nsc/dns"
 	"github.com/networkservicemesh/integration-tests/suites/k8s_monolith/external_nsc/docker"
-	"github.com/networkservicemesh/integration-tests/suites/k8s_monolith/external_nsc/spire"
+	"github.com/networkservicemesh/integration-tests/suites/k8s_monolith/external_nsc/spiffe_federation"
+	"github.com/networkservicemesh/integration-tests/suites/spire/single_cluster"
 )
 
 type Suite struct {
 	base.Suite
-	loadbalancerSuite loadbalancer.Suite
-	dockerSuite       docker.Suite
-	dnsSuite          dns.Suite
-	spireSuite        spire.Suite
+	loadbalancerSuite      loadbalancer.Suite
+	dockerSuite            docker.Suite
+	dnsSuite               dns.Suite
+	single_clusterSuite    single_cluster.Suite
+	spiffe_federationSuite spiffe_federation.Suite
 }
 
 func (s *Suite) SetupSuite() {
-	parents := []interface{}{&s.Suite, &s.loadbalancerSuite, &s.dockerSuite, &s.dnsSuite, &s.spireSuite}
+	parents := []interface{}{&s.Suite, &s.loadbalancerSuite, &s.dockerSuite, &s.dnsSuite, &s.single_clusterSuite, &s.spiffe_federationSuite}
 	for _, p := range parents {
 		if v, ok := p.(suite.TestingSuite); ok {
 			v.SetT(s.T())
@@ -34,7 +36,7 @@ func (s *Suite) SetupSuite() {
 		r.Run(`WH=$(kubectl get pods -l app=admission-webhook-k8s -n nsm-system --template '{{range .items}}{{.metadata.name}}{{"\n"}}{{end}}')` + "\n" + `kubectl delete mutatingwebhookconfiguration ${WH}` + "\n" + `kubectl delete ns nsm-system`)
 	})
 	r.Run(`kubectl create ns nsm-system`)
-	r.Run(`kubectl apply -k https://github.com/networkservicemesh/deployments-k8s/examples/k8s_monolith/configuration/cluster?ref=018115284deca950e03b046df9f5d98527545f59`)
+	r.Run(`kubectl apply -k https://github.com/networkservicemesh/deployments-k8s/examples/k8s_monolith/configuration/cluster?ref=17f1ec868e6b6be6fa6adc1d7d02b1d04d9309c4`)
 	r.Run(`kubectl get services registry -n nsm-system -o go-template='{{index (index (index (index .status "loadBalancer") "ingress") 0) "ip"}}'`)
 }
 func (s *Suite) TestKernel2Wireguard2Kernel() {
@@ -43,7 +45,7 @@ func (s *Suite) TestKernel2Wireguard2Kernel() {
 		r.Run(`kubectl delete ns ns-kernel2wireguard2kernel-monolith-nsc`)
 	})
 	r.Run(`kubectl create ns ns-kernel2wireguard2kernel-monolith-nsc`)
-	r.Run(`kubectl apply -k https://github.com/networkservicemesh/deployments-k8s/examples/k8s_monolith/external_nsc/usecases/Kernel2Wireguard2Kernel?ref=018115284deca950e03b046df9f5d98527545f59`)
+	r.Run(`kubectl apply -k https://github.com/networkservicemesh/deployments-k8s/examples/k8s_monolith/external_nsc/usecases/Kernel2Wireguard2Kernel?ref=17f1ec868e6b6be6fa6adc1d7d02b1d04d9309c4`)
 	r.Run(`kubectl wait --for=condition=ready --timeout=1m pod -l app=nse-kernel -n ns-kernel2wireguard2kernel-monolith-nsc`)
 	r.Run(`NSE=$(kubectl get pods -l app=nse-kernel -n ns-kernel2wireguard2kernel-monolith-nsc --template '{{range .items}}{{.metadata.name}}{{"\n"}}{{end}}')`)
 	r.Run(`docker exec nsc-simple-docker ping -c4 172.16.1.100`)
