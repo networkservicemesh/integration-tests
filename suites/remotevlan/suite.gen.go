@@ -7,18 +7,18 @@ import (
 	"github.com/networkservicemesh/integration-tests/extensions/base"
 	"github.com/networkservicemesh/integration-tests/suites/remotevlan/rvlanovs"
 	"github.com/networkservicemesh/integration-tests/suites/remotevlan/rvlanvpp"
-	"github.com/networkservicemesh/integration-tests/suites/spire"
+	"github.com/networkservicemesh/integration-tests/suites/spire/single_cluster"
 )
 
 type Suite struct {
 	base.Suite
-	spireSuite    spire.Suite
-	rvlanovsSuite rvlanovs.Suite
-	rvlanvppSuite rvlanvpp.Suite
+	single_clusterSuite single_cluster.Suite
+	rvlanovsSuite       rvlanovs.Suite
+	rvlanvppSuite       rvlanvpp.Suite
 }
 
 func (s *Suite) SetupSuite() {
-	parents := []interface{}{&s.Suite, &s.spireSuite}
+	parents := []interface{}{&s.Suite, &s.single_clusterSuite}
 	for _, p := range parents {
 		if v, ok := p.(suite.TestingSuite); ok {
 			v.SetT(s.T())

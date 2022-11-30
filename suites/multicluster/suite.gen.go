@@ -7,18 +7,24 @@ import (
 	"github.com/networkservicemesh/integration-tests/extensions/base"
 	"github.com/networkservicemesh/integration-tests/suites/multicluster/dns"
 	"github.com/networkservicemesh/integration-tests/suites/multicluster/loadbalancer"
-	"github.com/networkservicemesh/integration-tests/suites/multicluster/spire"
+	"github.com/networkservicemesh/integration-tests/suites/multicluster/spiffe_federation"
+	"github.com/networkservicemesh/integration-tests/suites/spire/cluster1"
+	"github.com/networkservicemesh/integration-tests/suites/spire/cluster2"
+	"github.com/networkservicemesh/integration-tests/suites/spire/cluster3"
 )
 
 type Suite struct {
 	base.Suite
-	loadbalancerSuite loadbalancer.Suite
-	dnsSuite          dns.Suite
-	spireSuite        spire.Suite
+	loadbalancerSuite      loadbalancer.Suite
+	dnsSuite               dns.Suite
+	cluster1Suite          cluster1.Suite
+	cluster2Suite          cluster2.Suite
+	cluster3Suite          cluster3.Suite
+	spiffe_federationSuite spiffe_federation.Suite
 }
 
 func (s *Suite) SetupSuite() {
-	parents := []interface{}{&s.Suite, &s.loadbalancerSuite, &s.dnsSuite, &s.spireSuite}
+	parents := []interface{}{&s.Suite, &s.loadbalancerSuite, &s.dnsSuite, &s.cluster1Suite, &s.cluster2Suite, &s.cluster3Suite, &s.spiffe_federationSuite}
 	for _, p := range parents {
 		if v, ok := p.(suite.TestingSuite); ok {
 			v.SetT(s.T())
@@ -58,12 +64,12 @@ func (s *Suite) TestFloating_Kernel2Vxlan2Kernel() {
 	})
 	r.Run(`export KUBECONFIG=$KUBECONFIG2`)
 	r.Run(`kubectl create ns ns-floating-kernel2vxlan2kernel`)
-	r.Run(`kubectl apply -k https://github.com/networkservicemesh/deployments-k8s/examples/multicluster/usecases/floating_Kernel2Vxlan2Kernel/cluster2?ref=018115284deca950e03b046df9f5d98527545f59`)
+	r.Run(`kubectl apply -k https://github.com/networkservicemesh/deployments-k8s/examples/multicluster/usecases/floating_Kernel2Vxlan2Kernel/cluster2?ref=17f1ec868e6b6be6fa6adc1d7d02b1d04d9309c4`)
 	r.Run(`kubectl wait --for=condition=ready --timeout=1m pod -l app=nse-kernel -n ns-floating-kernel2vxlan2kernel`)
 	r.Run(`NSE=$(kubectl get pods -l app=nse-kernel -n ns-floating-kernel2vxlan2kernel --template '{{range .items}}{{.metadata.name}}{{"\n"}}{{end}}')` + "\n" + `[[ ! -z $NSE ]]`)
 	r.Run(`export KUBECONFIG=$KUBECONFIG1`)
 	r.Run(`kubectl create ns ns-floating-kernel2vxlan2kernel`)
-	r.Run(`kubectl apply -k https://github.com/networkservicemesh/deployments-k8s/examples/multicluster/usecases/floating_Kernel2Vxlan2Kernel/cluster1?ref=018115284deca950e03b046df9f5d98527545f59`)
+	r.Run(`kubectl apply -k https://github.com/networkservicemesh/deployments-k8s/examples/multicluster/usecases/floating_Kernel2Vxlan2Kernel/cluster1?ref=17f1ec868e6b6be6fa6adc1d7d02b1d04d9309c4`)
 	r.Run(`kubectl wait --for=condition=ready --timeout=5m pod -l app=alpine -n ns-floating-kernel2vxlan2kernel`)
 	r.Run(`NSC=$(kubectl get pods -l app=alpine -n ns-floating-kernel2vxlan2kernel --template '{{range .items}}{{.metadata.name}}{{"\n"}}{{end}}')` + "\n" + `[[ ! -z $NSC ]]`)
 	r.Run(`export KUBECONFIG=$KUBECONFIG1`)
@@ -81,12 +87,12 @@ func (s *Suite) TestFloating_Kernel2Wireguard2Kernel() {
 	})
 	r.Run(`export KUBECONFIG=$KUBECONFIG2`)
 	r.Run(`kubectl create ns ns-floating-kernel2wireguard2kernel`)
-	r.Run(`kubectl apply -k https://github.com/networkservicemesh/deployments-k8s/examples/multicluster/usecases/floating_Kernel2Wireguard2Kernel/cluster2?ref=018115284deca950e03b046df9f5d98527545f59`)
+	r.Run(`kubectl apply -k https://github.com/networkservicemesh/deployments-k8s/examples/multicluster/usecases/floating_Kernel2Wireguard2Kernel/cluster2?ref=17f1ec868e6b6be6fa6adc1d7d02b1d04d9309c4`)
 	r.Run(`kubectl wait --for=condition=ready --timeout=1m pod -l app=nse-kernel -n ns-floating-kernel2wireguard2kernel`)
 	r.Run(`NSE=$(kubectl get pods -l app=nse-kernel -n ns-floating-kernel2wireguard2kernel --template '{{range .items}}{{.metadata.name}}{{"\n"}}{{end}}')` + "\n" + `[[ ! -z $NSE ]]`)
 	r.Run(`export KUBECONFIG=$KUBECONFIG1`)
 	r.Run(`kubectl create ns ns-floating-kernel2wireguard2kernel`)
-	r.Run(`kubectl apply -k https://github.com/networkservicemesh/deployments-k8s/examples/multicluster/usecases/floating_Kernel2Wireguard2Kernel/cluster1?ref=018115284deca950e03b046df9f5d98527545f59`)
+	r.Run(`kubectl apply -k https://github.com/networkservicemesh/deployments-k8s/examples/multicluster/usecases/floating_Kernel2Wireguard2Kernel/cluster1?ref=17f1ec868e6b6be6fa6adc1d7d02b1d04d9309c4`)
 	r.Run(`kubectl wait --for=condition=ready --timeout=5m pod -l app=alpine -n ns-floating-kernel2wireguard2kernel`)
 	r.Run(`NSC=$(kubectl get pods -l app=alpine -n ns-floating-kernel2wireguard2kernel --template '{{range .items}}{{.metadata.name}}{{"\n"}}{{end}}')` + "\n" + `[[ ! -z $NSC ]]`)
 	r.Run(`export KUBECONFIG=$KUBECONFIG1`)
@@ -97,16 +103,16 @@ func (s *Suite) TestFloating_Kernel2Wireguard2Kernel() {
 func (s *Suite) TestFloating_vl3_basic() {
 	r := s.Runner("../deployments-k8s/examples/multicluster/usecases/floating_vl3-basic")
 	s.T().Cleanup(func() {
-		r.Run(`export KUBECONFIG=$KUBECONFIG3 && kubectl delete -k https://github.com/networkservicemesh/deployments-k8s/examples/multicluster/usecases/floating_vl3-basic/cluster3?ref=018115284deca950e03b046df9f5d98527545f59`)
-		r.Run(`export KUBECONFIG=$KUBECONFIG2 && kubectl delete -k https://github.com/networkservicemesh/deployments-k8s/examples/multicluster/usecases/floating_vl3-basic/cluster2?ref=018115284deca950e03b046df9f5d98527545f59`)
-		r.Run(`export KUBECONFIG=$KUBECONFIG1 && kubectl delete -k https://github.com/networkservicemesh/deployments-k8s/examples/multicluster/usecases/floating_vl3-basic/cluster1?ref=018115284deca950e03b046df9f5d98527545f59`)
+		r.Run(`export KUBECONFIG=$KUBECONFIG3 && kubectl delete -k https://github.com/networkservicemesh/deployments-k8s/examples/multicluster/usecases/floating_vl3-basic/cluster3?ref=17f1ec868e6b6be6fa6adc1d7d02b1d04d9309c4`)
+		r.Run(`export KUBECONFIG=$KUBECONFIG2 && kubectl delete -k https://github.com/networkservicemesh/deployments-k8s/examples/multicluster/usecases/floating_vl3-basic/cluster2?ref=17f1ec868e6b6be6fa6adc1d7d02b1d04d9309c4`)
+		r.Run(`export KUBECONFIG=$KUBECONFIG1 && kubectl delete -k https://github.com/networkservicemesh/deployments-k8s/examples/multicluster/usecases/floating_vl3-basic/cluster1?ref=17f1ec868e6b6be6fa6adc1d7d02b1d04d9309c4`)
 	})
 	r.Run(`export KUBECONFIG=$KUBECONFIG3`)
-	r.Run(`kubectl apply -k https://github.com/networkservicemesh/deployments-k8s/examples/multicluster/usecases/floating_vl3-basic/cluster3?ref=018115284deca950e03b046df9f5d98527545f59`)
+	r.Run(`kubectl apply -k https://github.com/networkservicemesh/deployments-k8s/examples/multicluster/usecases/floating_vl3-basic/cluster3?ref=17f1ec868e6b6be6fa6adc1d7d02b1d04d9309c4`)
 	r.Run(`export KUBECONFIG=$KUBECONFIG1`)
-	r.Run(`kubectl apply -k https://github.com/networkservicemesh/deployments-k8s/examples/multicluster/usecases/floating_vl3-basic/cluster1?ref=018115284deca950e03b046df9f5d98527545f59`)
+	r.Run(`kubectl apply -k https://github.com/networkservicemesh/deployments-k8s/examples/multicluster/usecases/floating_vl3-basic/cluster1?ref=17f1ec868e6b6be6fa6adc1d7d02b1d04d9309c4`)
 	r.Run(`export KUBECONFIG=$KUBECONFIG2`)
-	r.Run(`kubectl apply -k https://github.com/networkservicemesh/deployments-k8s/examples/multicluster/usecases/floating_vl3-basic/cluster2?ref=018115284deca950e03b046df9f5d98527545f59`)
+	r.Run(`kubectl apply -k https://github.com/networkservicemesh/deployments-k8s/examples/multicluster/usecases/floating_vl3-basic/cluster2?ref=17f1ec868e6b6be6fa6adc1d7d02b1d04d9309c4`)
 	r.Run(`kubectl wait --for=condition=ready --timeout=1m pod -l app=alpine -n ns-floating-vl3-basic`)
 	r.Run(`nsc2=$(kubectl get pods -l app=alpine -n ns-floating-vl3-basic --template '{{range .items}}{{.metadata.name}}{{"\n"}}{{end}}')`)
 	r.Run(`export KUBECONFIG=$KUBECONFIG1`)
@@ -121,16 +127,16 @@ func (s *Suite) TestFloating_vl3_basic() {
 func (s *Suite) TestFloating_vl3_scale_from_zero() {
 	r := s.Runner("../deployments-k8s/examples/multicluster/usecases/floating_vl3-scale-from-zero")
 	s.T().Cleanup(func() {
-		r.Run(`export KUBECONFIG=$KUBECONFIG3 && kubectl delete -k https://github.com/networkservicemesh/deployments-k8s/examples/multicluster/usecases/floating_vl3-scale-from-zero/cluster3?ref=018115284deca950e03b046df9f5d98527545f59`)
-		r.Run(`export KUBECONFIG=$KUBECONFIG2 && kubectl delete -k https://github.com/networkservicemesh/deployments-k8s/examples/multicluster/usecases/floating_vl3-scale-from-zero/cluster2?ref=018115284deca950e03b046df9f5d98527545f59`)
-		r.Run(`export KUBECONFIG=$KUBECONFIG1 && kubectl delete -k https://github.com/networkservicemesh/deployments-k8s/examples/multicluster/usecases/floating_vl3-scale-from-zero/cluster1?ref=018115284deca950e03b046df9f5d98527545f59`)
+		r.Run(`export KUBECONFIG=$KUBECONFIG3 && kubectl delete -k https://github.com/networkservicemesh/deployments-k8s/examples/multicluster/usecases/floating_vl3-scale-from-zero/cluster3?ref=17f1ec868e6b6be6fa6adc1d7d02b1d04d9309c4`)
+		r.Run(`export KUBECONFIG=$KUBECONFIG2 && kubectl delete -k https://github.com/networkservicemesh/deployments-k8s/examples/multicluster/usecases/floating_vl3-scale-from-zero/cluster2?ref=17f1ec868e6b6be6fa6adc1d7d02b1d04d9309c4`)
+		r.Run(`export KUBECONFIG=$KUBECONFIG1 && kubectl delete -k https://github.com/networkservicemesh/deployments-k8s/examples/multicluster/usecases/floating_vl3-scale-from-zero/cluster1?ref=17f1ec868e6b6be6fa6adc1d7d02b1d04d9309c4`)
 	})
 	r.Run(`export KUBECONFIG=$KUBECONFIG3`)
-	r.Run(`kubectl apply -k https://github.com/networkservicemesh/deployments-k8s/examples/multicluster/usecases/floating_vl3-scale-from-zero/cluster3?ref=018115284deca950e03b046df9f5d98527545f59`)
+	r.Run(`kubectl apply -k https://github.com/networkservicemesh/deployments-k8s/examples/multicluster/usecases/floating_vl3-scale-from-zero/cluster3?ref=17f1ec868e6b6be6fa6adc1d7d02b1d04d9309c4`)
 	r.Run(`export KUBECONFIG=$KUBECONFIG1`)
-	r.Run(`kubectl apply -k https://github.com/networkservicemesh/deployments-k8s/examples/multicluster/usecases/floating_vl3-scale-from-zero/cluster1?ref=018115284deca950e03b046df9f5d98527545f59`)
+	r.Run(`kubectl apply -k https://github.com/networkservicemesh/deployments-k8s/examples/multicluster/usecases/floating_vl3-scale-from-zero/cluster1?ref=17f1ec868e6b6be6fa6adc1d7d02b1d04d9309c4`)
 	r.Run(`export KUBECONFIG=$KUBECONFIG2`)
-	r.Run(`kubectl apply -k https://github.com/networkservicemesh/deployments-k8s/examples/multicluster/usecases/floating_vl3-scale-from-zero/cluster2?ref=018115284deca950e03b046df9f5d98527545f59`)
+	r.Run(`kubectl apply -k https://github.com/networkservicemesh/deployments-k8s/examples/multicluster/usecases/floating_vl3-scale-from-zero/cluster2?ref=17f1ec868e6b6be6fa6adc1d7d02b1d04d9309c4`)
 	r.Run(`kubectl wait --for=condition=ready --timeout=1m pod -l app=alpine -n ns-floating-vl3-scale-from-zero`)
 	r.Run(`nsc2=$(kubectl get pods -l app=alpine -n ns-floating-vl3-scale-from-zero --template '{{range .items}}{{.metadata.name}}{{"\n"}}{{end}}')`)
 	r.Run(`export KUBECONFIG=$KUBECONFIG1`)
@@ -152,12 +158,12 @@ func (s *Suite) TestInterdomain_Kernel2Vxlan2Kernel() {
 	})
 	r.Run(`export KUBECONFIG=$KUBECONFIG2`)
 	r.Run(`kubectl create ns ns-interdomain-kernel2vxlan2kernel`)
-	r.Run(`kubectl apply -k https://github.com/networkservicemesh/deployments-k8s/examples/multicluster/usecases/interdomain_Kernel2Vxlan2Kernel/cluster2?ref=018115284deca950e03b046df9f5d98527545f59`)
+	r.Run(`kubectl apply -k https://github.com/networkservicemesh/deployments-k8s/examples/multicluster/usecases/interdomain_Kernel2Vxlan2Kernel/cluster2?ref=17f1ec868e6b6be6fa6adc1d7d02b1d04d9309c4`)
 	r.Run(`NSE=$(kubectl get pods -l app=nse-kernel -n ns-interdomain-kernel2vxlan2kernel --template '{{range .items}}{{.metadata.name}}{{"\n"}}{{end}}')` + "\n" + `[[ ! -z $NSE ]]`)
 	r.Run(`kubectl wait --for=condition=ready --timeout=1m pod -l app=nse-kernel -n ns-interdomain-kernel2vxlan2kernel`)
 	r.Run(`export KUBECONFIG=$KUBECONFIG1`)
 	r.Run(`kubectl create ns ns-interdomain-kernel2vxlan2kernel`)
-	r.Run(`kubectl apply -k https://github.com/networkservicemesh/deployments-k8s/examples/multicluster/usecases/interdomain_Kernel2Vxlan2Kernel/cluster1?ref=018115284deca950e03b046df9f5d98527545f59`)
+	r.Run(`kubectl apply -k https://github.com/networkservicemesh/deployments-k8s/examples/multicluster/usecases/interdomain_Kernel2Vxlan2Kernel/cluster1?ref=17f1ec868e6b6be6fa6adc1d7d02b1d04d9309c4`)
 	r.Run(`kubectl wait --for=condition=ready --timeout=5m pod -l app=alpine -n ns-interdomain-kernel2vxlan2kernel`)
 	r.Run(`NSC=$(kubectl get pods -l app=alpine -n ns-interdomain-kernel2vxlan2kernel --template '{{range .items}}{{.metadata.name}}{{"\n"}}{{end}}')` + "\n" + `[[ ! -z $NSC ]]`)
 	r.Run(`export KUBECONFIG=$KUBECONFIG1`)
@@ -175,12 +181,12 @@ func (s *Suite) TestInterdomain_Kernel2Wireguard2Kernel() {
 	})
 	r.Run(`export KUBECONFIG=$KUBECONFIG2`)
 	r.Run(`kubectl create ns ns-interdomain-kernel2wireguard2kernel`)
-	r.Run(`kubectl apply -k https://github.com/networkservicemesh/deployments-k8s/examples/multicluster/usecases/interdomain_Kernel2Wireguard2Kernel/cluster2?ref=018115284deca950e03b046df9f5d98527545f59`)
+	r.Run(`kubectl apply -k https://github.com/networkservicemesh/deployments-k8s/examples/multicluster/usecases/interdomain_Kernel2Wireguard2Kernel/cluster2?ref=17f1ec868e6b6be6fa6adc1d7d02b1d04d9309c4`)
 	r.Run(`kubectl wait --for=condition=ready --timeout=1m pod -l app=nse-kernel -n ns-interdomain-kernel2wireguard2kernel`)
 	r.Run(`NSE=$(kubectl get pods -l app=nse-kernel -n ns-interdomain-kernel2wireguard2kernel --template '{{range .items}}{{.metadata.name}}{{"\n"}}{{end}}')` + "\n" + `[[ ! -z $NSE ]]`)
 	r.Run(`export KUBECONFIG=$KUBECONFIG1`)
 	r.Run(`kubectl create ns ns-interdomain-kernel2wireguard2kernel`)
-	r.Run(`kubectl apply -k https://github.com/networkservicemesh/deployments-k8s/examples/multicluster/usecases/interdomain_Kernel2Wireguard2Kernel/cluster1?ref=018115284deca950e03b046df9f5d98527545f59`)
+	r.Run(`kubectl apply -k https://github.com/networkservicemesh/deployments-k8s/examples/multicluster/usecases/interdomain_Kernel2Wireguard2Kernel/cluster1?ref=17f1ec868e6b6be6fa6adc1d7d02b1d04d9309c4`)
 	r.Run(`kubectl wait --for=condition=ready --timeout=5m pod -l app=alpine -n ns-interdomain-kernel2wireguard2kernel`)
 	r.Run(`NSC=$(kubectl get pods -l app=alpine -n ns-interdomain-kernel2wireguard2kernel --template '{{range .items}}{{.metadata.name}}{{"\n"}}{{end}}')` + "\n" + `[[ ! -z $NSC ]]`)
 	r.Run(`export KUBECONFIG=$KUBECONFIG1`)
