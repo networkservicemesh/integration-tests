@@ -36,7 +36,7 @@ func (s *Suite) SetupSuite() {
 		r.Run(`WH=$(kubectl get pods -l app=admission-webhook-k8s -n nsm-system --template '{{range .items}}{{.metadata.name}}{{"\n"}}{{end}}')` + "\n" + `kubectl delete mutatingwebhookconfiguration ${WH}` + "\n" + `kubectl delete ns nsm-system`)
 	})
 	r.Run(`kubectl create ns nsm-system`)
-	r.Run(`kubectl apply -k https://github.com/networkservicemesh/deployments-k8s/examples/k8s_monolith/configuration/cluster?ref=79a735e140ae2302fd522b68e22c6a9ed9f48e6d`)
+	r.Run(`kubectl apply -k https://github.com/networkservicemesh/deployments-k8s/examples/k8s_monolith/configuration/cluster?ref=7eddf126eba7b7b0e75b861ee7bc5e300bd9c82d`)
 	r.Run(`kubectl get services registry -n nsm-system -o go-template='{{index (index (index (index .status "loadBalancer") "ingress") 0) "ip"}}'`)
 }
 func (s *Suite) TestKernel2Wireguard2Kernel() {
@@ -45,7 +45,7 @@ func (s *Suite) TestKernel2Wireguard2Kernel() {
 		r.Run(`kubectl delete ns ns-kernel2wireguard2kernel-monolith-nsc`)
 	})
 	r.Run(`kubectl create ns ns-kernel2wireguard2kernel-monolith-nsc`)
-	r.Run(`kubectl apply -k https://github.com/networkservicemesh/deployments-k8s/examples/k8s_monolith/external_nsc/usecases/Kernel2Wireguard2Kernel?ref=79a735e140ae2302fd522b68e22c6a9ed9f48e6d`)
+	r.Run(`kubectl apply -k https://github.com/networkservicemesh/deployments-k8s/examples/k8s_monolith/external_nsc/usecases/Kernel2Wireguard2Kernel?ref=7eddf126eba7b7b0e75b861ee7bc5e300bd9c82d`)
 	r.Run(`kubectl wait --for=condition=ready --timeout=1m pod -l app=nse-kernel -n ns-kernel2wireguard2kernel-monolith-nsc`)
 	r.Run(`NSE=$(kubectl get pods -l app=nse-kernel -n ns-kernel2wireguard2kernel-monolith-nsc --template '{{range .items}}{{.metadata.name}}{{"\n"}}{{end}}')`)
 	r.Run(`docker exec nsc-simple-docker ping -c4 172.16.1.100`)
