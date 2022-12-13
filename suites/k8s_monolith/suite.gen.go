@@ -28,11 +28,36 @@ func (s *Suite) SetupSuite() {
 	s.RunIncludedSuites()
 }
 func (s *Suite) RunIncludedSuites() {
+	runTest := func(subSuite suite.TestingSuite, suiteName, testName string, subtest func()) {
+		type runner interface {
+			Run(name string, f func()) bool
+		}
+		defer func() {
+			if afterTestSuite, ok := subSuite.(suite.AfterTest); ok {
+				afterTestSuite.AfterTest(suiteName, testName)
+			}
+			if tearDownTestSuite, ok := subSuite.(suite.TearDownTestSuite); ok {
+				tearDownTestSuite.TearDownTest()
+			}
+		}()
+		if setupTestSuite, ok := subSuite.(suite.SetupTestSuite); ok {
+			setupTestSuite.SetupTest()
+		}
+		if beforeTestSuite, ok := subSuite.(suite.BeforeTest); ok {
+			beforeTestSuite.BeforeTest(suiteName, testName)
+		}
+		// Run test
+		subSuite.(runner).Run(testName, subtest)
+	}
 	s.Run("External_nsc", func() {
-		suite.Run(s.T(), &s.external_nscSuite)
+		s.external_nscSuite.SetT(s.T())
+		s.external_nscSuite.SetupSuite()
+		runTest(&s.external_nscSuite, "External_nsc", "TestKernel2Wireguard2Kernel", s.external_nscSuite.TestKernel2Wireguard2Kernel)
 	})
 	s.Run("External_nse", func() {
-		suite.Run(s.T(), &s.external_nseSuite)
+		s.external_nseSuite.SetT(s.T())
+		s.external_nseSuite.SetupSuite()
+		runTest(&s.external_nseSuite, "External_nse", "TestKernel2Wireguard2Kernel", s.external_nseSuite.TestKernel2Wireguard2Kernel)
 	})
 }
 func (s *Suite) Test() {}

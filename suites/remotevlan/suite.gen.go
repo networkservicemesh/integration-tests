@@ -35,17 +35,46 @@ func (s *Suite) SetupSuite() {
 	r.Run(`docker network create bridge-2` + "\n" + `docker network connect bridge-2 kind-worker` + "\n" + `docker network connect bridge-2 kind-worker2`)
 	r.Run(`MACS=($(docker inspect --format='{{range .Containers}}{{.MacAddress}}{{"\n"}}{{end}}' bridge-2))` + "\n" + `ifw1=$(docker exec kind-worker ip -o link | grep ${MACS[@]/#/-e } | cut -f1 -d"@" | cut -f2 -d" ")` + "\n" + `ifw2=$(docker exec kind-worker2 ip -o link | grep ${MACS[@]/#/-e } | cut -f1 -d"@" | cut -f2 -d" ")` + "\n" + `` + "\n" + `(docker exec kind-worker ip link set $ifw1 down &&` + "\n" + `docker exec kind-worker ip link set $ifw1 name ext_net1 &&` + "\n" + `docker exec kind-worker ip link set dev ext_net1 mtu 1450 &&` + "\n" + `docker exec kind-worker ip link set ext_net1 up &&` + "\n" + `docker exec kind-worker2 ip link set $ifw2 down &&` + "\n" + `docker exec kind-worker2 ip link set $ifw2 name ext_net1 &&` + "\n" + `docker exec kind-worker2 ip link set dev ext_net1 mtu 1450 &&` + "\n" + `docker exec kind-worker2 ip link set ext_net1 up)`)
 	r.Run(`kubectl create ns nsm-system`)
-	r.Run(`kubectl apply -k https://github.com/networkservicemesh/deployments-k8s/examples/remotevlan?ref=7665c8daccfd3cc4692fda908471b05b68af6ad3`)
+	r.Run(`kubectl apply -k https://github.com/networkservicemesh/deployments-k8s/examples/remotevlan?ref=v1.7.0-rc.1`)
 	r.Run(`kubectl -n nsm-system wait --for=condition=ready --timeout=2m pod -l app=nse-remote-vlan`)
 	r.Run(`WH=$(kubectl get pods -l app=admission-webhook-k8s -n nsm-system --template '{{range .items}}{{.metadata.name}}{{"\n"}}{{end}}')` + "\n" + `kubectl wait --for=condition=ready --timeout=1m pod ${WH} -n nsm-system`)
 	s.RunIncludedSuites()
 }
 func (s *Suite) RunIncludedSuites() {
+	runTest := func(subSuite suite.TestingSuite, suiteName, testName string, subtest func()) {
+		type runner interface {
+			Run(name string, f func()) bool
+		}
+		defer func() {
+			if afterTestSuite, ok := subSuite.(suite.AfterTest); ok {
+				afterTestSuite.AfterTest(suiteName, testName)
+			}
+			if tearDownTestSuite, ok := subSuite.(suite.TearDownTestSuite); ok {
+				tearDownTestSuite.TearDownTest()
+			}
+		}()
+		if setupTestSuite, ok := subSuite.(suite.SetupTestSuite); ok {
+			setupTestSuite.SetupTest()
+		}
+		if beforeTestSuite, ok := subSuite.(suite.BeforeTest); ok {
+			beforeTestSuite.BeforeTest(suiteName, testName)
+		}
+		// Run test
+		subSuite.(runner).Run(testName, subtest)
+	}
 	s.Run("Rvlanovs", func() {
-		suite.Run(s.T(), &s.rvlanovsSuite)
+		s.rvlanovsSuite.SetT(s.T())
+		s.rvlanovsSuite.SetupSuite()
+		runTest(&s.rvlanovsSuite, "Rvlanovs", "TestKernel2RVlanBreakout", s.rvlanovsSuite.TestKernel2RVlanBreakout)
+		runTest(&s.rvlanovsSuite, "Rvlanovs", "TestKernel2RVlanInternal", s.rvlanovsSuite.TestKernel2RVlanInternal)
+		runTest(&s.rvlanovsSuite, "Rvlanovs", "TestKernel2RVlanMultiNS", s.rvlanovsSuite.TestKernel2RVlanMultiNS)
 	})
 	s.Run("Rvlanvpp", func() {
-		suite.Run(s.T(), &s.rvlanvppSuite)
+		s.rvlanvppSuite.SetT(s.T())
+		s.rvlanvppSuite.SetupSuite()
+		runTest(&s.rvlanvppSuite, "Rvlanvpp", "TestKernel2RVlanBreakout", s.rvlanvppSuite.TestKernel2RVlanBreakout)
+		runTest(&s.rvlanvppSuite, "Rvlanvpp", "TestKernel2RVlanInternal", s.rvlanvppSuite.TestKernel2RVlanInternal)
+		runTest(&s.rvlanvppSuite, "Rvlanvpp", "TestKernel2RVlanMultiNS", s.rvlanvppSuite.TestKernel2RVlanMultiNS)
 	})
 }
 func (s *Suite) Test() {}
