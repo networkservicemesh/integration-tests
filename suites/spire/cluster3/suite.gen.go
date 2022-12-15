@@ -26,7 +26,7 @@ func (s *Suite) SetupSuite() {
 		r.Run(`kubectl --kubeconfig=$KUBECONFIG3 delete crd spiffeids.spiffeid.spiffe.io` + "\n" + `kubectl --kubeconfig=$KUBECONFIG3 delete ns spire`)
 	})
 	r.Run(`[[ ! -z $KUBECONFIG3 ]]`)
-	r.Run(`kubectl --kubeconfig=$KUBECONFIG3 apply -k https://github.com/networkservicemesh/deployments-k8s/examples/spire/cluster3?ref=9bb7a30564481ba232b3d96e78b3520e8c403de3`)
+	r.Run(`kubectl --kubeconfig=$KUBECONFIG3 apply -k https://github.com/networkservicemesh/deployments-k8s/examples/spire/cluster3?ref=50e46879f616554c03f40341cc17ca7921f53b2f`)
 	r.Run(`kubectl --kubeconfig=$KUBECONFIG3 wait -n spire --timeout=1m --for=condition=ready pod -l app=spire-server`)
 	r.Run(`kubectl --kubeconfig=$KUBECONFIG3 wait -n spire --timeout=1m --for=condition=ready pod -l app=spire-agent`)
 }
