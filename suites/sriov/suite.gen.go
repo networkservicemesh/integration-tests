@@ -28,7 +28,7 @@ func (s *Suite) SetupSuite() {
 		r.Run(`WH=$(kubectl get pods -l app=admission-webhook-k8s -n nsm-system --template '{{range .items}}{{.metadata.name}}{{"\n"}}{{end}}')` + "\n" + `kubectl delete mutatingwebhookconfiguration ${WH}` + "\n" + `kubectl delete ns nsm-system`)
 	})
 	r.Run(`kubectl create ns nsm-system`)
-	r.Run(`kubectl apply -k https://github.com/networkservicemesh/deployments-k8s/examples/sriov?ref=ad3cb6d6dcd73df9b4b8aa656e84278596244b21`)
+	r.Run(`kubectl apply -k https://github.com/networkservicemesh/deployments-k8s/examples/sriov?ref=4c8c3122ea0f4cf23a707e1a1205ae0ab4892bd4`)
 }
 func (s *Suite) TestSriovKernel2Noop() {
 	r := s.Runner("../deployments-k8s/examples/use-cases/SriovKernel2Noop")
@@ -36,7 +36,7 @@ func (s *Suite) TestSriovKernel2Noop() {
 		r.Run(`kubectl delete ns ns-sriov-kernel2noop`)
 	})
 	r.Run(`kubectl create ns ns-sriov-kernel2noop`)
-	r.Run(`kubectl apply -k https://github.com/networkservicemesh/deployments-k8s/examples/use-cases/SriovKernel2Noop?ref=ad3cb6d6dcd73df9b4b8aa656e84278596244b21`)
+	r.Run(`kubectl apply -k https://github.com/networkservicemesh/deployments-k8s/examples/use-cases/SriovKernel2Noop?ref=4c8c3122ea0f4cf23a707e1a1205ae0ab4892bd4`)
 	r.Run(`kubectl -n ns-sriov-kernel2noop wait --for=condition=ready --timeout=1m pod -l app=nsc-kernel`)
 	r.Run(`kubectl -n ns-sriov-kernel2noop wait --for=condition=ready --timeout=1m pod -l app=nse-kernel`)
 	r.Run(`kubectl -n ns-sriov-kernel2noop wait --for=condition=ready --timeout=1m pod -l app=ponger`)
@@ -51,7 +51,7 @@ func (s *Suite) TestVfio2Noop() {
 		r.Run(`kubectl delete ns ns-vfio2noop`)
 	})
 	r.Run(`kubectl create ns ns-vfio2noop`)
-	r.Run(`kubectl apply -k https://github.com/networkservicemesh/deployments-k8s/examples/use-cases/Vfio2Noop?ref=ad3cb6d6dcd73df9b4b8aa656e84278596244b21`)
+	r.Run(`kubectl apply -k https://github.com/networkservicemesh/deployments-k8s/examples/use-cases/Vfio2Noop?ref=4c8c3122ea0f4cf23a707e1a1205ae0ab4892bd4`)
 	r.Run(`kubectl -n ns-vfio2noop wait --for=condition=ready --timeout=1m pod -l app=nsc-vfio`)
 	r.Run(`kubectl -n ns-vfio2noop wait --for=condition=ready --timeout=1m pod -l app=nse-vfio`)
 	r.Run(`NSC_VFIO=$(kubectl -n ns-vfio2noop get pods -l app=nsc-vfio --template '{{range .items}}{{.metadata.name}}{{"\n"}}{{end}}')`)
