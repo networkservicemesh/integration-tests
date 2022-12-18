@@ -26,7 +26,7 @@ func (s *Suite) SetupSuite() {
 		r.Run(`docker compose -f docker-compose.yaml -f docker-compose.override.yaml down`)
 	})
 	r.Run(`cat > docker-compose.override.yaml <<EOF` + "\n" + `---` + "\n" + `networks:` + "\n" + `  kind:` + "\n" + `    external: true` + "\n" + `` + "\n" + `services:` + "\n" + `  nsc-simple-docker:` + "\n" + `    networks:` + "\n" + `      - kind` + "\n" + `    environment:` + "\n" + `      NSM_NETWORK_SERVICES: kernel://kernel2wireguard2kernel-monolith-nsc@k8s.nsm/nsm-1` + "\n" + `EOF`)
-	r.Run(`curl https://raw.githubusercontent.com/networkservicemesh/deployments-k8s/29193ca2d4ac11cfb2dab669f6f9f88a51b79ced/apps/nsc-simple-docker/docker-compose.yaml -o docker-compose.yaml`)
+	r.Run(`curl https://raw.githubusercontent.com/networkservicemesh/deployments-k8s/90063fa9ca71cc87eea5489110ebc61073d6c571/apps/nsc-simple-docker/docker-compose.yaml -o docker-compose.yaml`)
 	r.Run(`docker compose -f docker-compose.yaml -f docker-compose.override.yaml up -d`)
 }
 func (s *Suite) Test() {}
