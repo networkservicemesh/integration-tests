@@ -35,7 +35,7 @@ func (s *Suite) SetupSuite() {
 	r.Run(`docker network create bridge-2` + "\n" + `docker network connect bridge-2 kind-worker` + "\n" + `docker network connect bridge-2 kind-worker2`)
 	r.Run(`MACS=($(docker inspect --format='{{range .Containers}}{{.MacAddress}}{{"\n"}}{{end}}' bridge-2))` + "\n" + `ifw1=$(docker exec kind-worker ip -o link | grep ${MACS[@]/#/-e } | cut -f1 -d"@" | cut -f2 -d" ")` + "\n" + `ifw2=$(docker exec kind-worker2 ip -o link | grep ${MACS[@]/#/-e } | cut -f1 -d"@" | cut -f2 -d" ")` + "\n" + `` + "\n" + `(docker exec kind-worker ip link set $ifw1 down &&` + "\n" + `docker exec kind-worker ip link set $ifw1 name ext_net1 &&` + "\n" + `docker exec kind-worker ip link set dev ext_net1 mtu 1450 &&` + "\n" + `docker exec kind-worker ip link set ext_net1 up &&` + "\n" + `docker exec kind-worker2 ip link set $ifw2 down &&` + "\n" + `docker exec kind-worker2 ip link set $ifw2 name ext_net1 &&` + "\n" + `docker exec kind-worker2 ip link set dev ext_net1 mtu 1450 &&` + "\n" + `docker exec kind-worker2 ip link set ext_net1 up)`)
 	r.Run(`kubectl create ns nsm-system`)
-	r.Run(`kubectl apply -k https://github.com/networkservicemesh/deployments-k8s/examples/remotevlan?ref=2315fff7f7e198e90d5008c621dbb29dd8e7ff3b`)
+	r.Run(`kubectl apply -k https://github.com/networkservicemesh/deployments-k8s/examples/remotevlan?ref=392e5d9ed5cea94ca4d3063521f7a77320db73fe`)
 	r.Run(`kubectl -n nsm-system wait --for=condition=ready --timeout=2m pod -l app=nse-remote-vlan`)
 	r.Run(`WH=$(kubectl get pods -l app=admission-webhook-k8s -n nsm-system --template '{{range .items}}{{.metadata.name}}{{"\n"}}{{end}}')` + "\n" + `kubectl wait --for=condition=ready --timeout=1m pod ${WH} -n nsm-system`)
 	s.RunIncludedSuites()
