@@ -1,4 +1,6 @@
-// Copyright (c) 2021-2022 Doc.ai and/or its affiliates.
+// Copyright (c) 2021-2023 Doc.ai and/or its affiliates.
+//
+// Copyright (c) 2023 Cisco and/or its affiliates.
 //
 // SPDX-License-Identifier: Apache-2.0
 //
@@ -52,7 +54,7 @@ func (s *Suite) TearDownSuite() {
 }
 
 const (
-	sha = "adf4aaf341cf38f9e26e709294e0ee5971481450"
+	sha = "d1000d63230b255396cac84cb58f419cb1884efc"
 )
 
 // SetupSuite runs all extensions
