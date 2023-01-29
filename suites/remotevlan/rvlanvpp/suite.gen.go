@@ -23,9 +23,9 @@ func (s *Suite) SetupSuite() {
 	}
 	r := s.Runner("../deployments-k8s/examples/remotevlan/rvlanvpp")
 	s.T().Cleanup(func() {
-		r.Run(`kubectl delete -k https://github.com/networkservicemesh/deployments-k8s/examples/remotevlan/rvlanvpp?ref=17e6ce5be94dbf409e616c304359499ccbcd903f`)
+		r.Run(`kubectl delete -k https://github.com/networkservicemesh/deployments-k8s/examples/remotevlan/rvlanvpp?ref=06412416834c48b88a07638c403c5d839a9d893c`)
 	})
-	r.Run(`kubectl apply -k https://github.com/networkservicemesh/deployments-k8s/examples/remotevlan/rvlanvpp?ref=17e6ce5be94dbf409e616c304359499ccbcd903f`)
+	r.Run(`kubectl apply -k https://github.com/networkservicemesh/deployments-k8s/examples/remotevlan/rvlanvpp?ref=06412416834c48b88a07638c403c5d839a9d893c`)
 	r.Run(`kubectl -n nsm-system wait --for=condition=ready --timeout=2m pod -l app=forwarder-vpp`)
 }
 func (s *Suite) TestKernel2RVlanBreakout() {
@@ -34,8 +34,7 @@ func (s *Suite) TestKernel2RVlanBreakout() {
 		r.Run(`docker stop rvm-tester` + "\n" + `docker image rm rvm-tester:latest` + "\n" + `true`)
 		r.Run(`kubectl delete ns ns-kernel2rvlan-breakout`)
 	})
-	r.Run(`kubectl create ns ns-kernel2rvlan-breakout`)
-	r.Run(`kubectl apply -k https://github.com/networkservicemesh/deployments-k8s/examples/use-cases/Kernel2RVlanBreakout?ref=17e6ce5be94dbf409e616c304359499ccbcd903f`)
+	r.Run(`kubectl apply -k https://github.com/networkservicemesh/deployments-k8s/examples/use-cases/Kernel2RVlanBreakout?ref=06412416834c48b88a07638c403c5d839a9d893c`)
 	r.Run(`kubectl -n ns-kernel2rvlan-breakout wait --for=condition=ready --timeout=1m pod -l app=iperf1-s`)
 	r.Run(`NSCS=($(kubectl get pods -l app=iperf1-s -n ns-kernel2rvlan-breakout --template '{{range .items}}{{.metadata.name}}{{"\n"}}{{end}}'))`)
 	r.Run(`cat > Dockerfile <<EOF` + "\n" + `FROM networkstatic/iperf3` + "\n" + `` + "\n" + `RUN apt-get update \` + "\n" + `    && apt-get install -y ethtool iproute2 \` + "\n" + `    && rm -rf /var/lib/apt/lists/*` + "\n" + `` + "\n" + `ENTRYPOINT [ "tail", "-f", "/dev/null" ]` + "\n" + `EOF` + "\n" + `docker build . -t rvm-tester`)
@@ -50,8 +49,7 @@ func (s *Suite) TestKernel2RVlanInternal() {
 	s.T().Cleanup(func() {
 		r.Run(`kubectl delete ns ns-kernel2rvlan-internal`)
 	})
-	r.Run(`kubectl create ns ns-kernel2rvlan-internal`)
-	r.Run(`kubectl apply -k https://github.com/networkservicemesh/deployments-k8s/examples/use-cases/Kernel2RVlanInternal?ref=17e6ce5be94dbf409e616c304359499ccbcd903f`)
+	r.Run(`kubectl apply -k https://github.com/networkservicemesh/deployments-k8s/examples/use-cases/Kernel2RVlanInternal?ref=06412416834c48b88a07638c403c5d839a9d893c`)
 	r.Run(`kubectl -n ns-kernel2rvlan-internal wait --for=condition=ready --timeout=1m pod -l app=iperf1-s`)
 	r.Run(`NSCS=($(kubectl get pods -l app=iperf1-s -n ns-kernel2rvlan-internal --template '{{range .items}}{{.metadata.name}}{{"\n"}}{{end}}'))`)
 	r.Run(`IP_ADDR=$(kubectl exec ${NSCS[0]} -c cmd-nsc -n ns-kernel2rvlan-internal -- ip -4 addr show nsm-1 | grep -oP '(?<=inet\s)\d+(\.\d+){3}')` + "\n" + `    kubectl exec ${NSCS[0]} -c iperf-server -n ns-kernel2rvlan-internal -- iperf3 -sD -B ${IP_ADDR} -1` + "\n" + `    kubectl exec ${NSCS[1]} -c iperf-server -n ns-kernel2rvlan-internal -- iperf3 -i0 -t 5 -c ${IP_ADDR}`)
@@ -63,14 +61,13 @@ func (s *Suite) TestKernel2RVlanMultiNS() {
 	r := s.Runner("../deployments-k8s/examples/use-cases/Kernel2RVlanMultiNS")
 	s.T().Cleanup(func() {
 		r.Run(`docker stop rvm-tester && \` + "\n" + `docker image rm rvm-tester:latest` + "\n" + `true`)
-		r.Run(`kubectl delete --namespace=nsm-system -f https://raw.githubusercontent.com/networkservicemesh/deployments-k8s/17e6ce5be94dbf409e616c304359499ccbcd903f/examples/use-cases/Kernel2RVlanMultiNS/client.yaml`)
+		r.Run(`kubectl delete --namespace=nsm-system -f https://raw.githubusercontent.com/networkservicemesh/deployments-k8s/06412416834c48b88a07638c403c5d839a9d893c/examples/use-cases/Kernel2RVlanMultiNS/client.yaml`)
 		r.Run(`kubectl delete ns ns-kernel2vlan-multins-1`)
 		r.Run(`kubectl delete ns ns-kernel2vlan-multins-2`)
 	})
-	r.Run(`kubectl create ns ns-kernel2vlan-multins-1` + "\n" + `kubectl create ns ns-kernel2vlan-multins-2`)
-	r.Run(`kubectl apply -k https://github.com/networkservicemesh/deployments-k8s/examples/use-cases/Kernel2RVlanMultiNS/ns-1?ref=17e6ce5be94dbf409e616c304359499ccbcd903f`)
-	r.Run(`kubectl apply -f https://raw.githubusercontent.com/networkservicemesh/deployments-k8s/17e6ce5be94dbf409e616c304359499ccbcd903f/examples/use-cases/Kernel2RVlanMultiNS/ns-2/netsvc.yaml` + "\n" + `kubectl apply -k https://github.com/networkservicemesh/deployments-k8s/examples/use-cases/Kernel2RVlanMultiNS/ns-2?ref=17e6ce5be94dbf409e616c304359499ccbcd903f`)
-	r.Run(`kubectl apply -n nsm-system -f https://raw.githubusercontent.com/networkservicemesh/deployments-k8s/17e6ce5be94dbf409e616c304359499ccbcd903f/examples/use-cases/Kernel2RVlanMultiNS/client.yaml`)
+	r.Run(`kubectl apply -k https://github.com/networkservicemesh/deployments-k8s/examples/use-cases/Kernel2RVlanMultiNS/ns-1?ref=06412416834c48b88a07638c403c5d839a9d893c`)
+	r.Run(`kubectl apply -f https://raw.githubusercontent.com/networkservicemesh/deployments-k8s/06412416834c48b88a07638c403c5d839a9d893c/examples/use-cases/Kernel2RVlanMultiNS/ns-2/netsvc.yaml` + "\n" + `kubectl apply -k https://github.com/networkservicemesh/deployments-k8s/examples/use-cases/Kernel2RVlanMultiNS/ns-2?ref=06412416834c48b88a07638c403c5d839a9d893c`)
+	r.Run(`kubectl apply -n nsm-system -f https://raw.githubusercontent.com/networkservicemesh/deployments-k8s/06412416834c48b88a07638c403c5d839a9d893c/examples/use-cases/Kernel2RVlanMultiNS/client.yaml`)
 	r.Run(`kubectl -n ns-kernel2vlan-multins-1 wait --for=condition=ready --timeout=1m pod -l app=nse-remote-vlan`)
 	r.Run(`kubectl -n ns-kernel2vlan-multins-1 wait --for=condition=ready --timeout=1m pod -l app=alpine-1`)
 	r.Run(`kubectl -n ns-kernel2vlan-multins-2 wait --for=condition=ready --timeout=1m pod -l app=nse-remote-vlan`)
