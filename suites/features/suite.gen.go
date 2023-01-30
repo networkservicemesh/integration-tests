@@ -29,10 +29,10 @@ func (s *Suite) TestAnnotated_namespace() {
 	s.T().Cleanup(func() {
 		r.Run(`kubectl delete ns ns-annotated-namespace`)
 	})
-	r.Run(`kubectl apply -k https://github.com/networkservicemesh/deployments-k8s/examples/features/annotated-namespace?ref=b7c446f688868a36a49491dd49a1988365f2ccf3`)
+	r.Run(`kubectl apply -k https://github.com/networkservicemesh/deployments-k8s/examples/features/annotated-namespace?ref=af97993138fd6a7b37944d0b726fa7d31bee4fcd`)
 	r.Run(`kubectl wait --for=condition=ready --timeout=1m pod -l app=nse-kernel -n ns-annotated-namespace`)
 	r.Run(`kubectl annotate ns ns-annotated-namespace networkservicemesh.io=kernel://annotated-namespace/nsm-1`)
-	r.Run(`kubectl apply -f https://raw.githubusercontent.com/networkservicemesh/deployments-k8s/b7c446f688868a36a49491dd49a1988365f2ccf3/examples/features/annotated-namespace/client.yaml`)
+	r.Run(`kubectl apply -f https://raw.githubusercontent.com/networkservicemesh/deployments-k8s/af97993138fd6a7b37944d0b726fa7d31bee4fcd/examples/features/annotated-namespace/client.yaml`)
 	r.Run(`kubectl wait --for=condition=ready --timeout=1m pod -l app=alpine -n ns-annotated-namespace`)
 	r.Run(`NSE=$(kubectl get pods -l app=nse-kernel -n ns-annotated-namespace --template '{{range .items}}{{.metadata.name}}{{"\n"}}{{end}}')`)
 	r.Run(`NSC=$(kubectl get pods -l app=alpine -n ns-annotated-namespace --template '{{range .items}}{{.metadata.name}}{{"\n"}}{{end}}')`)
@@ -44,7 +44,7 @@ func (s *Suite) TestDns() {
 	s.T().Cleanup(func() {
 		r.Run(`kubectl delete ns ns-dns`)
 	})
-	r.Run(`kubectl apply -k https://github.com/networkservicemesh/deployments-k8s/examples/features/dns?ref=b7c446f688868a36a49491dd49a1988365f2ccf3`)
+	r.Run(`kubectl apply -k https://github.com/networkservicemesh/deployments-k8s/examples/features/dns?ref=af97993138fd6a7b37944d0b726fa7d31bee4fcd`)
 	r.Run(`kubectl wait --for=condition=ready --timeout=5m pod dnsutils -n ns-dns`)
 	r.Run(`kubectl wait --for=condition=ready --timeout=5m pod -l app=nse-kernel -n ns-dns`)
 	r.Run(`NSC=$(kubectl get pods -l app=dnsutils -n ns-dns --template '{{range .items}}{{.metadata.name}}{{"\n"}}{{end}}')`)
@@ -58,7 +58,7 @@ func (s *Suite) TestKernel2Kernel_dual_stack() {
 	s.T().Cleanup(func() {
 		r.Run(`kubectl delete ns ns-kernel2kernel-dual-stack`)
 	})
-	r.Run(`kubectl apply -k https://github.com/networkservicemesh/deployments-k8s/examples/features/dual-stack/Kernel2Kernel_dual_stack?ref=b7c446f688868a36a49491dd49a1988365f2ccf3`)
+	r.Run(`kubectl apply -k https://github.com/networkservicemesh/deployments-k8s/examples/features/dual-stack/Kernel2Kernel_dual_stack?ref=af97993138fd6a7b37944d0b726fa7d31bee4fcd`)
 	r.Run(`kubectl wait --for=condition=ready --timeout=1m pod -l app=alpine -n ns-kernel2kernel-dual-stack`)
 	r.Run(`kubectl wait --for=condition=ready --timeout=1m pod -l app=nse-kernel -n ns-kernel2kernel-dual-stack`)
 	r.Run(`NSC=$(kubectl get pods -l app=alpine -n ns-kernel2kernel-dual-stack --template '{{range .items}}{{.metadata.name}}{{"\n"}}{{end}}')`)
@@ -73,7 +73,7 @@ func (s *Suite) TestKernel2Wireguard2Kernel_dual_stack() {
 	s.T().Cleanup(func() {
 		r.Run(`kubectl delete ns ns-kernel2wireguard2kernel-dual-stack`)
 	})
-	r.Run(`kubectl apply -k https://github.com/networkservicemesh/deployments-k8s/examples/features/dual-stack/Kernel2Wireguard2Kernel_dual_stack?ref=b7c446f688868a36a49491dd49a1988365f2ccf3`)
+	r.Run(`kubectl apply -k https://github.com/networkservicemesh/deployments-k8s/examples/features/dual-stack/Kernel2Wireguard2Kernel_dual_stack?ref=af97993138fd6a7b37944d0b726fa7d31bee4fcd`)
 	r.Run(`kubectl wait --for=condition=ready --timeout=1m pod -l app=alpine -n ns-kernel2wireguard2kernel-dual-stack`)
 	r.Run(`kubectl wait --for=condition=ready --timeout=1m pod -l app=nse-kernel -n ns-kernel2wireguard2kernel-dual-stack`)
 	r.Run(`NSC=$(kubectl get pods -l app=alpine -n ns-kernel2wireguard2kernel-dual-stack --template '{{range .items}}{{.metadata.name}}{{"\n"}}{{end}}')`)
@@ -89,7 +89,7 @@ func (s *Suite) TestExclude_prefixes() {
 		r.Run(`kubectl delete configmap excluded-prefixes-config` + "\n" + `kubectl delete ns ns-exclude-prefixes`)
 	})
 	r.Run(`kubectl apply -f exclude-prefixes-config-map.yaml`)
-	r.Run(`kubectl apply -k https://github.com/networkservicemesh/deployments-k8s/examples/features/exclude-prefixes?ref=b7c446f688868a36a49491dd49a1988365f2ccf3`)
+	r.Run(`kubectl apply -k https://github.com/networkservicemesh/deployments-k8s/examples/features/exclude-prefixes?ref=af97993138fd6a7b37944d0b726fa7d31bee4fcd`)
 	r.Run(`kubectl wait --for=condition=ready --timeout=1m pod -l app=alpine -n ns-exclude-prefixes`)
 	r.Run(`kubectl wait --for=condition=ready --timeout=1m pod -l app=nse-kernel -n ns-exclude-prefixes`)
 	r.Run(`NSC=$(kubectl get pods -l app=alpine -n ns-exclude-prefixes --template '{{range .items}}{{.metadata.name}}{{"\n"}}{{end}}')`)
@@ -102,7 +102,7 @@ func (s *Suite) TestExclude_prefixes_client() {
 	s.T().Cleanup(func() {
 		r.Run(`kubectl delete ns ns-exclude-prefixes-client`)
 	})
-	r.Run(`kubectl apply -k https://github.com/networkservicemesh/deployments-k8s/examples/features/exclude-prefixes-client?ref=b7c446f688868a36a49491dd49a1988365f2ccf3`)
+	r.Run(`kubectl apply -k https://github.com/networkservicemesh/deployments-k8s/examples/features/exclude-prefixes-client?ref=af97993138fd6a7b37944d0b726fa7d31bee4fcd`)
 	r.Run(`kubectl wait --for=condition=ready --timeout=1m pod -l app=alpine -n ns-exclude-prefixes-client`)
 	r.Run(`kubectl wait --for=condition=ready --timeout=1m pod -l app=nse-kernel-1 -n ns-exclude-prefixes-client`)
 	r.Run(`kubectl wait --for=condition=ready --timeout=1m pod -l app=nse-kernel-2 -n ns-exclude-prefixes-client`)
@@ -119,7 +119,7 @@ func (s *Suite) TestKernel2Kernel_ipv6() {
 	s.T().Cleanup(func() {
 		r.Run(`kubectl delete ns ns-kernel2kernel-ipv6`)
 	})
-	r.Run(`kubectl apply -k https://github.com/networkservicemesh/deployments-k8s/examples/features/ipv6/Kernel2Kernel_ipv6?ref=b7c446f688868a36a49491dd49a1988365f2ccf3`)
+	r.Run(`kubectl apply -k https://github.com/networkservicemesh/deployments-k8s/examples/features/ipv6/Kernel2Kernel_ipv6?ref=af97993138fd6a7b37944d0b726fa7d31bee4fcd`)
 	r.Run(`kubectl wait --for=condition=ready --timeout=1m pod -l app=alpine -n ns-kernel2kernel-ipv6`)
 	r.Run(`kubectl wait --for=condition=ready --timeout=1m pod -l app=nse-kernel -n ns-kernel2kernel-ipv6`)
 	r.Run(`NSC=$(kubectl get pods -l app=alpine -n ns-kernel2kernel-ipv6 --template '{{range .items}}{{.metadata.name}}{{"\n"}}{{end}}')`)
@@ -132,7 +132,7 @@ func (s *Suite) TestKernel2Wireguard2Kernel_ipv6() {
 	s.T().Cleanup(func() {
 		r.Run(`kubectl delete ns ns-kernel2wireguard2kernel-ipv6`)
 	})
-	r.Run(`kubectl apply -k https://github.com/networkservicemesh/deployments-k8s/examples/features/ipv6/Kernel2Wireguard2Kernel_ipv6?ref=b7c446f688868a36a49491dd49a1988365f2ccf3`)
+	r.Run(`kubectl apply -k https://github.com/networkservicemesh/deployments-k8s/examples/features/ipv6/Kernel2Wireguard2Kernel_ipv6?ref=af97993138fd6a7b37944d0b726fa7d31bee4fcd`)
 	r.Run(`kubectl wait --for=condition=ready --timeout=1m pod -l app=alpine -n ns-kernel2wireguard2kernel-ipv6`)
 	r.Run(`kubectl wait --for=condition=ready --timeout=1m pod -l app=nse-kernel -n ns-kernel2wireguard2kernel-ipv6`)
 	r.Run(`NSC=$(kubectl get pods -l app=alpine -n ns-kernel2wireguard2kernel-ipv6 --template '{{range .items}}{{.metadata.name}}{{"\n"}}{{end}}')`)
@@ -145,7 +145,7 @@ func (s *Suite) TestKernel2Wireguard2Memif_ipv6() {
 	s.T().Cleanup(func() {
 		r.Run(`kubectl delete ns ns-kernel2wireguard2memif-ipv6`)
 	})
-	r.Run(`kubectl apply -k https://github.com/networkservicemesh/deployments-k8s/examples/features/ipv6/Kernel2Wireguard2Memif_ipv6?ref=b7c446f688868a36a49491dd49a1988365f2ccf3`)
+	r.Run(`kubectl apply -k https://github.com/networkservicemesh/deployments-k8s/examples/features/ipv6/Kernel2Wireguard2Memif_ipv6?ref=af97993138fd6a7b37944d0b726fa7d31bee4fcd`)
 	r.Run(`kubectl wait --for=condition=ready --timeout=1m pod -l app=alpine -n ns-kernel2wireguard2memif-ipv6`)
 	r.Run(`kubectl wait --for=condition=ready --timeout=1m pod -l app=nse-memif -n ns-kernel2wireguard2memif-ipv6`)
 	r.Run(`NSC=$(kubectl get pods -l app=alpine -n ns-kernel2wireguard2memif-ipv6 --template '{{range .items}}{{.metadata.name}}{{"\n"}}{{end}}')`)
@@ -171,7 +171,7 @@ func (s *Suite) TestMemif2Wireguard2Kernel_ipv6() {
 	s.T().Cleanup(func() {
 		r.Run(`kubectl delete ns ns-memif2wireguard2kernel-ipv6`)
 	})
-	r.Run(`kubectl apply -k https://github.com/networkservicemesh/deployments-k8s/examples/features/ipv6/Memif2Wireguard2Kernel_ipv6?ref=b7c446f688868a36a49491dd49a1988365f2ccf3`)
+	r.Run(`kubectl apply -k https://github.com/networkservicemesh/deployments-k8s/examples/features/ipv6/Memif2Wireguard2Kernel_ipv6?ref=af97993138fd6a7b37944d0b726fa7d31bee4fcd`)
 	r.Run(`kubectl wait --for=condition=ready --timeout=1m pod -l app=nsc-memif -n ns-memif2wireguard2kernel-ipv6`)
 	r.Run(`kubectl wait --for=condition=ready --timeout=1m pod -l app=nse-kernel -n ns-memif2wireguard2kernel-ipv6`)
 	r.Run(`NSC=$(kubectl get pods -l app=nsc-memif -n ns-memif2wireguard2kernel-ipv6 --template '{{range .items}}{{.metadata.name}}{{"\n"}}{{end}}')`)
@@ -184,7 +184,7 @@ func (s *Suite) TestMemif2Wireguard2Memif_ipv6() {
 	s.T().Cleanup(func() {
 		r.Run(`kubectl delete ns ns-memif2wireguard2memif-ipv6`)
 	})
-	r.Run(`kubectl apply -k https://github.com/networkservicemesh/deployments-k8s/examples/features/ipv6/Memif2Wireguard2Memif_ipv6?ref=b7c446f688868a36a49491dd49a1988365f2ccf3`)
+	r.Run(`kubectl apply -k https://github.com/networkservicemesh/deployments-k8s/examples/features/ipv6/Memif2Wireguard2Memif_ipv6?ref=af97993138fd6a7b37944d0b726fa7d31bee4fcd`)
 	r.Run(`kubectl wait --for=condition=ready --timeout=1m pod -l app=nsc-memif -n ns-memif2wireguard2memif-ipv6`)
 	r.Run(`kubectl wait --for=condition=ready --timeout=1m pod -l app=nse-memif -n ns-memif2wireguard2memif-ipv6`)
 	r.Run(`NSC=$(kubectl get pods -l app=nsc-memif -n ns-memif2wireguard2memif-ipv6 --template '{{range .items}}{{.metadata.name}}{{"\n"}}{{end}}')`)
@@ -197,7 +197,7 @@ func (s *Suite) TestMutually_aware_nses() {
 	s.T().Cleanup(func() {
 		r.Run(`kubectl delete ns ns-mutually-aware-nses`)
 	})
-	r.Run(`kubectl apply -k https://github.com/networkservicemesh/deployments-k8s/examples/features/mutually-aware-nses?ref=b7c446f688868a36a49491dd49a1988365f2ccf3`)
+	r.Run(`kubectl apply -k https://github.com/networkservicemesh/deployments-k8s/examples/features/mutually-aware-nses?ref=af97993138fd6a7b37944d0b726fa7d31bee4fcd`)
 	r.Run(`kubectl wait --for=condition=ready --timeout=1m pod -l app=nsc-kernel -n ns-mutually-aware-nses`)
 	r.Run(`kubectl wait --for=condition=ready --timeout=1m pod -l app=nse-kernel-1 -n ns-mutually-aware-nses`)
 	r.Run(`kubectl wait --for=condition=ready --timeout=1m pod -l app=nse-kernel-2 -n ns-mutually-aware-nses`)
@@ -211,7 +211,7 @@ func (s *Suite) TestNse_composition() {
 	s.T().Cleanup(func() {
 		r.Run(`kubectl delete ns ns-nse-composition`)
 	})
-	r.Run(`kubectl apply -k https://github.com/networkservicemesh/deployments-k8s/examples/features/nse-composition?ref=b7c446f688868a36a49491dd49a1988365f2ccf3`)
+	r.Run(`kubectl apply -k https://github.com/networkservicemesh/deployments-k8s/examples/features/nse-composition?ref=af97993138fd6a7b37944d0b726fa7d31bee4fcd`)
 	r.Run(`kubectl wait --for=condition=ready --timeout=1m pod -l app=alpine -n ns-nse-composition`)
 	r.Run(`kubectl wait --for=condition=ready --timeout=1m pod -l app=nse-kernel -n ns-nse-composition`)
 	r.Run(`NSC=$(kubectl get pods -l app=alpine -n ns-nse-composition --template '{{range .items}}{{.metadata.name}}{{"\n"}}{{end}}')`)
@@ -226,7 +226,7 @@ func (s *Suite) TestOpa() {
 	s.T().Cleanup(func() {
 		r.Run(`kubectl delete ns ns-opa`)
 	})
-	r.Run(`kubectl apply -k https://github.com/networkservicemesh/deployments-k8s/examples/features/opa?ref=b7c446f688868a36a49491dd49a1988365f2ccf3`)
+	r.Run(`kubectl apply -k https://github.com/networkservicemesh/deployments-k8s/examples/features/opa?ref=af97993138fd6a7b37944d0b726fa7d31bee4fcd`)
 	r.Run(`kubectl wait --for=condition=ready --timeout=1m pod -l app=nsc-kernel -n ns-opa`)
 	r.Run(`kubectl wait --for=condition=ready --timeout=1m pod -l app=nse-kernel -n ns-opa`)
 	r.Run(`NSC=$(kubectl get pods -l app=nsc-kernel -n ns-opa --template '{{range .items}}{{.metadata.name}}{{"\n"}}{{end}}')`)
@@ -238,7 +238,7 @@ func (s *Suite) TestPolicy_based_routing() {
 	s.T().Cleanup(func() {
 		r.Run(`kubectl delete ns ns-policy-based-routing`)
 	})
-	r.Run(`kubectl apply -k https://github.com/networkservicemesh/deployments-k8s/examples/features/policy-based-routing?ref=b7c446f688868a36a49491dd49a1988365f2ccf3`)
+	r.Run(`kubectl apply -k https://github.com/networkservicemesh/deployments-k8s/examples/features/policy-based-routing?ref=af97993138fd6a7b37944d0b726fa7d31bee4fcd`)
 	r.Run(`kubectl wait --for=condition=ready --timeout=1m pod -l app=nettools -n ns-policy-based-routing`)
 	r.Run(`kubectl wait --for=condition=ready --timeout=1m pod -l app=nse-kernel -n ns-policy-based-routing`)
 	r.Run(`NSC=$(kubectl get pods -l app=nettools -n ns-policy-based-routing --template '{{range .items}}{{.metadata.name}}{{"\n"}}{{end}}')`)
@@ -257,7 +257,7 @@ func (s *Suite) TestScale_from_zero() {
 		r.Run(`kubectl delete ns ns-scale-from-zero`)
 		r.Run(`kubectl delete -n nsm-system networkservices.networkservicemesh.io scale-from-zero`)
 	})
-	r.Run(`kubectl apply -k https://github.com/networkservicemesh/deployments-k8s/examples/features/scale-from-zero?ref=b7c446f688868a36a49491dd49a1988365f2ccf3`)
+	r.Run(`kubectl apply -k https://github.com/networkservicemesh/deployments-k8s/examples/features/scale-from-zero?ref=af97993138fd6a7b37944d0b726fa7d31bee4fcd`)
 	r.Run(`kubectl wait -n ns-scale-from-zero --for=condition=ready --timeout=1m pod -l app=nse-supplier-k8s`)
 	r.Run(`kubectl wait -n ns-scale-from-zero --for=condition=ready --timeout=1m pod -l app=alpine`)
 	r.Run(`kubectl wait -n ns-scale-from-zero --for=condition=ready --timeout=1m pod -l app=nse-icmp-responder`)
@@ -274,7 +274,7 @@ func (s *Suite) TestSelect_forwarder() {
 	s.T().Cleanup(func() {
 		r.Run(`kubectl delete ns ns-select-forwarder`)
 	})
-	r.Run(`kubectl apply -k https://github.com/networkservicemesh/deployments-k8s/examples/features/select-forwarder?ref=b7c446f688868a36a49491dd49a1988365f2ccf3`)
+	r.Run(`kubectl apply -k https://github.com/networkservicemesh/deployments-k8s/examples/features/select-forwarder?ref=af97993138fd6a7b37944d0b726fa7d31bee4fcd`)
 	r.Run(`kubectl wait --for=condition=ready --timeout=1m pod -l app=alpine -n ns-select-forwarder`)
 	r.Run(`kubectl wait --for=condition=ready --timeout=1m pod -l app=nse-kernel -n ns-select-forwarder`)
 	r.Run(`NSC=$(kubectl get pods -l app=alpine -n ns-select-forwarder --template '{{range .items}}{{.metadata.name}}{{"\n"}}{{end}}')`)
@@ -288,7 +288,7 @@ func (s *Suite) TestVl3_basic() {
 	s.T().Cleanup(func() {
 		r.Run(`kubectl delete ns ns-vl3`)
 	})
-	r.Run(`kubectl apply -k https://github.com/networkservicemesh/deployments-k8s/examples/features/vl3-basic?ref=b7c446f688868a36a49491dd49a1988365f2ccf3`)
+	r.Run(`kubectl apply -k https://github.com/networkservicemesh/deployments-k8s/examples/features/vl3-basic?ref=af97993138fd6a7b37944d0b726fa7d31bee4fcd`)
 	r.Run(`kubectl wait --for=condition=ready --timeout=2m pod -l app=alpine -n ns-vl3`)
 	r.Run(`nscs=$(kubectl  get pods -l app=alpine -o go-template --template="{{range .items}}{{.metadata.name}} {{end}}" -n ns-vl3)` + "\n" + `[[ ! -z $nscs ]]`)
 	r.Run(`(` + "\n" + `for nsc in $nscs ` + "\n" + `do` + "\n" + `    ipAddr=$(kubectl exec -n ns-vl3 $nsc -- ifconfig nsm-1) || exit` + "\n" + `    ipAddr=$(echo $ipAddr | grep -Eo 'inet addr:[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}'| cut -c 11-)` + "\n" + `    for pinger in $nscs` + "\n" + `    do` + "\n" + `        echo $pinger pings $ipAddr` + "\n" + `        kubectl exec $pinger -n ns-vl3 -- ping -c2 -i 0.5 $ipAddr || exit` + "\n" + `    done` + "\n" + `done` + "\n" + `)`)
@@ -299,7 +299,7 @@ func (s *Suite) TestVl3_dns() {
 	s.T().Cleanup(func() {
 		r.Run(`kubectl delete ns ns-vl3-dns`)
 	})
-	r.Run(`kubectl apply -k https://github.com/networkservicemesh/deployments-k8s/examples/features/vl3-dns?ref=b7c446f688868a36a49491dd49a1988365f2ccf3`)
+	r.Run(`kubectl apply -k https://github.com/networkservicemesh/deployments-k8s/examples/features/vl3-dns?ref=af97993138fd6a7b37944d0b726fa7d31bee4fcd`)
 	r.Run(`kubectl wait --for=condition=ready --timeout=2m pod -l app=alpine -n ns-vl3-dns`)
 	r.Run(`nscs=$(kubectl  get pods -l app=alpine -o go-template --template="{{range .items}}{{.metadata.name}} {{end}}" -n ns-vl3-dns)` + "\n" + `[[ ! -z $nscs ]]`)
 	r.Run(`(` + "\n" + `for nsc in $nscs ` + "\n" + `do` + "\n" + `    for pinger in $nscs` + "\n" + `    do` + "\n" + `        kubectl exec $pinger -n ns-vl3-dns -- ping -c2 -i 0.5 $nsc.vl3-dns -4 || exit` + "\n" + `    done` + "\n" + `done` + "\n" + `)`)
@@ -309,7 +309,7 @@ func (s *Suite) TestVl3_scale_from_zero() {
 	s.T().Cleanup(func() {
 		r.Run(`kubectl delete ns ns-vl3-scale-from-zero`)
 	})
-	r.Run(`kubectl apply -k https://github.com/networkservicemesh/deployments-k8s/examples/features/vl3-scale-from-zero?ref=b7c446f688868a36a49491dd49a1988365f2ccf3`)
+	r.Run(`kubectl apply -k https://github.com/networkservicemesh/deployments-k8s/examples/features/vl3-scale-from-zero?ref=af97993138fd6a7b37944d0b726fa7d31bee4fcd`)
 	r.Run(`kubectl wait -n ns-vl3-scale-from-zero --for=condition=ready --timeout=1m pod -l app=nse-supplier-k8s`)
 	r.Run(`kubectl wait -n ns-vl3-scale-from-zero --for=condition=ready --timeout=1m pod -l app=alpine`)
 	r.Run(`kubectl wait -n ns-vl3-scale-from-zero --for=condition=ready --timeout=1m pod -l app=nse-vl3-vpp`)
@@ -322,7 +322,7 @@ func (s *Suite) TestWebhook() {
 	s.T().Cleanup(func() {
 		r.Run(`kubectl delete ns ns-webhook`)
 	})
-	r.Run(`kubectl apply -k https://github.com/networkservicemesh/deployments-k8s/examples/features/webhook?ref=b7c446f688868a36a49491dd49a1988365f2ccf3`)
+	r.Run(`kubectl apply -k https://github.com/networkservicemesh/deployments-k8s/examples/features/webhook?ref=af97993138fd6a7b37944d0b726fa7d31bee4fcd`)
 	r.Run(`kubectl wait --for=condition=ready --timeout=5m pod -l app=nse-kernel -n ns-webhook`)
 	r.Run(`kubectl wait --for=condition=ready --timeout=1m pod -l app=nettools -n ns-webhook`)
 	r.Run(`NSC=$(kubectl get pods -l app=nettools -n ns-webhook --template '{{range .items}}{{.metadata.name}}{{"\n"}}{{end}}')`)
