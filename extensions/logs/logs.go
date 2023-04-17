@@ -1,6 +1,6 @@
-// Copyright (c) 2022 Cisco and/or its affiliates.
-//
 // Copyright (c) 2021-2022 Doc.ai and/or its affiliates.
+//
+// Copyright (c) 2023 Cisco and/or its affiliates.
 //
 // SPDX-License-Identifier: Apache-2.0
 //
@@ -44,7 +44,6 @@ import (
 const (
 	defaultQPS        = 5 // this is default value for QPS of kubeconfig. See at documentation.
 	fromAllNamespaces = ""
-	kubeconfigEnv     = "KUBECONFIG"
 )
 
 var (
@@ -261,7 +260,6 @@ func filterNamespaces(nsList *corev1.NamespaceList) []string {
 
 // Capture returns a function that saves logs since Capture function has been called.
 func Capture(name string) context.CancelFunc {
-
 	var pushArtifacts = func() {}
 
 	for i, client := range kubeClients {
@@ -273,12 +271,11 @@ func Capture(name string) context.CancelFunc {
 			prevPushFn()
 			nextPushFn()
 		}
-
 	}
 	return func() {
-		var clusterPrefix = filepath.Join(fmt.Sprintf("cluster%v", i+1), name)
-
 		for i, client := range kubeClients {
+			var clusterPrefix = filepath.Join(fmt.Sprintf("cluster%v", i+1), name)
+
 			describePods(client, kubeConfigs[i], clusterPrefix)
 		}
 		pushArtifacts()
