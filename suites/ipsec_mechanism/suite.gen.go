@@ -27,7 +27,7 @@ func (s *Suite) SetupSuite() {
 	s.T().Cleanup(func() {
 		r.Run(`WH=$(kubectl get pods -l app=admission-webhook-k8s -n nsm-system --template '{{range .items}}{{.metadata.name}}{{"\n"}}{{end}}')` + "\n" + `kubectl delete mutatingwebhookconfiguration ${WH}` + "\n" + `kubectl delete ns nsm-system`)
 	})
-	r.Run(`kubectl apply -k https://github.com/networkservicemesh/deployments-k8s/examples/ipsec_mechanism?ref=a67c92a58c79d928eb0a7520bc19f8992ef93820`)
+	r.Run(`kubectl apply -k https://github.com/networkservicemesh/deployments-k8s/examples/ipsec_mechanism?ref=85319af45db0bc5ac19eb5c522c88bf48cffb24b`)
 	r.Run(`WH=$(kubectl get pods -l app=admission-webhook-k8s -n nsm-system --template '{{range .items}}{{.metadata.name}}{{"\n"}}{{end}}')` + "\n" + `kubectl wait --for=condition=ready --timeout=1m pod ${WH} -n nsm-system`)
 }
 func (s *Suite) TestKernel2IP2Kernel() {
@@ -35,7 +35,7 @@ func (s *Suite) TestKernel2IP2Kernel() {
 	s.T().Cleanup(func() {
 		r.Run(`kubectl delete ns ns-kernel2ip2kernel`)
 	})
-	r.Run(`kubectl apply -k https://github.com/networkservicemesh/deployments-k8s/examples/use-cases/Kernel2IP2Kernel?ref=a67c92a58c79d928eb0a7520bc19f8992ef93820`)
+	r.Run(`kubectl apply -k https://github.com/networkservicemesh/deployments-k8s/examples/use-cases/Kernel2IP2Kernel?ref=85319af45db0bc5ac19eb5c522c88bf48cffb24b`)
 	r.Run(`kubectl wait --for=condition=ready --timeout=1m pod -l app=alpine -n ns-kernel2ip2kernel`)
 	r.Run(`kubectl wait --for=condition=ready --timeout=1m pod -l app=nse-kernel -n ns-kernel2ip2kernel`)
 	r.Run(`NSC=$(kubectl get pods -l app=alpine -n ns-kernel2ip2kernel --template '{{range .items}}{{.metadata.name}}{{"\n"}}{{end}}')`)
@@ -48,7 +48,7 @@ func (s *Suite) TestKernel2IP2Memif() {
 	s.T().Cleanup(func() {
 		r.Run(`kubectl delete ns ns-kernel2ip2memif`)
 	})
-	r.Run(`kubectl apply -k https://github.com/networkservicemesh/deployments-k8s/examples/use-cases/Kernel2IP2Memif?ref=a67c92a58c79d928eb0a7520bc19f8992ef93820`)
+	r.Run(`kubectl apply -k https://github.com/networkservicemesh/deployments-k8s/examples/use-cases/Kernel2IP2Memif?ref=85319af45db0bc5ac19eb5c522c88bf48cffb24b`)
 	r.Run(`kubectl wait --for=condition=ready --timeout=1m pod -l app=alpine -n ns-kernel2ip2memif`)
 	r.Run(`kubectl wait --for=condition=ready --timeout=1m pod -l app=nse-memif -n ns-kernel2ip2memif`)
 	r.Run(`NSC=$(kubectl get pods -l app=alpine -n ns-kernel2ip2memif --template '{{range .items}}{{.metadata.name}}{{"\n"}}{{end}}')`)
@@ -61,7 +61,7 @@ func (s *Suite) TestMemif2IP2Kernel() {
 	s.T().Cleanup(func() {
 		r.Run(`kubectl delete ns ns-memif2ip2kernel`)
 	})
-	r.Run(`kubectl apply -k https://github.com/networkservicemesh/deployments-k8s/examples/use-cases/Memif2IP2Kernel?ref=a67c92a58c79d928eb0a7520bc19f8992ef93820`)
+	r.Run(`kubectl apply -k https://github.com/networkservicemesh/deployments-k8s/examples/use-cases/Memif2IP2Kernel?ref=85319af45db0bc5ac19eb5c522c88bf48cffb24b`)
 	r.Run(`kubectl wait --for=condition=ready --timeout=1m pod -l app=nsc-memif -n ns-memif2ip2kernel`)
 	r.Run(`kubectl wait --for=condition=ready --timeout=1m pod -l app=nse-kernel -n ns-memif2ip2kernel`)
 	r.Run(`NSC=$(kubectl get pods -l app=nsc-memif -n ns-memif2ip2kernel --template '{{range .items}}{{.metadata.name}}{{"\n"}}{{end}}')`)
@@ -74,7 +74,7 @@ func (s *Suite) TestMemif2IP2Memif() {
 	s.T().Cleanup(func() {
 		r.Run(`kubectl delete ns ns-memif2ip2memif`)
 	})
-	r.Run(`kubectl apply -k https://github.com/networkservicemesh/deployments-k8s/examples/use-cases/Memif2IP2Memif?ref=a67c92a58c79d928eb0a7520bc19f8992ef93820`)
+	r.Run(`kubectl apply -k https://github.com/networkservicemesh/deployments-k8s/examples/use-cases/Memif2IP2Memif?ref=85319af45db0bc5ac19eb5c522c88bf48cffb24b`)
 	r.Run(`kubectl wait --for=condition=ready --timeout=1m pod -l app=nsc-memif -n ns-memif2ip2memif`)
 	r.Run(`kubectl wait --for=condition=ready --timeout=1m pod -l app=nse-memif -n ns-memif2ip2memif`)
 	r.Run(`NSC=$(kubectl get pods -l app=nsc-memif -n ns-memif2ip2memif --template '{{range .items}}{{.metadata.name}}{{"\n"}}{{end}}')`)
