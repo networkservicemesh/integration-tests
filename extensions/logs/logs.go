@@ -264,9 +264,10 @@ func Capture(name string) context.CancelFunc {
 
 	var pushArtifacts = func() {}
 
-	for _, client := range kubeClients {
+	for i, client := range kubeClients {
+		var clusterPrefix = filepath.Join(fmt.Sprintf("cluster%v", i+1), name)
 		var prevPushFn = pushArtifacts
-		var nextPushFn = capture(client, name)
+		var nextPushFn = capture(client, clusterPrefix)
 
 		pushArtifacts = func() {
 			prevPushFn()
@@ -274,10 +275,11 @@ func Capture(name string) context.CancelFunc {
 		}
 
 	}
-
 	return func() {
+		var clusterPrefix = filepath.Join(fmt.Sprintf("cluster%v", i+1), name)
+
 		for i, client := range kubeClients {
-			describePods(client, kubeConfigs[i], name)
+			describePods(client, kubeConfigs[i], clusterPrefix)
 		}
 		pushArtifacts()
 	}
