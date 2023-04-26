@@ -210,8 +210,6 @@ func initialize() {
 }
 
 func capture(kubeClient kubernetes.Interface, name string) context.CancelFunc {
-	once.Do(initialize)
-
 	now := time.Now()
 
 	dir := filepath.Join(config.ArtifactsDir, name)
@@ -260,6 +258,8 @@ func filterNamespaces(nsList *corev1.NamespaceList) []string {
 
 // Capture returns a function that saves logs since Capture function has been called.
 func Capture(name string) context.CancelFunc {
+	once.Do(initialize)
+
 	var pushArtifacts = func() {}
 
 	for i, client := range kubeClients {
