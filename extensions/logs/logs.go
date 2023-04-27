@@ -153,19 +153,23 @@ func initialize() {
 
 	jobsCh = make(chan func(), config.WorkerCount)
 
-	var kubeConfig = os.Getenv("KUBECONFIG")
+	var singleClusterKubeConfig = os.Getenv("KUBECONFIG")
 
-	if kubeConfig == "" {
-		kubeConfig = filepath.Join(os.Getenv("HOME"), ".kube", "config")
+	if singleClusterKubeConfig == "" {
+		singleClusterKubeConfig = filepath.Join(os.Getenv("HOME"), ".kube", "config")
 	}
 
-	kubeConfigs = []string{kubeConfig}
+	kubeConfigs = []string{}
 
 	for i := 1; i <= config.MaxKubeConfigs; i++ {
-		kubeConfig = os.Getenv("KUBECONFIG" + fmt.Sprint(i))
+		kubeConfig := os.Getenv("KUBECONFIG" + fmt.Sprint(i))
 		if kubeConfig != "" {
 			kubeConfigs = append(kubeConfigs, kubeConfig)
 		}
+	}
+
+	if len(kubeConfigs) == 0 {
+		kubeConfigs = append(kubeConfigs, singleClusterKubeConfig)
 	}
 
 	for _, cfg := range kubeConfigs {
