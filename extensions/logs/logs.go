@@ -59,7 +59,7 @@ var (
 // Config is env config to setup log collecting.
 type Config struct {
 	ArtifactsDir      string        `default:"logs" desc:"Directory for storing container logs" envconfig:"ARTIFACTS_DIR"`
-	Timeout           time.Duration `default:"5s" desc:"Context timeout for kubernetes queries" split_words:"true"`
+	Timeout           time.Duration `default:"10s" desc:"Context timeout for kubernetes queries" split_words:"true"`
 	WorkerCount       int           `default:"8" desc:"Number of log collector workers" split_words:"true"`
 	MaxKubeConfigs    int           `default:"3" desc:"Number of used kubeconfigs" split_words:"true"`
 	AllowedNamespaces string        `default:"(ns-.*)|(nsm-system)|(spire)|(observability)" desc:"Regex of allowed namespaces" split_words:"true"`
