@@ -21,11 +21,12 @@ package base
 
 import (
 	"fmt"
+	"github.com/networkservicemesh/gotestmd/pkg/bash"
+	"github.com/sirupsen/logrus"
 	"strings"
 
 	"github.com/networkservicemesh/gotestmd/pkg/suites/shell"
 	"github.com/networkservicemesh/integration-tests/extensions/checkout"
-	"github.com/networkservicemesh/integration-tests/extensions/logs"
 	"github.com/networkservicemesh/integration-tests/extensions/prefetch"
 )
 
@@ -40,12 +41,18 @@ type Suite struct {
 
 // AfterTest stores logs after each test in the suite.
 func (s *Suite) AfterTest(_, _ string) {
-	s.storeTestLogs()
+	runner, err := bash.New()
+	if err != nil {
+		return
+	}
+	_, _, exitCode, err := runner.Run("kubectl cluster-info dump " + "> " + s.T().Name() + ".log")
+	if exitCode != 0 || err != nil {
+		logrus.Errorf("An error while retrieving cluster-info dump")
+	}
 }
 
 // BeforeTest starts capture logs for each test in the suite.
 func (s *Suite) BeforeTest(_, _ string) {
-	s.storeTestLogs = logs.Capture(s.T().Name())
 }
 
 // TearDownSuite stores logs from containers that spawned during SuiteSetup.
@@ -87,5 +94,5 @@ func (s *Suite) SetupSuite() {
 	s.prefetch.SetT(s.T())
 	s.prefetch.SetupSuite()
 
-	s.storeSuiteLogs = logs.Capture(s.T().Name())
+	// s.storeSuiteLogs = logs.Capture(s.T().Name()) TODO: check the suite, if basic => do the dump
 }
