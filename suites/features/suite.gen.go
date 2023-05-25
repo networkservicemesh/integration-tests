@@ -6,6 +6,8 @@ import (
 
 	"github.com/networkservicemesh/integration-tests/extensions/base"
 	"github.com/networkservicemesh/integration-tests/suites/basic"
+
+	"sync"
 )
 
 type Suite struct {
@@ -24,7 +26,44 @@ func (s *Suite) SetupSuite() {
 		}
 	}
 }
-func (s *Suite) TestAnnotated_namespace() {
+
+func (s *Suite) TestAll() {
+	var waitgroup sync.WaitGroup
+	waitgroup.Add(22)
+	go s.Annotated_namespace(&waitgroup)
+	go s.Dns(&waitgroup)
+	go s.Kernel2IP2Kernel_dual_stack(&waitgroup)
+	go s.Kernel2Kernel_dual_stack(&waitgroup)
+
+	go s.Exclude_prefixes(&waitgroup)
+	go s.Exclude_prefixes_client(&waitgroup)
+	go s.Kernel2IP2Kernel_ipv6(&waitgroup)
+	go s.Kernel2IP2Memif_ipv6(&waitgroup)
+
+	go s.Kernel2Kernel_ipv6(&waitgroup)
+	go s.Memif2IP2Kernel_ipv6(&waitgroup)
+	go s.Memif2IP2Memif_ipv6(&waitgroup)
+	go s.Memif2Memif_ipv6(&waitgroup)
+
+	go s.Mutually_aware_nses(&waitgroup)
+	go s.Nse_composition(&waitgroup)
+	go s.Opa(&waitgroup)
+	go s.Policy_based_routing(&waitgroup)
+
+	go s.Scale_from_zero(&waitgroup)
+	go s.Select_forwarder(&waitgroup)
+	go s.Vl3_basic(&waitgroup)
+	go s.Vl3_dns(&waitgroup)
+	
+	go s.Vl3_scale_from_zero(&waitgroup)
+	go s.Webhook(&waitgroup)
+
+	waitgroup.Wait()
+}
+func (s *Suite) Annotated_namespace(waitgroup *sync.WaitGroup) {
+	defer func() {
+		waitgroup.Done()
+	}()
 	r := s.Runner("../deployments-k8s/examples/features/annotated-namespace")
 	s.T().Cleanup(func() {
 		r.Run(`kubectl delete ns ns-annotated-namespace`)
@@ -37,7 +76,10 @@ func (s *Suite) TestAnnotated_namespace() {
 	r.Run(`kubectl exec deployments/alpine -n ns-annotated-namespace -- ping -c 4 172.16.1.100`)
 	r.Run(`kubectl exec deployments/nse-kernel -n ns-annotated-namespace -- ping -c 4 172.16.1.101`)
 }
-func (s *Suite) TestDns() {
+func (s *Suite) Dns(waitgroup *sync.WaitGroup) {
+	defer func() {
+		waitgroup.Done()
+	}()
 	r := s.Runner("../deployments-k8s/examples/features/dns")
 	s.T().Cleanup(func() {
 		r.Run(`kubectl delete ns ns-dns`)
@@ -49,7 +91,10 @@ func (s *Suite) TestDns() {
 	r.Run(`kubectl exec pods/dnsutils -c dnsutils -n ns-dns -- ping -c 4 my.coredns.service`)
 	r.Run(`kubectl exec pods/dnsutils -c dnsutils -n ns-dns -- dig kubernetes.default A kubernetes.default AAAA | grep "kubernetes.default.svc.cluster.local"`)
 }
-func (s *Suite) TestKernel2IP2Kernel_dual_stack() {
+func (s *Suite) Kernel2IP2Kernel_dual_stack(waitgroup *sync.WaitGroup) {
+	defer func() {
+		waitgroup.Done()
+	}()
 	r := s.Runner("../deployments-k8s/examples/features/dual-stack/Kernel2IP2Kernel_dual_stack")
 	s.T().Cleanup(func() {
 		r.Run(`kubectl delete ns ns-kernel2ip2kernel-dual-stack`)
@@ -62,7 +107,10 @@ func (s *Suite) TestKernel2IP2Kernel_dual_stack() {
 	r.Run(`kubectl exec pods/alpine -n ns-kernel2ip2kernel-dual-stack -- ping -c 4 172.16.1.100`)
 	r.Run(`kubectl exec deployments/nse-kernel -n ns-kernel2ip2kernel-dual-stack -- ping -c 4 172.16.1.101`)
 }
-func (s *Suite) TestKernel2Kernel_dual_stack() {
+func (s *Suite) Kernel2Kernel_dual_stack(waitgroup *sync.WaitGroup) {
+	defer func() {
+		waitgroup.Done()
+	}()
 	r := s.Runner("../deployments-k8s/examples/features/dual-stack/Kernel2Kernel_dual_stack")
 	s.T().Cleanup(func() {
 		r.Run(`kubectl delete ns ns-kernel2kernel-dual-stack`)
@@ -75,7 +123,10 @@ func (s *Suite) TestKernel2Kernel_dual_stack() {
 	r.Run(`kubectl exec pods/alpine -n ns-kernel2kernel-dual-stack -- ping -c 4 172.16.1.100`)
 	r.Run(`kubectl exec deployments/nse-kernel -n ns-kernel2kernel-dual-stack -- ping -c 4 172.16.1.101`)
 }
-func (s *Suite) TestExclude_prefixes() {
+func (s *Suite) Exclude_prefixes(waitgroup *sync.WaitGroup) {
+	defer func() {
+		waitgroup.Done()
+	}()
 	r := s.Runner("../deployments-k8s/examples/features/exclude-prefixes")
 	s.T().Cleanup(func() {
 		r.Run(`kubectl delete configmap excluded-prefixes-config` + "\n" + `kubectl delete ns ns-exclude-prefixes`)
@@ -87,7 +138,10 @@ func (s *Suite) TestExclude_prefixes() {
 	r.Run(`kubectl exec pods/alpine -n ns-exclude-prefixes -- ping -c 4 172.16.1.100`)
 	r.Run(`kubectl exec deployments/nse-kernel -n ns-exclude-prefixes -- ping -c 4 172.16.1.103`)
 }
-func (s *Suite) TestExclude_prefixes_client() {
+func (s *Suite) Exclude_prefixes_client(waitgroup *sync.WaitGroup) {
+	defer func() {
+		waitgroup.Done()
+	}()
 	r := s.Runner("../deployments-k8s/examples/features/exclude-prefixes-client")
 	s.T().Cleanup(func() {
 		r.Run(`kubectl delete ns ns-exclude-prefixes-client`)
@@ -101,7 +155,10 @@ func (s *Suite) TestExclude_prefixes_client() {
 	r.Run(`kubectl exec deployments/nse-kernel-1 -n ns-exclude-prefixes-client -- ping -c 4 172.16.1.97`)
 	r.Run(`kubectl exec deployments/nse-kernel-2 -n ns-exclude-prefixes-client -- ping -c 4 172.16.1.99`)
 }
-func (s *Suite) TestKernel2IP2Kernel_ipv6() {
+func (s *Suite) Kernel2IP2Kernel_ipv6(waitgroup *sync.WaitGroup) {
+	defer func() {
+		waitgroup.Done()
+	}()
 	r := s.Runner("../deployments-k8s/examples/features/ipv6/Kernel2IP2Kernel_ipv6")
 	s.T().Cleanup(func() {
 		r.Run(`kubectl delete ns ns-kernel2ip2kernel-ipv6`)
@@ -112,7 +169,10 @@ func (s *Suite) TestKernel2IP2Kernel_ipv6() {
 	r.Run(`kubectl exec pods/alpine -n ns-kernel2ip2kernel-ipv6 -- ping -c 4 2001:db8::`)
 	r.Run(`kubectl exec deployments/nse-kernel -n ns-kernel2ip2kernel-ipv6 -- ping -c 4 2001:db8::1`)
 }
-func (s *Suite) TestKernel2IP2Memif_ipv6() {
+func (s *Suite) Kernel2IP2Memif_ipv6(waitgroup *sync.WaitGroup) {
+	defer func() {
+		waitgroup.Done()
+	}()
 	r := s.Runner("../deployments-k8s/examples/features/ipv6/Kernel2IP2Memif_ipv6")
 	s.T().Cleanup(func() {
 		r.Run(`kubectl delete ns ns-kernel2ip2memif-ipv6`)
@@ -123,7 +183,10 @@ func (s *Suite) TestKernel2IP2Memif_ipv6() {
 	r.Run(`kubectl exec pods/alpine -n ns-kernel2ip2memif-ipv6 -- ping -c 4 2001:db8::`)
 	r.Run(`result=$(kubectl exec deployments/nse-memif -n "ns-kernel2ip2memif-ipv6" -- vppctl ping 2001:db8::1 repeat 4)` + "\n" + `echo ${result}` + "\n" + `! echo ${result} | grep -E -q "(100% packet loss)|(0 sent)|(no egress interface)"`)
 }
-func (s *Suite) TestKernel2Kernel_ipv6() {
+func (s *Suite) Kernel2Kernel_ipv6(waitgroup *sync.WaitGroup) {
+	defer func() {
+		waitgroup.Done()
+	}()
 	r := s.Runner("../deployments-k8s/examples/features/ipv6/Kernel2Kernel_ipv6")
 	s.T().Cleanup(func() {
 		r.Run(`kubectl delete ns ns-kernel2kernel-ipv6`)
@@ -134,7 +197,10 @@ func (s *Suite) TestKernel2Kernel_ipv6() {
 	r.Run(`kubectl exec pods/alpine -n ns-kernel2kernel-ipv6 -- ping -c 4 2001:db8::`)
 	r.Run(`kubectl exec deployments/nse-kernel -n ns-kernel2kernel-ipv6 -- ping -c 4 2001:db8::1`)
 }
-func (s *Suite) TestMemif2IP2Kernel_ipv6() {
+func (s *Suite) Memif2IP2Kernel_ipv6(waitgroup *sync.WaitGroup) {
+	defer func() {
+		waitgroup.Done()
+	}()
 	r := s.Runner("../deployments-k8s/examples/features/ipv6/Memif2IP2Kernel_ipv6")
 	s.T().Cleanup(func() {
 		r.Run(`kubectl delete ns ns-memif2ip2kernel-ipv6`)
@@ -145,7 +211,10 @@ func (s *Suite) TestMemif2IP2Kernel_ipv6() {
 	r.Run(`result=$(kubectl exec deployments/nsc-memif -n "ns-memif2ip2kernel-ipv6" -- vppctl ping 2001:db8:: repeat 4)` + "\n" + `echo ${result}` + "\n" + `! echo ${result} | grep -E -q "(100% packet loss)|(0 sent)|(no egress interface)"`)
 	r.Run(`kubectl exec deployments/nse-kernel -n ns-memif2ip2kernel-ipv6 -- ping -c 4 2001:db8::1`)
 }
-func (s *Suite) TestMemif2IP2Memif_ipv6() {
+func (s *Suite) Memif2IP2Memif_ipv6(waitgroup *sync.WaitGroup) {
+	defer func() {
+		waitgroup.Done()
+	}()
 	r := s.Runner("../deployments-k8s/examples/features/ipv6/Memif2IP2Memif_ipv6")
 	s.T().Cleanup(func() {
 		r.Run(`kubectl delete ns ns-memif2ip2memif-ipv6`)
@@ -156,7 +225,10 @@ func (s *Suite) TestMemif2IP2Memif_ipv6() {
 	r.Run(`result=$(kubectl exec deployments/nsc-memif -n "ns-memif2ip2memif-ipv6" -- vppctl ping 2001:db8:: repeat 4)` + "\n" + `echo ${result}` + "\n" + `! echo ${result} | grep -E -q "(100% packet loss)|(0 sent)|(no egress interface)"`)
 	r.Run(`result=$(kubectl exec deployments/nse-memif -n "ns-memif2ip2memif-ipv6" -- vppctl ping 2001:db8::1 repeat 4)` + "\n" + `echo ${result}` + "\n" + `! echo ${result} | grep -E -q "(100% packet loss)|(0 sent)|(no egress interface)"`)
 }
-func (s *Suite) TestMemif2Memif_ipv6() {
+func (s *Suite) Memif2Memif_ipv6(waitgroup *sync.WaitGroup) {
+	defer func() {
+		waitgroup.Done()
+	}()
 	r := s.Runner("../deployments-k8s/examples/features/ipv6/Memif2Memif_ipv6")
 	s.T().Cleanup(func() {
 		r.Run(`kubectl delete ns ns-memif2memif-ipv6`)
@@ -167,7 +239,10 @@ func (s *Suite) TestMemif2Memif_ipv6() {
 	r.Run(`result=$(kubectl exec deployments/nsc-memif -n "ns-memif2memif-ipv6" -- vppctl ping ipv6 2001:db8:: repeat 4)` + "\n" + `echo ${result}` + "\n" + `! echo ${result} | grep -E -q "(100% packet loss)|(0 sent)|(no egress interface)"`)
 	r.Run(`result=$(kubectl exec deployments/nse-memif -n "ns-memif2memif-ipv6" -- vppctl ping ipv6 2001:db8::1 repeat 4)` + "\n" + `echo ${result}` + "\n" + `! echo ${result} | grep -E -q "(100% packet loss)|(0 sent)|(no egress interface)"`)
 }
-func (s *Suite) TestMutually_aware_nses() {
+func (s *Suite) Mutually_aware_nses(waitgroup *sync.WaitGroup) {
+	defer func() {
+		waitgroup.Done()
+	}()
 	r := s.Runner("../deployments-k8s/examples/features/mutually-aware-nses")
 	s.T().Cleanup(func() {
 		r.Run(`kubectl delete ns ns-mutually-aware-nses`)
@@ -180,7 +255,10 @@ func (s *Suite) TestMutually_aware_nses() {
 	r.Run(`result=$(kubectl exec deployments/nsc-kernel -n ns-mutually-aware-nses -- ip r get 172.16.1.100 from 172.16.1.101 ipproto tcp dport 6666)` + "\n" + `echo ${result}` + "\n" + `echo ${result} | grep -E -q "172.16.1.100 from 172.16.1.101 dev nsm-1"`)
 	r.Run(`result=$(kubectl exec deployments/nsc-kernel -n ns-mutually-aware-nses -- ip r get 172.16.1.100 from 172.16.1.101 ipproto udp dport 5555)` + "\n" + `echo ${result}` + "\n" + `echo ${result} | grep -E -q "172.16.1.100 from 172.16.1.101 dev nsm-2"`)
 }
-func (s *Suite) TestNse_composition() {
+func (s *Suite) Nse_composition(waitgroup *sync.WaitGroup) {
+	defer func() {
+		waitgroup.Done()
+	}()
 	r := s.Runner("../deployments-k8s/examples/features/nse-composition")
 	s.T().Cleanup(func() {
 		r.Run(`kubectl delete ns ns-nse-composition`)
@@ -193,7 +271,10 @@ func (s *Suite) TestNse_composition() {
 	r.Run(`kubectl exec pods/alpine -n ns-nse-composition -- wget -O /dev/null --timeout 5 "172.16.1.100:80"` + "\n" + `if [ 0 -eq $? ]; then` + "\n" + `  echo "error: port :80 is available" >&2` + "\n" + `  false` + "\n" + `else` + "\n" + `  echo "success: port :80 is unavailable"` + "\n" + `fi`)
 	r.Run(`kubectl exec deployments/nse-kernel -n ns-nse-composition -- ping -c 4 172.16.1.101`)
 }
-func (s *Suite) TestOpa() {
+func (s *Suite) Opa(waitgroup *sync.WaitGroup) {
+	defer func() {
+		waitgroup.Done()
+	}()
 	r := s.Runner("../deployments-k8s/examples/features/opa")
 	s.T().Cleanup(func() {
 		r.Run(`kubectl delete ns ns-opa`)
@@ -203,7 +284,10 @@ func (s *Suite) TestOpa() {
 	r.Run(`kubectl wait --for=condition=ready --timeout=1m pod -l app=nse-kernel -n ns-opa`)
 	r.Run(`kubectl logs deployments/nsc-kernel -n ns-opa | grep "PermissionDenied desc = no sufficient privileges"`)
 }
-func (s *Suite) TestPolicy_based_routing() {
+func (s *Suite) Policy_based_routing(waitgroup *sync.WaitGroup) {
+	defer func() {
+		waitgroup.Done()
+	}()
 	r := s.Runner("../deployments-k8s/examples/features/policy-based-routing")
 	s.T().Cleanup(func() {
 		r.Run(`kubectl delete ns ns-policy-based-routing`)
@@ -219,7 +303,10 @@ func (s *Suite) TestPolicy_based_routing() {
 	r.Run(`result=$(kubectl exec pods/nettools -n ns-policy-based-routing -- ip r get 172.16.4.1 ipproto udp dport 6668)` + "\n" + `echo ${result}` + "\n" + `echo ${result} | grep -E -q "172.16.4.1 dev nsm-1 table 4 src 172.16.1.101"`)
 	r.Run(`result=$(kubectl exec pods/nettools -n ns-policy-based-routing -- ip -6 route get 2004::5 from 2004::3 ipproto udp dport 5555)` + "\n" + `echo ${result}` + "\n" + `echo ${result} | grep -E -q "via 2004::6 dev nsm-1 table 5 src 2004::3"`)
 }
-func (s *Suite) TestScale_from_zero() {
+func (s *Suite) Scale_from_zero(waitgroup *sync.WaitGroup) {
+	defer func() {
+		waitgroup.Done()
+	}()
 	r := s.Runner("../deployments-k8s/examples/features/scale-from-zero")
 	s.T().Cleanup(func() {
 		r.Run(`kubectl delete ns ns-scale-from-zero`)
@@ -236,7 +323,10 @@ func (s *Suite) TestScale_from_zero() {
 	r.Run(`kubectl delete pod -n ns-scale-from-zero alpine`)
 	r.Run(`kubectl wait -n ns-scale-from-zero --for=delete --timeout=1m pod -l app=nse-icmp-responder`)
 }
-func (s *Suite) TestSelect_forwarder() {
+func (s *Suite) Select_forwarder(waitgroup *sync.WaitGroup) {
+	defer func() {
+		waitgroup.Done()
+	}()	
 	r := s.Runner("../deployments-k8s/examples/features/select-forwarder")
 	s.T().Cleanup(func() {
 		r.Run(`kubectl delete ns ns-select-forwarder`)
@@ -248,7 +338,10 @@ func (s *Suite) TestSelect_forwarder() {
 	r.Run(`kubectl exec deployments/nse-kernel -n ns-select-forwarder -- ping -c 4 169.254.0.1`)
 	r.Run(`kubectl logs pods/alpine -c cmd-nsc -n ns-select-forwarder | grep "my-forwarder-vpp"`)
 }
-func (s *Suite) TestVl3_basic() {
+func (s *Suite) Vl3_basic(waitgroup *sync.WaitGroup) {
+	defer func() {
+		waitgroup.Done()
+	}()
 	r := s.Runner("../deployments-k8s/examples/features/vl3-basic")
 	s.T().Cleanup(func() {
 		r.Run(`kubectl delete ns ns-vl3`)
@@ -259,7 +352,10 @@ func (s *Suite) TestVl3_basic() {
 	r.Run(`(` + "\n" + `for nsc in $nscs ` + "\n" + `do` + "\n" + `    ipAddr=$(kubectl exec -n ns-vl3 $nsc -- ifconfig nsm-1) || exit` + "\n" + `    ipAddr=$(echo $ipAddr | grep -Eo 'inet addr:[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}'| cut -c 11-)` + "\n" + `    for pinger in $nscs` + "\n" + `    do` + "\n" + `        echo $pinger pings $ipAddr` + "\n" + `        kubectl exec $pinger -n ns-vl3 -- ping -c2 -i 0.5 $ipAddr || exit` + "\n" + `    done` + "\n" + `done` + "\n" + `)`)
 	r.Run(`(` + "\n" + `for nsc in $nscs ` + "\n" + `do` + "\n" + `    echo $nsc pings nses` + "\n" + `    kubectl exec -n ns-vl3 $nsc -- ping 172.16.0.0 -c2 -i 0.5 || exit` + "\n" + `    kubectl exec -n ns-vl3 $nsc -- ping 172.16.1.0 -c2 -i 0.5 || exit` + "\n" + `done` + "\n" + `)`)
 }
-func (s *Suite) TestVl3_dns() {
+func (s *Suite) Vl3_dns(waitgroup *sync.WaitGroup) {
+	defer func() {
+		waitgroup.Done()
+	}()
 	r := s.Runner("../deployments-k8s/examples/features/vl3-dns")
 	s.T().Cleanup(func() {
 		r.Run(`kubectl delete ns ns-vl3-dns`)
@@ -273,7 +369,10 @@ func (s *Suite) TestVl3_dns() {
 	r.Run(`(` + "\n" + `for nse in $nses` + "\n" + `do` + "\n" + `    for pinger in $nscs` + "\n" + `    do` + "\n" + `        kubectl exec $pinger -n ns-vl3-dns -- ping -c2 -i 0.5 $nse.vl3-dns -4 || exit` + "\n" + `    done` + "\n" + `done` + "\n" + `)`)
 	r.Run(`(` + "\n" + `for nse in $nses` + "\n" + `do` + "\n" + `    for pinger in $nscs` + "\n" + `    do` + "\n" + `        # Get IP address for PTR request` + "\n" + `        nseAddr=$(kubectl exec $pinger -n ns-vl3-dns -- nslookup -type=a $nse.vl3-dns | grep -A1 Name | tail -n1 | sed 's/Address: //')` + "\n" + `        kubectl exec $pinger -n ns-vl3-dns -- nslookup $nseAddr || exit` + "\n" + `    done` + "\n" + `done` + "\n" + `)`)
 }
-func (s *Suite) TestVl3_scale_from_zero() {
+func (s *Suite) Vl3_scale_from_zero(waitgroup *sync.WaitGroup) {
+	defer func() {
+		waitgroup.Done()
+	}()
 	r := s.Runner("../deployments-k8s/examples/features/vl3-scale-from-zero")
 	s.T().Cleanup(func() {
 		r.Run(`kubectl delete ns ns-vl3-scale-from-zero`)
@@ -286,7 +385,10 @@ func (s *Suite) TestVl3_scale_from_zero() {
 	r.Run(`(` + "\n" + `for nsc in $nscs ` + "\n" + `do` + "\n" + `    ipAddr=$(kubectl exec -n ns-vl3-scale-from-zero $nsc -- ifconfig nsm-1) || exit` + "\n" + `    ipAddr=$(echo $ipAddr | grep -Eo 'inet addr:[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}'| cut -c 11-)` + "\n" + `    for pinger in $nscs` + "\n" + `    do` + "\n" + `        echo $pinger pings $ipAddr` + "\n" + `        kubectl exec $pinger -n ns-vl3-scale-from-zero -- ping -c2 -i 0.5 $ipAddr || exit` + "\n" + `    done` + "\n" + `done` + "\n" + `)`)
 	r.Run(`(` + "\n" + `for nsc in $nscs ` + "\n" + `do` + "\n" + `    echo $nsc pings nses` + "\n" + `    kubectl exec -n ns-vl3-scale-from-zero $nsc -- ping 172.16.0.0 -c2 -i 0.5 || exit` + "\n" + `    kubectl exec -n ns-vl3-scale-from-zero $nsc -- ping 172.16.1.0 -c2 -i 0.5 || exit` + "\n" + `done` + "\n" + `)`)
 }
-func (s *Suite) TestWebhook() {
+func (s *Suite) Webhook(waitgroup *sync.WaitGroup) {
+	defer func() {
+		waitgroup.Done()
+	}()
 	r := s.Runner("../deployments-k8s/examples/features/webhook")
 	s.T().Cleanup(func() {
 		r.Run(`kubectl delete ns ns-webhook`)

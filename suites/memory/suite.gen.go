@@ -6,6 +6,8 @@ import (
 
 	"github.com/networkservicemesh/integration-tests/extensions/base"
 	"github.com/networkservicemesh/integration-tests/suites/spire/single_cluster"
+
+	"sync"
 )
 
 type Suite struct {
@@ -30,7 +32,20 @@ func (s *Suite) SetupSuite() {
 	r.Run(`kubectl apply -k https://github.com/networkservicemesh/deployments-k8s/examples/memory?ref=93d9b4b38578c775bc757e5749194d94d21a293a`)
 	r.Run(`WH=$(kubectl get pods -l app=admission-webhook-k8s -n nsm-system --template '{{range .items}}{{.metadata.name}}{{"\n"}}{{end}}')` + "\n" + `kubectl wait --for=condition=ready --timeout=1m pod ${WH} -n nsm-system`)
 }
-func (s *Suite) TestKernel2Ethernet2Kernel() {
+
+func(s *Suite) TestAll() {
+	var waitgroup sync.WaitGroup
+	waitgroup.Add(3)
+	go s.Kernel2Ethernet2Kernel(&waitgroup)
+	go s.Kernel2Kernel(&waitgroup)
+	go s.Memif2Memif(&waitgroup)
+
+	waitgroup.Wait()
+}
+func (s *Suite) Kernel2Ethernet2Kernel(waitgroup *sync.WaitGroup) {
+	defer func() {
+		waitgroup.Done()
+	}()
 	r := s.Runner("../deployments-k8s/examples/memory/Kernel2Ethernet2Kernel")
 	s.T().Cleanup(func() {
 		r.Run(`kubectl delete ns ns-kernel2ethernet2kernel`)
@@ -41,7 +56,10 @@ func (s *Suite) TestKernel2Ethernet2Kernel() {
 	r.Run(`kubectl exec pods/alpine -n ns-kernel2ethernet2kernel -- ping -c 4 172.16.1.100`)
 	r.Run(`kubectl exec deployments/nse-kernel -n ns-kernel2ethernet2kernel -- ping -c 4 172.16.1.101`)
 }
-func (s *Suite) TestKernel2Kernel() {
+func (s *Suite) Kernel2Kernel(waitgroup *sync.WaitGroup) {
+	defer func() {
+		waitgroup.Done()
+	}()
 	r := s.Runner("../deployments-k8s/examples/memory/Kernel2Kernel")
 	s.T().Cleanup(func() {
 		r.Run(`kubectl delete ns ns-kernel2kernel`)
@@ -50,9 +68,12 @@ func (s *Suite) TestKernel2Kernel() {
 	r.Run(`kubectl wait --for=condition=ready --timeout=1m pod -l app=alpine -n ns-kernel2kernel`)
 	r.Run(`kubectl wait --for=condition=ready --timeout=1m pod -l app=nse-kernel -n ns-kernel2kernel`)
 	r.Run(`kubectl exec pods/alpine -n ns-kernel2kernel -- ping -c 4 172.16.1.100`)
-	r.Run(`kubectl exec deployments/nse-kernel -n ns-kernel2kernel -- ping -c 4 172.16.1.101`)
+	r.Run(`kubectl exec deployments/nse-kernel -n ns-kernel2krnel -- ping -c 4 172.16.1.101`)
 }
-func (s *Suite) TestMemif2Memif() {
+func (s *Suite) Memif2Memif(waitgroup *sync.WaitGroup) {
+	defer func() {
+		waitgroup.Done()
+	}()
 	r := s.Runner("../deployments-k8s/examples/memory/Memif2Memif")
 	s.T().Cleanup(func() {
 		r.Run(`kubectl delete ns ns-memif2memif`)

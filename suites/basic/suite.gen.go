@@ -6,6 +6,8 @@ import (
 
 	"github.com/networkservicemesh/integration-tests/extensions/base"
 	"github.com/networkservicemesh/integration-tests/suites/spire/single_cluster"
+
+	"sync"
 )
 
 type Suite struct {
@@ -30,7 +32,29 @@ func (s *Suite) SetupSuite() {
 	r.Run(`kubectl apply -k https://github.com/networkservicemesh/deployments-k8s/examples/basic?ref=93d9b4b38578c775bc757e5749194d94d21a293a`)
 	r.Run(`WH=$(kubectl get pods -l app=admission-webhook-k8s -n nsm-system --template '{{range .items}}{{.metadata.name}}{{"\n"}}{{end}}')` + "\n" + `kubectl wait --for=condition=ready --timeout=1m pod ${WH} -n nsm-system`)
 }
-func (s *Suite) TestKernel2Ethernet2Kernel() {
+
+func (s *Suite) TestAll() {
+	var waitgroup sync.WaitGroup
+	waitgroup.Add(12)
+	go s.Kernel2Ethernet2Kernel(&waitgroup)
+	go s.Kernel2Ethernet2Memif(&waitgroup)
+	go s.Kernel2IP2Kernel(&waitgroup)
+	go s.Kernel2IP2Memif(&waitgroup)
+	go s.Kernel2Kernel(&waitgroup)
+	go s.Kernel2Memif(&waitgroup)
+	go s.Memif2Ethernet2Kernel(&waitgroup)
+	go s.Memif2Ethernet2Memif(&waitgroup)
+	go s.Memif2IP2Kernel(&waitgroup)
+	go s.Memif2IP2Memif(&waitgroup)
+	go s.Memif2Kernel(&waitgroup)
+	go s.Memif2Memif(&waitgroup)
+
+	waitgroup.Wait()
+}
+func (s *Suite) Kernel2Ethernet2Kernel(waitgroup *sync.WaitGroup) {
+	defer func() {
+		waitgroup.Done()
+	}()
 	r := s.Runner("../deployments-k8s/examples/use-cases/Kernel2Ethernet2Kernel")
 	s.T().Cleanup(func() {
 		r.Run(`kubectl delete ns ns-kernel2ethernet2kernel`)
@@ -41,7 +65,10 @@ func (s *Suite) TestKernel2Ethernet2Kernel() {
 	r.Run(`kubectl exec pods/alpine -n ns-kernel2ethernet2kernel -- ping -c 4 172.16.1.100`)
 	r.Run(`kubectl exec deployments/nse-kernel -n ns-kernel2ethernet2kernel -- ping -c 4 172.16.1.101`)
 }
-func (s *Suite) TestKernel2Ethernet2Memif() {
+func (s *Suite) Kernel2Ethernet2Memif(waitgroup *sync.WaitGroup) {
+	defer func() {
+		waitgroup.Done()
+	}()
 	r := s.Runner("../deployments-k8s/examples/use-cases/Kernel2Ethernet2Memif")
 	s.T().Cleanup(func() {
 		r.Run(`kubectl delete ns ns-kernel2ethernet2memif`)
@@ -52,7 +79,10 @@ func (s *Suite) TestKernel2Ethernet2Memif() {
 	r.Run(`kubectl exec pods/alpine -n ns-kernel2ethernet2memif -- ping -c 4 172.16.1.100`)
 	r.Run(`result=$(kubectl exec deployments/nse-memif -n "ns-kernel2ethernet2memif" -- vppctl ping 172.16.1.101 repeat 4)` + "\n" + `echo ${result}` + "\n" + `! echo ${result} | grep -E -q "(100% packet loss)|(0 sent)|(no egress interface)"`)
 }
-func (s *Suite) TestKernel2IP2Kernel() {
+func (s *Suite) Kernel2IP2Kernel(waitgroup *sync.WaitGroup) {
+	defer func() {
+		waitgroup.Done()
+	}()
 	r := s.Runner("../deployments-k8s/examples/use-cases/Kernel2IP2Kernel")
 	s.T().Cleanup(func() {
 		r.Run(`kubectl delete ns ns-kernel2ip2kernel`)
@@ -63,7 +93,10 @@ func (s *Suite) TestKernel2IP2Kernel() {
 	r.Run(`kubectl exec pods/alpine -n ns-kernel2ip2kernel -- ping -c 4 172.16.1.100`)
 	r.Run(`kubectl exec deployments/nse-kernel -n ns-kernel2ip2kernel -- ping -c 4 172.16.1.101`)
 }
-func (s *Suite) TestKernel2IP2Memif() {
+func (s *Suite) Kernel2IP2Memif(waitgroup *sync.WaitGroup) {
+	defer func() {
+		waitgroup.Done()
+	}()
 	r := s.Runner("../deployments-k8s/examples/use-cases/Kernel2IP2Memif")
 	s.T().Cleanup(func() {
 		r.Run(`kubectl delete ns ns-kernel2ip2memif`)
@@ -74,7 +107,10 @@ func (s *Suite) TestKernel2IP2Memif() {
 	r.Run(`kubectl exec pods/alpine -n ns-kernel2ip2memif -- ping -c 4 172.16.1.100`)
 	r.Run(`result=$(kubectl exec deployments/nse-memif -n "ns-kernel2ip2memif" -- vppctl ping 172.16.1.101 repeat 4)` + "\n" + `echo ${result}` + "\n" + `! echo ${result} | grep -E -q "(100% packet loss)|(0 sent)|(no egress interface)"`)
 }
-func (s *Suite) TestKernel2Kernel() {
+func (s *Suite) Kernel2Kernel(waitgroup *sync.WaitGroup) {
+	defer func() {
+		waitgroup.Done()
+	}()
 	r := s.Runner("../deployments-k8s/examples/use-cases/Kernel2Kernel")
 	s.T().Cleanup(func() {
 		r.Run(`kubectl delete ns ns-kernel2kernel`)
@@ -85,7 +121,10 @@ func (s *Suite) TestKernel2Kernel() {
 	r.Run(`kubectl exec pods/alpine -n ns-kernel2kernel -- ping -c 4 172.16.1.100`)
 	r.Run(`kubectl exec deployments/nse-kernel -n ns-kernel2kernel -- ping -c 4 172.16.1.101`)
 }
-func (s *Suite) TestKernel2Memif() {
+func (s *Suite) Kernel2Memif(waitgroup *sync.WaitGroup) {
+	defer func() {
+		waitgroup.Done()
+	}()
 	r := s.Runner("../deployments-k8s/examples/use-cases/Kernel2Memif")
 	s.T().Cleanup(func() {
 		r.Run(`kubectl delete ns ns-kernel2memif`)
@@ -96,7 +135,10 @@ func (s *Suite) TestKernel2Memif() {
 	r.Run(`kubectl exec pods/alpine -n ns-kernel2memif -- ping -c 4 172.16.1.100`)
 	r.Run(`result=$(kubectl exec deployments/nse-memif -n "ns-kernel2memif" -- vppctl ping 172.16.1.101 repeat 4)` + "\n" + `echo ${result}` + "\n" + `! echo ${result} | grep -E -q "(100% packet loss)|(0 sent)|(no egress interface)"`)
 }
-func (s *Suite) TestMemif2Ethernet2Kernel() {
+func (s *Suite) Memif2Ethernet2Kernel(waitgroup *sync.WaitGroup) {
+	defer func() {
+		waitgroup.Done()
+	}()
 	r := s.Runner("../deployments-k8s/examples/use-cases/Memif2Ethernet2Kernel")
 	s.T().Cleanup(func() {
 		r.Run(`kubectl delete ns ns-memif2ethernet2kernel`)
@@ -107,7 +149,10 @@ func (s *Suite) TestMemif2Ethernet2Kernel() {
 	r.Run(`result=$(kubectl exec deployments/nsc-memif -n "ns-memif2ethernet2kernel" -- vppctl ping 172.16.1.100 repeat 4)` + "\n" + `echo ${result}` + "\n" + `! echo ${result} | grep -E -q "(100% packet loss)|(0 sent)|(no egress interface)"`)
 	r.Run(`kubectl exec deployments/nse-kernel -n ns-memif2ethernet2kernel -- ping -c 4 172.16.1.101`)
 }
-func (s *Suite) TestMemif2Ethernet2Memif() {
+func (s *Suite) Memif2Ethernet2Memif(waitgroup *sync.WaitGroup) {
+	defer func() {
+		waitgroup.Done()
+	}()
 	r := s.Runner("../deployments-k8s/examples/use-cases/Memif2Ethernet2Memif")
 	s.T().Cleanup(func() {
 		r.Run(`kubectl delete ns ns-memif2ethernet2memif`)
@@ -118,7 +163,10 @@ func (s *Suite) TestMemif2Ethernet2Memif() {
 	r.Run(`result=$(kubectl exec deployments/nsc-memif -n "ns-memif2ethernet2memif" -- vppctl ping 172.16.1.100 repeat 4)` + "\n" + `echo ${result}` + "\n" + `! echo ${result} | grep -E -q "(100% packet loss)|(0 sent)|(no egress interface)"`)
 	r.Run(`result=$(kubectl exec deployments/nse-memif -n "ns-memif2ethernet2memif" -- vppctl ping 172.16.1.101 repeat 4)` + "\n" + `echo ${result}` + "\n" + `! echo ${result} | grep -E -q "(100% packet loss)|(0 sent)|(no egress interface)"`)
 }
-func (s *Suite) TestMemif2IP2Kernel() {
+func (s *Suite) Memif2IP2Kernel(waitgroup *sync.WaitGroup) {
+	defer func() {
+		waitgroup.Done()
+	}()
 	r := s.Runner("../deployments-k8s/examples/use-cases/Memif2IP2Kernel")
 	s.T().Cleanup(func() {
 		r.Run(`kubectl delete ns ns-memif2ip2kernel`)
@@ -129,7 +177,10 @@ func (s *Suite) TestMemif2IP2Kernel() {
 	r.Run(`result=$(kubectl exec deployments/nsc-memif -n "ns-memif2ip2kernel" -- vppctl ping 172.16.1.100 repeat 4)` + "\n" + `echo ${result}` + "\n" + `! echo ${result} | grep -E -q "(100% packet loss)|(0 sent)|(no egress interface)"`)
 	r.Run(`kubectl exec deployments/nse-kernel -n ns-memif2ip2kernel -- ping -c 4 172.16.1.101`)
 }
-func (s *Suite) TestMemif2IP2Memif() {
+func (s *Suite) Memif2IP2Memif(waitgroup *sync.WaitGroup) {
+	defer func() {
+		waitgroup.Done()
+	}()
 	r := s.Runner("../deployments-k8s/examples/use-cases/Memif2IP2Memif")
 	s.T().Cleanup(func() {
 		r.Run(`kubectl delete ns ns-memif2ip2memif`)
@@ -140,7 +191,10 @@ func (s *Suite) TestMemif2IP2Memif() {
 	r.Run(`result=$(kubectl exec deployments/nsc-memif -n "ns-memif2ip2memif" -- vppctl ping 172.16.1.100 repeat 4)` + "\n" + `echo ${result}` + "\n" + `! echo ${result} | grep -E -q "(100% packet loss)|(0 sent)|(no egress interface)"`)
 	r.Run(`result=$(kubectl exec deployments/nse-memif -n "ns-memif2ip2memif" -- vppctl ping 172.16.1.101 repeat 4)` + "\n" + `echo ${result}` + "\n" + `! echo ${result} | grep -E -q "(100% packet loss)|(0 sent)|(no egress interface)"`)
 }
-func (s *Suite) TestMemif2Kernel() {
+func (s *Suite) Memif2Kernel(waitgroup *sync.WaitGroup) {
+	defer func() {
+		waitgroup.Done()
+	}()
 	r := s.Runner("../deployments-k8s/examples/use-cases/Memif2Kernel")
 	s.T().Cleanup(func() {
 		r.Run(`kubectl delete ns ns-memif2kernel`)
@@ -151,7 +205,10 @@ func (s *Suite) TestMemif2Kernel() {
 	r.Run(`result=$(kubectl exec deployments/nsc-memif -n "ns-memif2kernel" -- vppctl ping 172.16.1.100 repeat 4)` + "\n" + `echo ${result}` + "\n" + `! echo ${result} | grep -E -q "(100% packet loss)|(0 sent)|(no egress interface)"`)
 	r.Run(`kubectl exec deployments/nse-kernel -n ns-memif2kernel -- ping -c 4 172.16.1.101`)
 }
-func (s *Suite) TestMemif2Memif() {
+func (s *Suite) Memif2Memif(waitgroup *sync.WaitGroup) {
+	defer func() {
+		waitgroup.Done()
+	}()
 	r := s.Runner("../deployments-k8s/examples/use-cases/Memif2Memif")
 	s.T().Cleanup(func() {
 		r.Run(`kubectl delete ns ns-memif2memif`)
