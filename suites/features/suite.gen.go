@@ -27,39 +27,45 @@ func (s *Suite) SetupSuite() {
 	}
 }
 
-func (s *Suite) TestAll() {
+func (s *Suite) TestFirst10() {
 	var waitgroup sync.WaitGroup
-	waitgroup.Add(22)
+	waitgroup.Add(10)
 	go s.Annotated_namespace(&waitgroup)
 	go s.Dns(&waitgroup)
 	go s.Kernel2IP2Kernel_dual_stack(&waitgroup)
 	go s.Kernel2Kernel_dual_stack(&waitgroup)
-
 	go s.Exclude_prefixes(&waitgroup)
+
 	go s.Exclude_prefixes_client(&waitgroup)
 	go s.Kernel2IP2Kernel_ipv6(&waitgroup)
 	go s.Kernel2IP2Memif_ipv6(&waitgroup)
-
 	go s.Kernel2Kernel_ipv6(&waitgroup)
 	go s.Memif2IP2Kernel_ipv6(&waitgroup)
+
+	waitgroup.Wait()
+}
+
+func (s *Suite) TestSecond10() {
+	var waitgroup sync.WaitGroup
+	waitgroup.Add(12)
 	go s.Memif2IP2Memif_ipv6(&waitgroup)
 	go s.Memif2Memif_ipv6(&waitgroup)
-
 	go s.Mutually_aware_nses(&waitgroup)
 	go s.Nse_composition(&waitgroup)
+
 	go s.Opa(&waitgroup)
 	go s.Policy_based_routing(&waitgroup)
-
 	go s.Scale_from_zero(&waitgroup)
 	go s.Select_forwarder(&waitgroup)
+
 	go s.Vl3_basic(&waitgroup)
 	go s.Vl3_dns(&waitgroup)
-	
 	go s.Vl3_scale_from_zero(&waitgroup)
 	go s.Webhook(&waitgroup)
 
 	waitgroup.Wait()
 }
+
 func (s *Suite) Annotated_namespace(waitgroup *sync.WaitGroup) {
 	defer func() {
 		waitgroup.Done()
