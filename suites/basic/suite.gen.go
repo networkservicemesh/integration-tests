@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"sync"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/suite"
 
@@ -15,6 +16,8 @@ import (
 type Suite struct {
 	base.Suite
 	single_clusterSuite single_cluster.Suite
+
+	WorkerCount int
 }
 
 func (s *Suite) SetupSuite() {
@@ -35,17 +38,15 @@ func (s *Suite) SetupSuite() {
 	r.Run(`WH=$(kubectl get pods -l app=admission-webhook-k8s -n nsm-system --template '{{range .items}}{{.metadata.name}}{{"\n"}}{{end}}')` + "\n" + `kubectl wait --for=condition=ready --timeout=1m pod ${WH} -n nsm-system`)
 }
 
-const workerCount = 5
-
 func worker(jobsCh <-chan func(), wg *sync.WaitGroup) {
 	for j := range jobsCh {
-		fmt.Println("Executing a job...")
 		j()
 	}
-	fmt.Println("Worker is finishing...")
 	wg.Done()
 }
 func (s *Suite) TestAll() {
+	start := time.Now()
+
 	tests := []func(t *testing.T){
 		s.Kernel2Ethernet2Kernel,
 		s.Kernel2Ethernet2Memif,
@@ -62,8 +63,8 @@ func (s *Suite) TestAll() {
 	}
 	jobCh := make(chan func(), len(tests))
 	wg := new(sync.WaitGroup)
-	wg.Add(workerCount)
-	for i := 0; i < workerCount; i++ {
+	wg.Add(s.WorkerCount)
+	for i := 0; i < s.WorkerCount; i++ {
 		go worker(jobCh, wg)
 	}
 	for i := range tests {
@@ -74,6 +75,11 @@ func (s *Suite) TestAll() {
 	}
 	close(jobCh)
 	wg.Wait()
+
+	end := time.Now()
+
+	fmt.Printf("time: %v", end.Sub(start).Seconds())
+
 }
 func (s *Suite) Kernel2Ethernet2Kernel(t *testing.T) {
 	r := s.Runner("/home/nikita/repos/NSM/deployments-k8s/examples/use-cases/Kernel2Ethernet2Kernel")
