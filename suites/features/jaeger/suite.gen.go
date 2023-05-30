@@ -2,6 +2,10 @@
 package jaeger
 
 import (
+	"fmt"
+	"sync"
+	"testing"
+
 	"github.com/stretchr/testify/suite"
 
 	"github.com/networkservicemesh/integration-tests/extensions/base"
@@ -21,5 +25,32 @@ func (s *Suite) SetupSuite() {
 			v.SetupSuite()
 		}
 	}
+}
+
+const workerCount = 5
+
+func worker(jobsCh <-chan func(), wg *sync.WaitGroup) {
+	for j := range jobsCh {
+		fmt.Println("Executing a job...")
+		j()
+	}
+	fmt.Println("Worker is finishing...")
+	wg.Done()
+}
+func (s *Suite) TestAll() {
+	tests := []func(t *testing.T){}
+	jobCh := make(chan func(), len(tests))
+	wg := new(sync.WaitGroup)
+	wg.Add(workerCount)
+	for i := 0; i < workerCount; i++ {
+		go worker(jobCh, wg)
+	}
+	for i := range tests {
+		test := tests[i]
+		jobCh <- func() {
+			s.T().Run("TestName", test)
+		}
+	}
+	wg.Wait()
 }
 func (s *Suite) Test() {}

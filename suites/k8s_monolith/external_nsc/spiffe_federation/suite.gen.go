@@ -2,6 +2,10 @@
 package spiffe_federation
 
 import (
+	"fmt"
+	"sync"
+	"testing"
+
 	"github.com/stretchr/testify/suite"
 
 	"github.com/networkservicemesh/integration-tests/extensions/base"
@@ -21,9 +25,36 @@ func (s *Suite) SetupSuite() {
 			v.SetupSuite()
 		}
 	}
-	r := s.Runner("../deployments-k8s/examples/k8s_monolith/external_nsc/spiffe_federation")
-	r.Run(`kubectl apply -f https://raw.githubusercontent.com/networkservicemesh/deployments-k8s/93d9b4b38578c775bc757e5749194d94d21a293a/examples/k8s_monolith/external_nsc/spiffe_federation/clusterspiffeid-template.yaml`)
+	r := s.Runner("/home/nikita/repos/NSM/deployments-k8s/examples/k8s_monolith/external_nsc/spiffe_federation")
+	r.Run(`kubectl apply -f https://raw.githubusercontent.com/networkservicemesh/deployments-k8s/5a9bdf42902474b17fea95ab459ce98d7b5aa3d0/examples/k8s_monolith/external_nsc/spiffe_federation/clusterspiffeid-template.yaml`)
 	r.Run(`bundlek8s=$(kubectl exec spire-server-0 -n spire -- bin/spire-server bundle show -format spiffe)` + "\n" + `bundledock=$(docker exec nsc-simple-docker bin/spire-server bundle show -format spiffe)`)
 	r.Run(`echo $bundledock | kubectl exec -i spire-server-0 -n spire -- bin/spire-server bundle set -format spiffe -id "spiffe://docker.nsm/cmd-nsc-simple-docker"` + "\n" + `echo $bundlek8s | docker exec -i nsc-simple-docker bin/spire-server bundle set -format spiffe -id "spiffe://k8s.nsm"`)
+}
+
+const workerCount = 5
+
+func worker(jobsCh <-chan func(), wg *sync.WaitGroup) {
+	for j := range jobsCh {
+		fmt.Println("Executing a job...")
+		j()
+	}
+	fmt.Println("Worker is finishing...")
+	wg.Done()
+}
+func (s *Suite) TestAll() {
+	tests := []func(t *testing.T){}
+	jobCh := make(chan func(), len(tests))
+	wg := new(sync.WaitGroup)
+	wg.Add(workerCount)
+	for i := 0; i < workerCount; i++ {
+		go worker(jobCh, wg)
+	}
+	for i := range tests {
+		test := tests[i]
+		jobCh <- func() {
+			s.T().Run("TestName", test)
+		}
+	}
+	wg.Wait()
 }
 func (s *Suite) Test() {}

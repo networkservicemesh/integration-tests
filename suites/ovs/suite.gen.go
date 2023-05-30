@@ -2,6 +2,10 @@
 package ovs
 
 import (
+	"fmt"
+	"sync"
+	"testing"
+
 	"github.com/stretchr/testify/suite"
 
 	"github.com/networkservicemesh/integration-tests/extensions/base"
@@ -23,53 +27,85 @@ func (s *Suite) SetupSuite() {
 			v.SetupSuite()
 		}
 	}
-	r := s.Runner("../deployments-k8s/examples/ovs")
+	r := s.Runner("/home/nikita/repos/NSM/deployments-k8s/examples/ovs")
 	s.T().Cleanup(func() {
 		r.Run(`WH=$(kubectl get pods -l app=admission-webhook-k8s -n nsm-system --template '{{range .items}}{{.metadata.name}}{{"\n"}}{{end}}')` + "\n" + `kubectl delete mutatingwebhookconfiguration ${WH}` + "\n" + `kubectl delete ns nsm-system`)
 	})
-	r.Run(`kubectl apply -k https://github.com/networkservicemesh/deployments-k8s/examples/ovs?ref=93d9b4b38578c775bc757e5749194d94d21a293a`)
+	r.Run(`kubectl apply -k https://github.com/networkservicemesh/deployments-k8s/examples/ovs?ref=5a9bdf42902474b17fea95ab459ce98d7b5aa3d0`)
 	r.Run(`WH=$(kubectl get pods -l app=admission-webhook-k8s -n nsm-system --template '{{range .items}}{{.metadata.name}}{{"\n"}}{{end}}')` + "\n" + `kubectl wait --for=condition=ready --timeout=1m pod ${WH} -n nsm-system`)
 }
-func (s *Suite) TestWebhook_smartvf() {
-	r := s.Runner("../deployments-k8s/examples/features/webhook-smartvf")
-	s.T().Cleanup(func() {
+
+const workerCount = 5
+
+func worker(jobsCh <-chan func(), wg *sync.WaitGroup) {
+	for j := range jobsCh {
+		fmt.Println("Executing a job...")
+		j()
+	}
+	fmt.Println("Worker is finishing...")
+	wg.Done()
+}
+func (s *Suite) TestAll() {
+	tests := []func(t *testing.T){
+		s.Webhook_smartvf,
+		s.Kernel2Kernel,
+		s.Kernel2KernelVLAN,
+		s.SmartVF2SmartVF,
+	}
+	jobCh := make(chan func(), len(tests))
+	wg := new(sync.WaitGroup)
+	wg.Add(workerCount)
+	for i := 0; i < workerCount; i++ {
+		go worker(jobCh, wg)
+	}
+	for i := range tests {
+		test := tests[i]
+		jobCh <- func() {
+			s.T().Run("TestName", test)
+		}
+	}
+	wg.Wait()
+}
+func (s *Suite) Webhook_smartvf(t *testing.T) {
+	r := s.Runner("/home/nikita/repos/NSM/deployments-k8s/examples/features/webhook-smartvf")
+	t.Cleanup(func() {
 		r.Run(`kubectl delete ns ns-webhook-smartvf`)
 	})
 	r.Run(`WH=$(kubectl get pods -l app=admission-webhook-k8s -n nsm-system --template '{{range .items}}{{.metadata.name}}{{"\n"}}{{end}}')` + "\n" + `kubectl wait --for=condition=ready --timeout=1m pod ${WH} -n nsm-system`)
-	r.Run(`kubectl apply -k https://github.com/networkservicemesh/deployments-k8s/examples/features/webhook-smartvf?ref=93d9b4b38578c775bc757e5749194d94d21a293a`)
+	r.Run(`kubectl apply -k https://github.com/networkservicemesh/deployments-k8s/examples/features/webhook-smartvf?ref=5a9bdf42902474b17fea95ab459ce98d7b5aa3d0`)
 	r.Run(`kubectl wait --for=condition=ready --timeout=5m pod -l app=nse-kernel -n ns-webhook-smartvf`)
 	r.Run(`kubectl wait --for=condition=ready --timeout=1m pod postgres-cl -n ns-webhook-smartvf`)
 	r.Run(`kubectl exec pods/postgres-cl -n ns-webhook-smartvf -c postgres-cl -- sh -c 'PGPASSWORD=admin psql -h 172.16.1.100 -p 5432 -U admin test'`)
 }
-func (s *Suite) TestKernel2Kernel() {
-	r := s.Runner("../deployments-k8s/examples/use-cases/Kernel2Kernel")
-	s.T().Cleanup(func() {
+func (s *Suite) Kernel2Kernel(t *testing.T) {
+	r := s.Runner("/home/nikita/repos/NSM/deployments-k8s/examples/use-cases/Kernel2Kernel")
+	t.Cleanup(func() {
 		r.Run(`kubectl delete ns ns-kernel2kernel`)
 	})
-	r.Run(`kubectl apply -k https://github.com/networkservicemesh/deployments-k8s/examples/use-cases/Kernel2Kernel?ref=93d9b4b38578c775bc757e5749194d94d21a293a`)
+	r.Run(`kubectl apply -k https://github.com/networkservicemesh/deployments-k8s/examples/use-cases/Kernel2Kernel?ref=5a9bdf42902474b17fea95ab459ce98d7b5aa3d0`)
 	r.Run(`kubectl wait --for=condition=ready --timeout=1m pod -l app=alpine -n ns-kernel2kernel`)
 	r.Run(`kubectl wait --for=condition=ready --timeout=1m pod -l app=nse-kernel -n ns-kernel2kernel`)
 	r.Run(`kubectl exec pods/alpine -n ns-kernel2kernel -- ping -c 4 172.16.1.100`)
 	r.Run(`kubectl exec deployments/nse-kernel -n ns-kernel2kernel -- ping -c 4 172.16.1.101`)
 }
-func (s *Suite) TestKernel2KernelVLAN() {
-	r := s.Runner("../deployments-k8s/examples/use-cases/Kernel2KernelVLAN")
-	s.T().Cleanup(func() {
+func (s *Suite) Kernel2KernelVLAN(t *testing.T) {
+	r := s.Runner("/home/nikita/repos/NSM/deployments-k8s/examples/use-cases/Kernel2KernelVLAN")
+	t.Cleanup(func() {
 		r.Run(`kubectl delete ns ns-kernel2kernel-vlan`)
 	})
-	r.Run(`kubectl apply -k https://github.com/networkservicemesh/deployments-k8s/examples/use-cases/Kernel2KernelVLAN?ref=93d9b4b38578c775bc757e5749194d94d21a293a`)
+	r.Run(`kubectl apply -k https://github.com/networkservicemesh/deployments-k8s/examples/use-cases/Kernel2KernelVLAN?ref=5a9bdf42902474b17fea95ab459ce98d7b5aa3d0`)
 	r.Run(`kubectl wait --for=condition=ready --timeout=1m pod -l app=nsc-kernel -n ns-kernel2kernel-vlan`)
 	r.Run(`kubectl wait --for=condition=ready --timeout=1m pod -l app=nse-kernel -n ns-kernel2kernel-vlan`)
 	r.Run(`NSC=$((kubectl get pods -l app=nsc-kernel -n ns-kernel2kernel-vlan --template '{{range .items}}{{.metadata.name}}{{" "}}{{end}}') | cut -d' ' -f1)` + "\n" + `TARGET_IP=$(kubectl exec -ti ${NSC} -n ns-kernel2kernel-vlan -- ip route show | grep 172.16 | cut -d' ' -f1)`)
 	r.Run(`NSE=$(kubectl get pods -l app=nse-kernel -n ns-kernel2kernel-vlan --template '{{range .items}}{{.metadata.name}}{{"\n"}}{{end}}')`)
 	r.Run(`kubectl exec ${NSC} -n ns-kernel2kernel-vlan -- ping -c 4 ${TARGET_IP}`)
 }
-func (s *Suite) TestSmartVF2SmartVF() {
-	r := s.Runner("../deployments-k8s/examples/use-cases/SmartVF2SmartVF")
-	s.T().Cleanup(func() {
+func (s *Suite) SmartVF2SmartVF(t *testing.T) {
+	r := s.Runner("/home/nikita/repos/NSM/deployments-k8s/examples/use-cases/SmartVF2SmartVF")
+	t.Cleanup(func() {
 		r.Run(`kubectl delete ns ns-smartvf2smartvf`)
 	})
-	r.Run(`kubectl apply -k https://github.com/networkservicemesh/deployments-k8s/examples/use-cases/SmartVF2SmartVF?ref=93d9b4b38578c775bc757e5749194d94d21a293a`)
+	r.Run(`kubectl apply -k https://github.com/networkservicemesh/deployments-k8s/examples/use-cases/SmartVF2SmartVF?ref=5a9bdf42902474b17fea95ab459ce98d7b5aa3d0`)
 	r.Run(`kubectl -n ns-smartvf2smartvf wait --for=condition=ready --timeout=1m pod -l app=nsc-kernel`)
 	r.Run(`kubectl -n ns-smartvf2smartvf wait --for=condition=ready --timeout=1m pod -l app=nse-kernel`)
 	r.Run(`kubectl -n ns-smartvf2smartvf exec deployments/nsc-kernel -- ping -c 4 172.16.1.100`)

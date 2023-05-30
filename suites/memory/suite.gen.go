@@ -2,12 +2,14 @@
 package memory
 
 import (
+	"fmt"
+	"sync"
+	"testing"
+
 	"github.com/stretchr/testify/suite"
 
 	"github.com/networkservicemesh/integration-tests/extensions/base"
 	"github.com/networkservicemesh/integration-tests/suites/spire/single_cluster"
-
-	"sync"
 )
 
 type Suite struct {
@@ -25,60 +27,72 @@ func (s *Suite) SetupSuite() {
 			v.SetupSuite()
 		}
 	}
-	r := s.Runner("../deployments-k8s/examples/memory")
+	r := s.Runner("/home/nikita/repos/NSM/deployments-k8s/examples/memory")
 	s.T().Cleanup(func() {
 		r.Run(`WH=$(kubectl get pods -l app=admission-webhook-k8s -n nsm-system --template '{{range .items}}{{.metadata.name}}{{"\n"}}{{end}}')` + "\n" + `kubectl delete mutatingwebhookconfiguration ${WH}` + "\n" + `kubectl delete ns nsm-system`)
 	})
-	r.Run(`kubectl apply -k https://github.com/networkservicemesh/deployments-k8s/examples/memory?ref=93d9b4b38578c775bc757e5749194d94d21a293a`)
+	r.Run(`kubectl apply -k https://github.com/networkservicemesh/deployments-k8s/examples/memory?ref=5a9bdf42902474b17fea95ab459ce98d7b5aa3d0`)
 	r.Run(`WH=$(kubectl get pods -l app=admission-webhook-k8s -n nsm-system --template '{{range .items}}{{.metadata.name}}{{"\n"}}{{end}}')` + "\n" + `kubectl wait --for=condition=ready --timeout=1m pod ${WH} -n nsm-system`)
 }
 
-func(s *Suite) TestAll() {
-	var waitgroup sync.WaitGroup
-	waitgroup.Add(3)
-	go s.Kernel2Ethernet2Kernel(&waitgroup)
-	go s.Kernel2Kernel(&waitgroup)
-	go s.Memif2Memif(&waitgroup)
+const workerCount = 5
 
-	waitgroup.Wait()
+func worker(jobsCh <-chan func(), wg *sync.WaitGroup) {
+	for j := range jobsCh {
+		fmt.Println("Executing a job...")
+		j()
+	}
+	fmt.Println("Worker is finishing...")
+	wg.Done()
 }
-func (s *Suite) Kernel2Ethernet2Kernel(waitgroup *sync.WaitGroup) {
-	defer func() {
-		waitgroup.Done()
-	}()
-	r := s.Runner("../deployments-k8s/examples/memory/Kernel2Ethernet2Kernel")
-	s.T().Cleanup(func() {
+func (s *Suite) TestAll() {
+	tests := []func(t *testing.T){
+		s.Kernel2Ethernet2Kernel,
+		s.Kernel2Kernel,
+		s.Memif2Memif,
+	}
+	jobCh := make(chan func(), len(tests))
+	wg := new(sync.WaitGroup)
+	wg.Add(workerCount)
+	for i := 0; i < workerCount; i++ {
+		go worker(jobCh, wg)
+	}
+	for i := range tests {
+		test := tests[i]
+		jobCh <- func() {
+			s.T().Run("TestName", test)
+		}
+	}
+	wg.Wait()
+}
+func (s *Suite) Kernel2Ethernet2Kernel(t *testing.T) {
+	r := s.Runner("/home/nikita/repos/NSM/deployments-k8s/examples/memory/Kernel2Ethernet2Kernel")
+	t.Cleanup(func() {
 		r.Run(`kubectl delete ns ns-kernel2ethernet2kernel`)
 	})
-	r.Run(`kubectl apply -k https://github.com/networkservicemesh/deployments-k8s/examples/memory/Kernel2Ethernet2Kernel?ref=93d9b4b38578c775bc757e5749194d94d21a293a`)
+	r.Run(`kubectl apply -k https://github.com/networkservicemesh/deployments-k8s/examples/memory/Kernel2Ethernet2Kernel?ref=5a9bdf42902474b17fea95ab459ce98d7b5aa3d0`)
 	r.Run(`kubectl wait --for=condition=ready --timeout=1m pod -l app=alpine -n ns-kernel2ethernet2kernel`)
 	r.Run(`kubectl wait --for=condition=ready --timeout=1m pod -l app=nse-kernel -n ns-kernel2ethernet2kernel`)
 	r.Run(`kubectl exec pods/alpine -n ns-kernel2ethernet2kernel -- ping -c 4 172.16.1.100`)
 	r.Run(`kubectl exec deployments/nse-kernel -n ns-kernel2ethernet2kernel -- ping -c 4 172.16.1.101`)
 }
-func (s *Suite) Kernel2Kernel(waitgroup *sync.WaitGroup) {
-	defer func() {
-		waitgroup.Done()
-	}()
-	r := s.Runner("../deployments-k8s/examples/memory/Kernel2Kernel")
-	s.T().Cleanup(func() {
+func (s *Suite) Kernel2Kernel(t *testing.T) {
+	r := s.Runner("/home/nikita/repos/NSM/deployments-k8s/examples/memory/Kernel2Kernel")
+	t.Cleanup(func() {
 		r.Run(`kubectl delete ns ns-kernel2kernel`)
 	})
-	r.Run(`kubectl apply -k https://github.com/networkservicemesh/deployments-k8s/examples/memory/Kernel2Kernel?ref=93d9b4b38578c775bc757e5749194d94d21a293a`)
+	r.Run(`kubectl apply -k https://github.com/networkservicemesh/deployments-k8s/examples/memory/Kernel2Kernel?ref=5a9bdf42902474b17fea95ab459ce98d7b5aa3d0`)
 	r.Run(`kubectl wait --for=condition=ready --timeout=1m pod -l app=alpine -n ns-kernel2kernel`)
 	r.Run(`kubectl wait --for=condition=ready --timeout=1m pod -l app=nse-kernel -n ns-kernel2kernel`)
 	r.Run(`kubectl exec pods/alpine -n ns-kernel2kernel -- ping -c 4 172.16.1.100`)
-	r.Run(`kubectl exec deployments/nse-kernel -n ns-kernel2krnel -- ping -c 4 172.16.1.101`)
+	r.Run(`kubectl exec deployments/nse-kernel -n ns-kernel2kernel -- ping -c 4 172.16.1.101`)
 }
-func (s *Suite) Memif2Memif(waitgroup *sync.WaitGroup) {
-	defer func() {
-		waitgroup.Done()
-	}()
-	r := s.Runner("../deployments-k8s/examples/memory/Memif2Memif")
-	s.T().Cleanup(func() {
+func (s *Suite) Memif2Memif(t *testing.T) {
+	r := s.Runner("/home/nikita/repos/NSM/deployments-k8s/examples/memory/Memif2Memif")
+	t.Cleanup(func() {
 		r.Run(`kubectl delete ns ns-memif2memif`)
 	})
-	r.Run(`kubectl apply -k https://github.com/networkservicemesh/deployments-k8s/examples/memory/Memif2Memif?ref=93d9b4b38578c775bc757e5749194d94d21a293a`)
+	r.Run(`kubectl apply -k https://github.com/networkservicemesh/deployments-k8s/examples/memory/Memif2Memif?ref=5a9bdf42902474b17fea95ab459ce98d7b5aa3d0`)
 	r.Run(`kubectl wait --for=condition=ready --timeout=1m pod -l app=nsc-memif -n ns-memif2memif`)
 	r.Run(`kubectl wait --for=condition=ready --timeout=1m pod -l app=nse-memif -n ns-memif2memif`)
 	r.Run(`result=$(kubectl exec deployments/nsc-memif -n ns-memif2memif -- vppctl ping 172.16.1.100 repeat 4)` + "\n" + `echo ${result}` + "\n" + `! echo ${result} | grep -E -q "(100% packet loss)|(0 sent)|(no egress interface)"`)

@@ -2,6 +2,10 @@
 package dns
 
 import (
+	"fmt"
+	"sync"
+	"testing"
+
 	"github.com/stretchr/testify/suite"
 
 	"github.com/networkservicemesh/integration-tests/extensions/base"
@@ -21,7 +25,7 @@ func (s *Suite) SetupSuite() {
 			v.SetupSuite()
 		}
 	}
-	r := s.Runner("../deployments-k8s/examples/k8s_monolith/external_nse/dns")
+	r := s.Runner("/home/nikita/repos/NSM/deployments-k8s/examples/k8s_monolith/external_nse/dns")
 	s.T().Cleanup(func() {
 		r.Run(`kubectl delete service -n kube-system exposed-kube-dns`)
 		r.Run(`rm coredns-config dnsentries.db`)
@@ -39,5 +43,32 @@ func (s *Suite) SetupSuite() {
 	r.Run(`docker cp coredns-config nse-simple-vl3-docker:/`)
 	r.Run(`docker cp dnsentries.db nse-simple-vl3-docker:/`)
 	r.Run(`docker exec -d nse-simple-vl3-docker coredns -conf coredns-config`)
+}
+
+const workerCount = 5
+
+func worker(jobsCh <-chan func(), wg *sync.WaitGroup) {
+	for j := range jobsCh {
+		fmt.Println("Executing a job...")
+		j()
+	}
+	fmt.Println("Worker is finishing...")
+	wg.Done()
+}
+func (s *Suite) TestAll() {
+	tests := []func(t *testing.T){}
+	jobCh := make(chan func(), len(tests))
+	wg := new(sync.WaitGroup)
+	wg.Add(workerCount)
+	for i := 0; i < workerCount; i++ {
+		go worker(jobCh, wg)
+	}
+	for i := range tests {
+		test := tests[i]
+		jobCh <- func() {
+			s.T().Run("TestName", test)
+		}
+	}
+	wg.Wait()
 }
 func (s *Suite) Test() {}
