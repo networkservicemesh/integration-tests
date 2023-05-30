@@ -14,8 +14,6 @@ require (
 	k8s.io/client-go v0.20.5
 )
 
-replace github.com/networkservicemesh/gotestmd => ../gotestmd
-
 require (
 	github.com/davecgh/go-spew v1.1.1 // indirect
 	github.com/go-logr/logr v0.2.0 // indirect
