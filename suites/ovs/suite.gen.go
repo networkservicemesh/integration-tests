@@ -27,7 +27,7 @@ func (s *Suite) SetupSuite() {
 			v.SetupSuite()
 		}
 	}
-	r := s.Runner("/home/nikita/repos/NSM/deployments-k8s/examples/ovs")
+	r := s.Runner("../deployments-k8s/examples/ovs")
 	s.T().Cleanup(func() {
 		r.Run(`WH=$(kubectl get pods -l app=admission-webhook-k8s -n nsm-system --template '{{range .items}}{{.metadata.name}}{{"\n"}}{{end}}')` + "\n" + `kubectl delete mutatingwebhookconfiguration ${WH}` + "\n" + `kubectl delete ns nsm-system`)
 	})
@@ -67,7 +67,7 @@ func (s *Suite) TestAll() {
 	wg.Wait()
 }
 func (s *Suite) Webhook_smartvf(t *testing.T) {
-	r := s.Runner("/home/nikita/repos/NSM/deployments-k8s/examples/features/webhook-smartvf")
+	r := s.Runner("../deployments-k8s/examples/features/webhook-smartvf")
 	t.Cleanup(func() {
 		r.Run(`kubectl delete ns ns-webhook-smartvf`)
 	})
@@ -78,7 +78,7 @@ func (s *Suite) Webhook_smartvf(t *testing.T) {
 	r.Run(`kubectl exec pods/postgres-cl -n ns-webhook-smartvf -c postgres-cl -- sh -c 'PGPASSWORD=admin psql -h 172.16.1.100 -p 5432 -U admin test'`)
 }
 func (s *Suite) Kernel2Kernel(t *testing.T) {
-	r := s.Runner("/home/nikita/repos/NSM/deployments-k8s/examples/use-cases/Kernel2Kernel")
+	r := s.Runner("../deployments-k8s/examples/use-cases/Kernel2Kernel")
 	t.Cleanup(func() {
 		r.Run(`kubectl delete ns ns-kernel2kernel`)
 	})
@@ -89,7 +89,7 @@ func (s *Suite) Kernel2Kernel(t *testing.T) {
 	r.Run(`kubectl exec deployments/nse-kernel -n ns-kernel2kernel -- ping -c 4 172.16.1.101`)
 }
 func (s *Suite) Kernel2KernelVLAN(t *testing.T) {
-	r := s.Runner("/home/nikita/repos/NSM/deployments-k8s/examples/use-cases/Kernel2KernelVLAN")
+	r := s.Runner("../deployments-k8s/examples/use-cases/Kernel2KernelVLAN")
 	t.Cleanup(func() {
 		r.Run(`kubectl delete ns ns-kernel2kernel-vlan`)
 	})
@@ -101,7 +101,7 @@ func (s *Suite) Kernel2KernelVLAN(t *testing.T) {
 	r.Run(`kubectl exec ${NSC} -n ns-kernel2kernel-vlan -- ping -c 4 ${TARGET_IP}`)
 }
 func (s *Suite) SmartVF2SmartVF(t *testing.T) {
-	r := s.Runner("/home/nikita/repos/NSM/deployments-k8s/examples/use-cases/SmartVF2SmartVF")
+	r := s.Runner("../deployments-k8s/examples/use-cases/SmartVF2SmartVF")
 	t.Cleanup(func() {
 		r.Run(`kubectl delete ns ns-smartvf2smartvf`)
 	})

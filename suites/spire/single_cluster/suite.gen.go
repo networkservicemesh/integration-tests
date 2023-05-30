@@ -25,7 +25,7 @@ func (s *Suite) SetupSuite() {
 			v.SetupSuite()
 		}
 	}
-	r := s.Runner("/home/nikita/repos/NSM/deployments-k8s/examples/spire/single_cluster")
+	r := s.Runner("../deployments-k8s/examples/spire/single_cluster")
 	s.T().Cleanup(func() {
 		r.Run(`kubectl delete crd clusterspiffeids.spire.spiffe.io` + "\n" + `kubectl delete crd clusterfederatedtrustdomains.spire.spiffe.io` + "\n" + `kubectl delete validatingwebhookconfiguration.admissionregistration.k8s.io/spire-controller-manager-webhook` + "\n" + `kubectl delete ns spire`)
 	})

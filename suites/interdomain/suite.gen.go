@@ -71,7 +71,7 @@ func (s *Suite) TestAll() {
 	wg.Wait()
 }
 func (s *Suite) Nsm_consul(t *testing.T) {
-	r := s.Runner("/home/nikita/repos/NSM/deployments-k8s/examples/interdomain/nsm_consul")
+	r := s.Runner("../deployments-k8s/examples/interdomain/nsm_consul")
 	t.Cleanup(func() {
 		r.Run(`pkill -f "port-forward"`)
 		r.Run(`kubectl --kubeconfig=$KUBECONFIG1 delete -f https://raw.githubusercontent.com/networkservicemesh/deployments-k8s/5a9bdf42902474b17fea95ab459ce98d7b5aa3d0/examples/interdomain/nsm_consul/server/counting_nsm.yaml` + "\n" + `kubectl --kubeconfig=$KUBECONFIG1 delete -f https://raw.githubusercontent.com/networkservicemesh/deployments-k8s/5a9bdf42902474b17fea95ab459ce98d7b5aa3d0/examples/interdomain/nsm_consul/client/dashboard.yaml` + "\n" + `kubectl --kubeconfig=$KUBECONFIG2 delete -k https://github.com/networkservicemesh/deployments-k8s/examples/interdomain/nsm_consul/nse-auto-scale-client?ref=5a9bdf42902474b17fea95ab459ce98d7b5aa3d0` + "\n" + `kubectl --kubeconfig=$KUBECONFIG2 delete -k https://github.com/networkservicemesh/deployments-k8s/examples/interdomain/nsm_consul/nse-auto-scale-server?ref=5a9bdf42902474b17fea95ab459ce98d7b5aa3d0` + "\n" + `kubectl --kubeconfig=$KUBECONFIG2 delete -f https://raw.githubusercontent.com/networkservicemesh/deployments-k8s/5a9bdf42902474b17fea95ab459ce98d7b5aa3d0/examples/interdomain/nsm_consul/service.yaml` + "\n" + `kubectl --kubeconfig=$KUBECONFIG2 delete -f https://raw.githubusercontent.com/networkservicemesh/deployments-k8s/5a9bdf42902474b17fea95ab459ce98d7b5aa3d0/examples/interdomain/nsm_consul/server/counting_service.yaml` + "\n" + `kubectl --kubeconfig=$KUBECONFIG2 delete -f https://raw.githubusercontent.com/networkservicemesh/deployments-k8s/5a9bdf42902474b17fea95ab459ce98d7b5aa3d0/examples/interdomain/nsm_consul/netsvc.yaml` + "\n" + `kubectl --kubeconfig=$KUBECONFIG2 delete pods --all`)
@@ -98,7 +98,7 @@ func (s *Suite) Nsm_consul(t *testing.T) {
 	r.Run(`kubectl --kubeconfig=$KUBECONFIG1 exec pod/dashboard-nsc -c cmd-nsc -- curl counting:9001`)
 }
 func (s *Suite) Nsm_consul_vl3(t *testing.T) {
-	r := s.Runner("/home/nikita/repos/NSM/deployments-k8s/examples/interdomain/nsm_consul_vl3")
+	r := s.Runner("../deployments-k8s/examples/interdomain/nsm_consul_vl3")
 	t.Cleanup(func() {
 		r.Run(`pkill -f "port-forward"` + "\n" + `kubectl --kubeconfig=$KUBECONFIG1 delete -n ns-nsm-consul-vl3 -k ./cluster1` + "\n" + `kubectl --kubeconfig=$KUBECONFIG2 delete -n ns-nsm-consul-vl3 -k ./cluster2`)
 	})
@@ -166,7 +166,7 @@ func (s *Suite) Nsm_consul_vl3(t *testing.T) {
 	r.Run(`result=$(kubectl --kubeconfig=$KUBECONFIG2 -n ns-nsm-consul-vl3 exec dashboard -- curl localhost:5000)` + "\n" + `echo ${result} | grep  -o '\"count\":[1-9]\d*'`)
 }
 func (s *Suite) Nsm_istio(t *testing.T) {
-	r := s.Runner("/home/nikita/repos/NSM/deployments-k8s/examples/interdomain/nsm_istio")
+	r := s.Runner("../deployments-k8s/examples/interdomain/nsm_istio")
 	t.Cleanup(func() {
 		r.Run(`kubectl --kubeconfig=$KUBECONFIG2 delete -f https://raw.githubusercontent.com/networkservicemesh/deployments-k8s/5a9bdf42902474b17fea95ab459ce98d7b5aa3d0/examples/interdomain/nsm_istio/greeting/server.yaml` + "\n" + `kubectl --kubeconfig=$KUBECONFIG2 delete -k https://github.com/networkservicemesh/deployments-k8s/examples/interdomain/nsm_istio/nse-auto-scale?ref=5a9bdf42902474b17fea95ab459ce98d7b5aa3d0` + "\n" + `kubectl --kubeconfig=$KUBECONFIG1 delete -f https://raw.githubusercontent.com/networkservicemesh/deployments-k8s/5a9bdf42902474b17fea95ab459ce98d7b5aa3d0/examples/interdomain/nsm_istio/greeting/client.yaml` + "\n" + `kubectl --kubeconfig=$KUBECONFIG2 delete -f https://raw.githubusercontent.com/networkservicemesh/deployments-k8s/5a9bdf42902474b17fea95ab459ce98d7b5aa3d0/examples/interdomain/nsm_istio/netsvc.yaml` + "\n" + `kubectl --kubeconfig=$KUBECONFIG2 delete ns istio-system` + "\n" + `kubectl --kubeconfig=$KUBECONFIG2 label namespace default istio-injection-` + "\n" + `kubectl --kubeconfig=$KUBECONFIG2 delete pods --all`)
 	})
@@ -180,7 +180,7 @@ func (s *Suite) Nsm_istio(t *testing.T) {
 	r.Run(`kubectl --kubeconfig=$KUBECONFIG1 exec deploy/alpine -c cmd-nsc -- curl -s greeting.default:9080 | grep -o "hello world from istio"`)
 }
 func (s *Suite) Nsm_kuma_universal_vl3(t *testing.T) {
-	r := s.Runner("/home/nikita/repos/NSM/deployments-k8s/examples/interdomain/nsm_kuma_universal_vl3")
+	r := s.Runner("../deployments-k8s/examples/interdomain/nsm_kuma_universal_vl3")
 	t.Cleanup(func() {
 		r.Run(`pkill -f "port-forward"` + "\n" + `kubectl --kubeconfig=$KUBECONFIG1 delete ns kuma-system kuma-demo ns-dns-vl3` + "\n" + `kubectl --kubeconfig=$KUBECONFIG2 delete ns kuma-demo` + "\n" + `rm tls.crt tls.key ca.crt kustomization.yaml control-plane.yaml` + "\n" + `rm -rf kuma-1.7.0`)
 	})

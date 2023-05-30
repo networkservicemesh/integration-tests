@@ -91,7 +91,7 @@ func (s *Suite) Annotated_namespace(t *testing.T) {
 	// Опция №2:
 	// Полностью избавляться от testify. Нужно спросить мнение Эда, если все будет хорошо, то можно будет делать новый фреймворк, с параллельным запуском
 	//t := parallel.T(testName, s)
-	r := s.Runner("/home/nikita/repos/NSM/deployments-k8s/examples/features/annotated-namespace")
+	r := s.Runner("../deployments-k8s/examples/features/annotated-namespace")
 	t.Cleanup(func() {
 		r.Run(`kubectl delete ns ns-annotated-namespace`)
 	})
@@ -104,7 +104,7 @@ func (s *Suite) Annotated_namespace(t *testing.T) {
 	r.Run(`kubectl exec deployments/nse-kernel -n ns-annotated-namespace -- ping -c 4 172.16.1.101`)
 }
 func (s *Suite) Dns(t *testing.T) {
-	r := s.Runner("/home/nikita/repos/NSM/deployments-k8s/examples/features/dns")
+	r := s.Runner("../deployments-k8s/examples/features/dns")
 	t.Cleanup(func() {
 		r.Run(`kubectl delete ns ns-dns`)
 	})
@@ -116,7 +116,7 @@ func (s *Suite) Dns(t *testing.T) {
 	r.Run(`kubectl exec pods/dnsutils -c dnsutils -n ns-dns -- dig kubernetes.default A kubernetes.default AAAA | grep "kubernetes.default.svc.cluster.local"`)
 }
 func (s *Suite) Kernel2IP2Kernel_dual_stack(t *testing.T) {
-	r := s.Runner("/home/nikita/repos/NSM/deployments-k8s/examples/features/dual-stack/Kernel2IP2Kernel_dual_stack")
+	r := s.Runner("../deployments-k8s/examples/features/dual-stack/Kernel2IP2Kernel_dual_stack")
 	t.Cleanup(func() {
 		r.Run(`kubectl delete ns ns-kernel2ip2kernel-dual-stack`)
 	})
@@ -129,7 +129,7 @@ func (s *Suite) Kernel2IP2Kernel_dual_stack(t *testing.T) {
 	r.Run(`kubectl exec deployments/nse-kernel -n ns-kernel2ip2kernel-dual-stack -- ping -c 4 172.16.1.101`)
 }
 func (s *Suite) Kernel2Kernel_dual_stack(t *testing.T) {
-	r := s.Runner("/home/nikita/repos/NSM/deployments-k8s/examples/features/dual-stack/Kernel2Kernel_dual_stack")
+	r := s.Runner("../deployments-k8s/examples/features/dual-stack/Kernel2Kernel_dual_stack")
 	t.Cleanup(func() {
 		r.Run(`kubectl delete ns ns-kernel2kernel-dual-stack`)
 	})
@@ -142,7 +142,7 @@ func (s *Suite) Kernel2Kernel_dual_stack(t *testing.T) {
 	r.Run(`kubectl exec deployments/nse-kernel -n ns-kernel2kernel-dual-stack -- ping -c 4 172.16.1.101`)
 }
 func (s *Suite) Exclude_prefixes(t *testing.T) {
-	r := s.Runner("/home/nikita/repos/NSM/deployments-k8s/examples/features/exclude-prefixes")
+	r := s.Runner("../deployments-k8s/examples/features/exclude-prefixes")
 	t.Cleanup(func() {
 		r.Run(`kubectl delete configmap excluded-prefixes-config` + "\n" + `kubectl delete ns ns-exclude-prefixes`)
 	})
@@ -154,7 +154,7 @@ func (s *Suite) Exclude_prefixes(t *testing.T) {
 	r.Run(`kubectl exec deployments/nse-kernel -n ns-exclude-prefixes -- ping -c 4 172.16.1.103`)
 }
 func (s *Suite) Exclude_prefixes_client(t *testing.T) {
-	r := s.Runner("/home/nikita/repos/NSM/deployments-k8s/examples/features/exclude-prefixes-client")
+	r := s.Runner("../deployments-k8s/examples/features/exclude-prefixes-client")
 	t.Cleanup(func() {
 		r.Run(`kubectl delete ns ns-exclude-prefixes-client`)
 	})
@@ -168,7 +168,7 @@ func (s *Suite) Exclude_prefixes_client(t *testing.T) {
 	r.Run(`kubectl exec deployments/nse-kernel-2 -n ns-exclude-prefixes-client -- ping -c 4 172.16.1.99`)
 }
 func (s *Suite) Kernel2IP2Kernel_ipv6(t *testing.T) {
-	r := s.Runner("/home/nikita/repos/NSM/deployments-k8s/examples/features/ipv6/Kernel2IP2Kernel_ipv6")
+	r := s.Runner("../deployments-k8s/examples/features/ipv6/Kernel2IP2Kernel_ipv6")
 	t.Cleanup(func() {
 		r.Run(`kubectl delete ns ns-kernel2ip2kernel-ipv6`)
 	})
@@ -179,7 +179,7 @@ func (s *Suite) Kernel2IP2Kernel_ipv6(t *testing.T) {
 	r.Run(`kubectl exec deployments/nse-kernel -n ns-kernel2ip2kernel-ipv6 -- ping -c 4 2001:db8::1`)
 }
 func (s *Suite) Kernel2IP2Memif_ipv6(t *testing.T) {
-	r := s.Runner("/home/nikita/repos/NSM/deployments-k8s/examples/features/ipv6/Kernel2IP2Memif_ipv6")
+	r := s.Runner("../deployments-k8s/examples/features/ipv6/Kernel2IP2Memif_ipv6")
 	t.Cleanup(func() {
 		r.Run(`kubectl delete ns ns-kernel2ip2memif-ipv6`)
 	})
@@ -190,7 +190,7 @@ func (s *Suite) Kernel2IP2Memif_ipv6(t *testing.T) {
 	r.Run(`result=$(kubectl exec deployments/nse-memif -n "ns-kernel2ip2memif-ipv6" -- vppctl ping 2001:db8::1 repeat 4)` + "\n" + `echo ${result}` + "\n" + `! echo ${result} | grep -E -q "(100% packet loss)|(0 sent)|(no egress interface)"`)
 }
 func (s *Suite) Kernel2Kernel_ipv6(t *testing.T) {
-	r := s.Runner("/home/nikita/repos/NSM/deployments-k8s/examples/features/ipv6/Kernel2Kernel_ipv6")
+	r := s.Runner("../deployments-k8s/examples/features/ipv6/Kernel2Kernel_ipv6")
 	t.Cleanup(func() {
 		r.Run(`kubectl delete ns ns-kernel2kernel-ipv6`)
 	})
@@ -201,7 +201,7 @@ func (s *Suite) Kernel2Kernel_ipv6(t *testing.T) {
 	r.Run(`kubectl exec deployments/nse-kernel -n ns-kernel2kernel-ipv6 -- ping -c 4 2001:db8::1`)
 }
 func (s *Suite) Memif2IP2Kernel_ipv6(t *testing.T) {
-	r := s.Runner("/home/nikita/repos/NSM/deployments-k8s/examples/features/ipv6/Memif2IP2Kernel_ipv6")
+	r := s.Runner("../deployments-k8s/examples/features/ipv6/Memif2IP2Kernel_ipv6")
 	t.Cleanup(func() {
 		r.Run(`kubectl delete ns ns-memif2ip2kernel-ipv6`)
 	})
@@ -212,7 +212,7 @@ func (s *Suite) Memif2IP2Kernel_ipv6(t *testing.T) {
 	r.Run(`kubectl exec deployments/nse-kernel -n ns-memif2ip2kernel-ipv6 -- ping -c 4 2001:db8::1`)
 }
 func (s *Suite) Memif2IP2Memif_ipv6(t *testing.T) {
-	r := s.Runner("/home/nikita/repos/NSM/deployments-k8s/examples/features/ipv6/Memif2IP2Memif_ipv6")
+	r := s.Runner("../deployments-k8s/examples/features/ipv6/Memif2IP2Memif_ipv6")
 	t.Cleanup(func() {
 		r.Run(`kubectl delete ns ns-memif2ip2memif-ipv6`)
 	})
@@ -223,7 +223,7 @@ func (s *Suite) Memif2IP2Memif_ipv6(t *testing.T) {
 	r.Run(`result=$(kubectl exec deployments/nse-memif -n "ns-memif2ip2memif-ipv6" -- vppctl ping 2001:db8::1 repeat 4)` + "\n" + `echo ${result}` + "\n" + `! echo ${result} | grep -E -q "(100% packet loss)|(0 sent)|(no egress interface)"`)
 }
 func (s *Suite) Memif2Memif_ipv6(t *testing.T) {
-	r := s.Runner("/home/nikita/repos/NSM/deployments-k8s/examples/features/ipv6/Memif2Memif_ipv6")
+	r := s.Runner("../deployments-k8s/examples/features/ipv6/Memif2Memif_ipv6")
 	t.Cleanup(func() {
 		r.Run(`kubectl delete ns ns-memif2memif-ipv6`)
 	})
@@ -234,7 +234,7 @@ func (s *Suite) Memif2Memif_ipv6(t *testing.T) {
 	r.Run(`result=$(kubectl exec deployments/nse-memif -n "ns-memif2memif-ipv6" -- vppctl ping ipv6 2001:db8::1 repeat 4)` + "\n" + `echo ${result}` + "\n" + `! echo ${result} | grep -E -q "(100% packet loss)|(0 sent)|(no egress interface)"`)
 }
 func (s *Suite) Mutually_aware_nses(t *testing.T) {
-	r := s.Runner("/home/nikita/repos/NSM/deployments-k8s/examples/features/mutually-aware-nses")
+	r := s.Runner("../deployments-k8s/examples/features/mutually-aware-nses")
 	t.Cleanup(func() {
 		r.Run(`kubectl delete ns ns-mutually-aware-nses`)
 	})
@@ -247,7 +247,7 @@ func (s *Suite) Mutually_aware_nses(t *testing.T) {
 	r.Run(`result=$(kubectl exec deployments/nsc-kernel -n ns-mutually-aware-nses -- ip r get 172.16.1.100 from 172.16.1.101 ipproto udp dport 5555)` + "\n" + `echo ${result}` + "\n" + `echo ${result} | grep -E -q "172.16.1.100 from 172.16.1.101 dev nsm-2"`)
 }
 func (s *Suite) Nse_composition(t *testing.T) {
-	r := s.Runner("/home/nikita/repos/NSM/deployments-k8s/examples/features/nse-composition")
+	r := s.Runner("../deployments-k8s/examples/features/nse-composition")
 	t.Cleanup(func() {
 		r.Run(`kubectl delete ns ns-nse-composition`)
 	})
@@ -260,7 +260,7 @@ func (s *Suite) Nse_composition(t *testing.T) {
 	r.Run(`kubectl exec deployments/nse-kernel -n ns-nse-composition -- ping -c 4 172.16.1.101`)
 }
 func (s *Suite) Opa(t *testing.T) {
-	r := s.Runner("/home/nikita/repos/NSM/deployments-k8s/examples/features/opa")
+	r := s.Runner("../deployments-k8s/examples/features/opa")
 	t.Cleanup(func() {
 		r.Run(`kubectl delete ns ns-opa`)
 	})
@@ -270,7 +270,7 @@ func (s *Suite) Opa(t *testing.T) {
 	r.Run(`kubectl logs deployments/nsc-kernel -n ns-opa | grep "PermissionDenied desc = no sufficient privileges"`)
 }
 func (s *Suite) Policy_based_routing(t *testing.T) {
-	r := s.Runner("/home/nikita/repos/NSM/deployments-k8s/examples/features/policy-based-routing")
+	r := s.Runner("../deployments-k8s/examples/features/policy-based-routing")
 	t.Cleanup(func() {
 		r.Run(`kubectl delete ns ns-policy-based-routing`)
 	})
@@ -286,7 +286,7 @@ func (s *Suite) Policy_based_routing(t *testing.T) {
 	r.Run(`result=$(kubectl exec pods/nettools -n ns-policy-based-routing -- ip -6 route get 2004::5 from 2004::3 ipproto udp dport 5555)` + "\n" + `echo ${result}` + "\n" + `echo ${result} | grep -E -q "via 2004::6 dev nsm-1 table 5 src 2004::3"`)
 }
 func (s *Suite) Scale_from_zero(t *testing.T) {
-	r := s.Runner("/home/nikita/repos/NSM/deployments-k8s/examples/features/scale-from-zero")
+	r := s.Runner("../deployments-k8s/examples/features/scale-from-zero")
 	t.Cleanup(func() {
 		r.Run(`kubectl delete ns ns-scale-from-zero`)
 	})
@@ -303,7 +303,7 @@ func (s *Suite) Scale_from_zero(t *testing.T) {
 	r.Run(`kubectl wait -n ns-scale-from-zero --for=delete --timeout=1m pod -l app=nse-icmp-responder`)
 }
 func (s *Suite) Select_forwarder(t *testing.T) {
-	r := s.Runner("/home/nikita/repos/NSM/deployments-k8s/examples/features/select-forwarder")
+	r := s.Runner("../deployments-k8s/examples/features/select-forwarder")
 	t.Cleanup(func() {
 		r.Run(`kubectl delete ns ns-select-forwarder`)
 	})
@@ -315,7 +315,7 @@ func (s *Suite) Select_forwarder(t *testing.T) {
 	r.Run(`kubectl logs pods/alpine -c cmd-nsc -n ns-select-forwarder | grep "my-forwarder-vpp"`)
 }
 func (s *Suite) Vl3_basic(t *testing.T) {
-	r := s.Runner("/home/nikita/repos/NSM/deployments-k8s/examples/features/vl3-basic")
+	r := s.Runner("../deployments-k8s/examples/features/vl3-basic")
 	t.Cleanup(func() {
 		r.Run(`kubectl delete ns ns-vl3`)
 	})
@@ -326,7 +326,7 @@ func (s *Suite) Vl3_basic(t *testing.T) {
 	r.Run(`(` + "\n" + `for nsc in $nscs ` + "\n" + `do` + "\n" + `    echo $nsc pings nses` + "\n" + `    kubectl exec -n ns-vl3 $nsc -- ping 172.16.0.0 -c2 -i 0.5 || exit` + "\n" + `    kubectl exec -n ns-vl3 $nsc -- ping 172.16.1.0 -c2 -i 0.5 || exit` + "\n" + `done` + "\n" + `)`)
 }
 func (s *Suite) Vl3_dns(t *testing.T) {
-	r := s.Runner("/home/nikita/repos/NSM/deployments-k8s/examples/features/vl3-dns")
+	r := s.Runner("../deployments-k8s/examples/features/vl3-dns")
 	t.Cleanup(func() {
 		r.Run(`kubectl delete ns ns-vl3-dns`)
 	})
@@ -340,7 +340,7 @@ func (s *Suite) Vl3_dns(t *testing.T) {
 	r.Run(`(` + "\n" + `for nse in $nses` + "\n" + `do` + "\n" + `    for pinger in $nscs` + "\n" + `    do` + "\n" + `        # Get IP address for PTR request` + "\n" + `        nseAddr=$(kubectl exec $pinger -n ns-vl3-dns -- nslookup -type=a $nse.vl3-dns | grep -A1 Name | tail -n1 | sed 's/Address: //')` + "\n" + `        kubectl exec $pinger -n ns-vl3-dns -- nslookup $nseAddr || exit` + "\n" + `    done` + "\n" + `done` + "\n" + `)`)
 }
 func (s *Suite) Vl3_scale_from_zero(t *testing.T) {
-	r := s.Runner("/home/nikita/repos/NSM/deployments-k8s/examples/features/vl3-scale-from-zero")
+	r := s.Runner("../deployments-k8s/examples/features/vl3-scale-from-zero")
 	t.Cleanup(func() {
 		r.Run(`kubectl delete ns ns-vl3-scale-from-zero`)
 	})
@@ -353,7 +353,7 @@ func (s *Suite) Vl3_scale_from_zero(t *testing.T) {
 	r.Run(`(` + "\n" + `for nsc in $nscs ` + "\n" + `do` + "\n" + `    echo $nsc pings nses` + "\n" + `    kubectl exec -n ns-vl3-scale-from-zero $nsc -- ping 172.16.0.0 -c2 -i 0.5 || exit` + "\n" + `    kubectl exec -n ns-vl3-scale-from-zero $nsc -- ping 172.16.1.0 -c2 -i 0.5 || exit` + "\n" + `done` + "\n" + `)`)
 }
 func (s *Suite) Webhook(t *testing.T) {
-	r := s.Runner("/home/nikita/repos/NSM/deployments-k8s/examples/features/webhook")
+	r := s.Runner("../deployments-k8s/examples/features/webhook")
 	t.Cleanup(func() {
 		r.Run(`kubectl delete ns ns-webhook`)
 	})

@@ -35,7 +35,7 @@ func (s *Suite) SetupSuite() {
 			v.SetupSuite()
 		}
 	}
-	r := s.Runner("/home/nikita/repos/NSM/deployments-k8s/examples/k8s_monolith/external_nsc")
+	r := s.Runner("../deployments-k8s/examples/k8s_monolith/external_nsc")
 	s.T().Cleanup(func() {
 		r.Run(`WH=$(kubectl get pods -l app=admission-webhook-k8s -n nsm-system --template '{{range .items}}{{.metadata.name}}{{"\n"}}{{end}}')` + "\n" + `kubectl delete mutatingwebhookconfiguration ${WH}` + "\n" + `kubectl delete ns nsm-system`)
 	})
@@ -72,7 +72,7 @@ func (s *Suite) TestAll() {
 	wg.Wait()
 }
 func (s *Suite) Kernel2IP2Kernel(t *testing.T) {
-	r := s.Runner("/home/nikita/repos/NSM/deployments-k8s/examples/k8s_monolith/external_nsc/usecases/Kernel2IP2Kernel")
+	r := s.Runner("../deployments-k8s/examples/k8s_monolith/external_nsc/usecases/Kernel2IP2Kernel")
 	t.Cleanup(func() {
 		r.Run(`kubectl delete ns ns-kernel2ip2kernel-monolith-nsc`)
 	})

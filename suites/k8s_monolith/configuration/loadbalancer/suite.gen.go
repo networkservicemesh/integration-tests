@@ -25,7 +25,7 @@ func (s *Suite) SetupSuite() {
 			v.SetupSuite()
 		}
 	}
-	r := s.Runner("/home/nikita/repos/NSM/deployments-k8s/examples/k8s_monolith/configuration/loadbalancer")
+	r := s.Runner("../deployments-k8s/examples/k8s_monolith/configuration/loadbalancer")
 	s.T().Cleanup(func() {
 		r.Run(`if [[ ! -z $CLUSTER_CIDR ]]; then` + "\n" + `  kubectl delete ns metallb-system` + "\n" + `fi`)
 	})

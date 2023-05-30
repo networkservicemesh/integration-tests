@@ -27,7 +27,7 @@ func (s *Suite) SetupSuite() {
 			v.SetupSuite()
 		}
 	}
-	r := s.Runner("/home/nikita/repos/NSM/deployments-k8s/examples/memory")
+	r := s.Runner("../deployments-k8s/examples/memory")
 	s.T().Cleanup(func() {
 		r.Run(`WH=$(kubectl get pods -l app=admission-webhook-k8s -n nsm-system --template '{{range .items}}{{.metadata.name}}{{"\n"}}{{end}}')` + "\n" + `kubectl delete mutatingwebhookconfiguration ${WH}` + "\n" + `kubectl delete ns nsm-system`)
 	})
@@ -66,7 +66,7 @@ func (s *Suite) TestAll() {
 	wg.Wait()
 }
 func (s *Suite) Kernel2Ethernet2Kernel(t *testing.T) {
-	r := s.Runner("/home/nikita/repos/NSM/deployments-k8s/examples/memory/Kernel2Ethernet2Kernel")
+	r := s.Runner("../deployments-k8s/examples/memory/Kernel2Ethernet2Kernel")
 	t.Cleanup(func() {
 		r.Run(`kubectl delete ns ns-kernel2ethernet2kernel`)
 	})
@@ -77,7 +77,7 @@ func (s *Suite) Kernel2Ethernet2Kernel(t *testing.T) {
 	r.Run(`kubectl exec deployments/nse-kernel -n ns-kernel2ethernet2kernel -- ping -c 4 172.16.1.101`)
 }
 func (s *Suite) Kernel2Kernel(t *testing.T) {
-	r := s.Runner("/home/nikita/repos/NSM/deployments-k8s/examples/memory/Kernel2Kernel")
+	r := s.Runner("../deployments-k8s/examples/memory/Kernel2Kernel")
 	t.Cleanup(func() {
 		r.Run(`kubectl delete ns ns-kernel2kernel`)
 	})
@@ -88,7 +88,7 @@ func (s *Suite) Kernel2Kernel(t *testing.T) {
 	r.Run(`kubectl exec deployments/nse-kernel -n ns-kernel2kernel -- ping -c 4 172.16.1.101`)
 }
 func (s *Suite) Memif2Memif(t *testing.T) {
-	r := s.Runner("/home/nikita/repos/NSM/deployments-k8s/examples/memory/Memif2Memif")
+	r := s.Runner("../deployments-k8s/examples/memory/Memif2Memif")
 	t.Cleanup(func() {
 		r.Run(`kubectl delete ns ns-memif2memif`)
 	})

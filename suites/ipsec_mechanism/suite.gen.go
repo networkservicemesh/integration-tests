@@ -27,7 +27,7 @@ func (s *Suite) SetupSuite() {
 			v.SetupSuite()
 		}
 	}
-	r := s.Runner("/home/nikita/repos/NSM/deployments-k8s/examples/ipsec_mechanism")
+	r := s.Runner("../deployments-k8s/examples/ipsec_mechanism")
 	s.T().Cleanup(func() {
 		r.Run(`WH=$(kubectl get pods -l app=admission-webhook-k8s -n nsm-system --template '{{range .items}}{{.metadata.name}}{{"\n"}}{{end}}')` + "\n" + `kubectl delete mutatingwebhookconfiguration ${WH}` + "\n" + `kubectl delete ns nsm-system`)
 	})
@@ -67,7 +67,7 @@ func (s *Suite) TestAll() {
 	wg.Wait()
 }
 func (s *Suite) Kernel2IP2Kernel(t *testing.T) {
-	r := s.Runner("/home/nikita/repos/NSM/deployments-k8s/examples/use-cases/Kernel2IP2Kernel")
+	r := s.Runner("../deployments-k8s/examples/use-cases/Kernel2IP2Kernel")
 	t.Cleanup(func() {
 		r.Run(`kubectl delete ns ns-kernel2ip2kernel`)
 	})
@@ -78,7 +78,7 @@ func (s *Suite) Kernel2IP2Kernel(t *testing.T) {
 	r.Run(`kubectl exec deployments/nse-kernel -n ns-kernel2ip2kernel -- ping -c 4 172.16.1.101`)
 }
 func (s *Suite) Kernel2IP2Memif(t *testing.T) {
-	r := s.Runner("/home/nikita/repos/NSM/deployments-k8s/examples/use-cases/Kernel2IP2Memif")
+	r := s.Runner("../deployments-k8s/examples/use-cases/Kernel2IP2Memif")
 	t.Cleanup(func() {
 		r.Run(`kubectl delete ns ns-kernel2ip2memif`)
 	})
@@ -89,7 +89,7 @@ func (s *Suite) Kernel2IP2Memif(t *testing.T) {
 	r.Run(`result=$(kubectl exec deployments/nse-memif -n "ns-kernel2ip2memif" -- vppctl ping 172.16.1.101 repeat 4)` + "\n" + `echo ${result}` + "\n" + `! echo ${result} | grep -E -q "(100% packet loss)|(0 sent)|(no egress interface)"`)
 }
 func (s *Suite) Memif2IP2Kernel(t *testing.T) {
-	r := s.Runner("/home/nikita/repos/NSM/deployments-k8s/examples/use-cases/Memif2IP2Kernel")
+	r := s.Runner("../deployments-k8s/examples/use-cases/Memif2IP2Kernel")
 	t.Cleanup(func() {
 		r.Run(`kubectl delete ns ns-memif2ip2kernel`)
 	})
@@ -100,7 +100,7 @@ func (s *Suite) Memif2IP2Kernel(t *testing.T) {
 	r.Run(`kubectl exec deployments/nse-kernel -n ns-memif2ip2kernel -- ping -c 4 172.16.1.101`)
 }
 func (s *Suite) Memif2IP2Memif(t *testing.T) {
-	r := s.Runner("/home/nikita/repos/NSM/deployments-k8s/examples/use-cases/Memif2IP2Memif")
+	r := s.Runner("../deployments-k8s/examples/use-cases/Memif2IP2Memif")
 	t.Cleanup(func() {
 		r.Run(`kubectl delete ns ns-memif2ip2memif`)
 	})

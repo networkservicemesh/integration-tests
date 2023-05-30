@@ -25,7 +25,7 @@ func (s *Suite) SetupSuite() {
 			v.SetupSuite()
 		}
 	}
-	r := s.Runner("/home/nikita/repos/NSM/deployments-k8s/examples/k8s_monolith/external_nsc/dns")
+	r := s.Runner("../deployments-k8s/examples/k8s_monolith/external_nsc/dns")
 	s.T().Cleanup(func() {
 		r.Run(`kubectl delete service -n kube-system exposed-kube-dns`)
 		r.Run(`rm coredns-config dnsentries.db`)

@@ -25,7 +25,7 @@ func (s *Suite) SetupSuite() {
 			v.SetupSuite()
 		}
 	}
-	r := s.Runner("/home/nikita/repos/NSM/deployments-k8s/examples/remotevlan/rvlanvpp")
+	r := s.Runner("../deployments-k8s/examples/remotevlan/rvlanvpp")
 	s.T().Cleanup(func() {
 		r.Run(`kubectl delete -k https://github.com/networkservicemesh/deployments-k8s/examples/remotevlan/rvlanvpp?ref=5a9bdf42902474b17fea95ab459ce98d7b5aa3d0`)
 	})
@@ -64,7 +64,7 @@ func (s *Suite) TestAll() {
 	wg.Wait()
 }
 func (s *Suite) Kernel2RVlanBreakout(t *testing.T) {
-	r := s.Runner("/home/nikita/repos/NSM/deployments-k8s/examples/use-cases/Kernel2RVlanBreakout")
+	r := s.Runner("../deployments-k8s/examples/use-cases/Kernel2RVlanBreakout")
 	t.Cleanup(func() {
 		r.Run(`docker stop rvm-tester` + "\n" + `docker image rm rvm-tester:latest` + "\n" + `true`)
 		r.Run(`kubectl delete ns ns-kernel2rvlan-breakout`)
@@ -80,7 +80,7 @@ func (s *Suite) Kernel2RVlanBreakout(t *testing.T) {
 	r.Run(`status=0` + "\n" + `    for nsc in "${NSCS[@]}"` + "\n" + `    do` + "\n" + `      docker exec rvm-tester iperf3 -sD -B 172.10.0.254 -1` + "\n" + `      kubectl exec ${NSCS[1]} -c iperf-server -n ns-kernel2rvlan-breakout -- iperf3 -i0 -t 5 -u -c 172.10.0.254` + "\n" + `      if test $? -ne 0` + "\n" + `      then` + "\n" + `        status=1` + "\n" + `      fi` + "\n" + `    done` + "\n" + `    if test ${status} -eq 1` + "\n" + `    then` + "\n" + `      false` + "\n" + `    fi`)
 }
 func (s *Suite) Kernel2RVlanInternal(t *testing.T) {
-	r := s.Runner("/home/nikita/repos/NSM/deployments-k8s/examples/use-cases/Kernel2RVlanInternal")
+	r := s.Runner("../deployments-k8s/examples/use-cases/Kernel2RVlanInternal")
 	t.Cleanup(func() {
 		r.Run(`kubectl delete ns ns-kernel2rvlan-internal`)
 	})
@@ -93,7 +93,7 @@ func (s *Suite) Kernel2RVlanInternal(t *testing.T) {
 	r.Run(`IP_ADDR=$(kubectl exec ${NSCS[1]} -c cmd-nsc -n ns-kernel2rvlan-internal -- ip -6 a s nsm-1 scope global | grep -oP '(?<=inet6\s)([0-9a-f:]+:+)+[0-9a-f]+')` + "\n" + `    kubectl exec ${NSCS[1]} -c iperf-server -n ns-kernel2rvlan-internal -- iperf3 -sD -B ${IP_ADDR} -1` + "\n" + `    kubectl exec ${NSCS[0]} -c iperf-server -n ns-kernel2rvlan-internal -- iperf3 -i0 -t 5 -6 -u -c ${IP_ADDR}`)
 }
 func (s *Suite) Kernel2RVlanMultiNS(t *testing.T) {
-	r := s.Runner("/home/nikita/repos/NSM/deployments-k8s/examples/use-cases/Kernel2RVlanMultiNS")
+	r := s.Runner("../deployments-k8s/examples/use-cases/Kernel2RVlanMultiNS")
 	t.Cleanup(func() {
 		r.Run(`docker stop rvm-tester && \` + "\n" + `docker image rm rvm-tester:latest` + "\n" + `true`)
 		r.Run(`kubectl delete --namespace=nsm-system -f https://raw.githubusercontent.com/networkservicemesh/deployments-k8s/5a9bdf42902474b17fea95ab459ce98d7b5aa3d0/examples/use-cases/Kernel2RVlanMultiNS/client.yaml`)

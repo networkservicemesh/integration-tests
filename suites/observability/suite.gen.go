@@ -58,7 +58,7 @@ func (s *Suite) TestAll() {
 	wg.Wait()
 }
 func (s *Suite) Jaeger_and_prometheus(t *testing.T) {
-	r := s.Runner("/home/nikita/repos/NSM/deployments-k8s/examples/observability/jaeger-and-prometheus")
+	r := s.Runner("../deployments-k8s/examples/observability/jaeger-and-prometheus")
 	t.Cleanup(func() {
 		r.Run(`kubectl delete ns ns-jaeger-and-prometheus`)
 		r.Run(`WH=$(kubectl get pods -l app=admission-webhook-k8s -n nsm-system --template '{{range .items}}{{.metadata.name}}{{"\n"}}{{end}}')` + "\n" + `kubectl delete mutatingwebhookconfiguration ${WH}` + "\n" + `kubectl delete ns nsm-system`)

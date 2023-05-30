@@ -37,7 +37,7 @@ func (s *Suite) SetupSuite() {
 			v.SetupSuite()
 		}
 	}
-	r := s.Runner("/home/nikita/repos/NSM/deployments-k8s/examples/multicluster")
+	r := s.Runner("../deployments-k8s/examples/multicluster")
 	s.T().Cleanup(func() {
 		r.Run(`WH=$(kubectl --kubeconfig=$KUBECONFIG1 get pods -l app=admission-webhook-k8s -n nsm-system --template '{{range .items}}{{.metadata.name}}{{"\n"}}{{end}}')` + "\n" + `kubectl --kubeconfig=$KUBECONFIG1 delete mutatingwebhookconfiguration ${WH}` + "\n" + `kubectl --kubeconfig=$KUBECONFIG1 delete ns nsm-system`)
 		r.Run(`WH=$(kubectl --kubeconfig=$KUBECONFIG2 get pods -l app=admission-webhook-k8s -n nsm-system --template '{{range .items}}{{.metadata.name}}{{"\n"}}{{end}}')` + "\n" + `kubectl --kubeconfig=$KUBECONFIG2 delete mutatingwebhookconfiguration ${WH}` + "\n" + `kubectl --kubeconfig=$KUBECONFIG2 delete ns nsm-system`)
@@ -91,7 +91,7 @@ func (s *Suite) TestAll() {
 	wg.Wait()
 }
 func (s *Suite) Floating_Kernel2Ethernet2Kernel(t *testing.T) {
-	r := s.Runner("/home/nikita/repos/NSM/deployments-k8s/examples/multicluster/usecases/floating_Kernel2Ethernet2Kernel")
+	r := s.Runner("../deployments-k8s/examples/multicluster/usecases/floating_Kernel2Ethernet2Kernel")
 	t.Cleanup(func() {
 		r.Run(`kubectl --kubeconfig=$KUBECONFIG1 delete ns ns-floating-kernel2ethernet2kernel`)
 		r.Run(`kubectl --kubeconfig=$KUBECONFIG2 delete ns ns-floating-kernel2ethernet2kernel`)
@@ -106,7 +106,7 @@ func (s *Suite) Floating_Kernel2Ethernet2Kernel(t *testing.T) {
 	r.Run(`kubectl --kubeconfig=$KUBECONFIG2 exec deployments/nse-kernel -n ns-floating-kernel2ethernet2kernel -- ping -c 4 172.16.1.3`)
 }
 func (s *Suite) Floating_Kernel2IP2Kernel(t *testing.T) {
-	r := s.Runner("/home/nikita/repos/NSM/deployments-k8s/examples/multicluster/usecases/floating_Kernel2IP2Kernel")
+	r := s.Runner("../deployments-k8s/examples/multicluster/usecases/floating_Kernel2IP2Kernel")
 	t.Cleanup(func() {
 		r.Run(`kubectl --kubeconfig=$KUBECONFIG1 delete ns ns-floating-kernel2ip2kernel`)
 		r.Run(`kubectl --kubeconfig=$KUBECONFIG2 delete ns ns-floating-kernel2ip2kernel`)
@@ -121,7 +121,7 @@ func (s *Suite) Floating_Kernel2IP2Kernel(t *testing.T) {
 	r.Run(`kubectl --kubeconfig=$KUBECONFIG2 exec deployments/nse-kernel -n ns-floating-kernel2ip2kernel -- ping -c 4 172.16.1.3`)
 }
 func (s *Suite) Floating_dns(t *testing.T) {
-	r := s.Runner("/home/nikita/repos/NSM/deployments-k8s/examples/multicluster/usecases/floating_dns")
+	r := s.Runner("../deployments-k8s/examples/multicluster/usecases/floating_dns")
 	t.Cleanup(func() {
 		r.Run(`kubectl --kubeconfig=$KUBECONFIG1 delete ns ns-floating-dns`)
 		r.Run(`kubectl --kubeconfig=$KUBECONFIG2 delete ns ns-floating-dns`)
@@ -136,7 +136,7 @@ func (s *Suite) Floating_dns(t *testing.T) {
 	r.Run(`kubectl --kubeconfig=$KUBECONFIG1 exec pods/dnsutils -c dnsutils -n ns-floating-dns -- dig kubernetes.default A kubernetes.default AAAA | grep "kubernetes.default.svc.cluster.local"`)
 }
 func (s *Suite) Floating_nse_composition(t *testing.T) {
-	r := s.Runner("/home/nikita/repos/NSM/deployments-k8s/examples/multicluster/usecases/floating_nse_composition")
+	r := s.Runner("../deployments-k8s/examples/multicluster/usecases/floating_nse_composition")
 	t.Cleanup(func() {
 		r.Run(`kubectl --kubeconfig=$KUBECONFIG1 delete ns ns-interdomain-nse-composition`)
 		r.Run(`kubectl --kubeconfig=$KUBECONFIG2 delete ns ns-interdomain-nse-composition`)
@@ -153,7 +153,7 @@ func (s *Suite) Floating_nse_composition(t *testing.T) {
 	r.Run(`kubectl --kubeconfig=$KUBECONFIG2 exec deployments/nse-kernel -n ns-interdomain-nse-composition -- ping -c 4 172.16.1.101`)
 }
 func (s *Suite) Floating_vl3_basic(t *testing.T) {
-	r := s.Runner("/home/nikita/repos/NSM/deployments-k8s/examples/multicluster/usecases/floating_vl3-basic")
+	r := s.Runner("../deployments-k8s/examples/multicluster/usecases/floating_vl3-basic")
 	t.Cleanup(func() {
 		r.Run(`kubectl --kubeconfig=$KUBECONFIG3 delete -k https://github.com/networkservicemesh/deployments-k8s/examples/multicluster/usecases/floating_vl3-basic/cluster3?ref=5a9bdf42902474b17fea95ab459ce98d7b5aa3d0`)
 		r.Run(`kubectl --kubeconfig=$KUBECONFIG2 delete -k https://github.com/networkservicemesh/deployments-k8s/examples/multicluster/usecases/floating_vl3-basic/cluster2?ref=5a9bdf42902474b17fea95ab459ce98d7b5aa3d0`)
@@ -170,7 +170,7 @@ func (s *Suite) Floating_vl3_basic(t *testing.T) {
 	r.Run(`kubectl --kubeconfig=$KUBECONFIG2 exec pods/alpine -n ns-floating-vl3-basic -- ping -c 4 172.16.0.0` + "\n" + `kubectl --kubeconfig=$KUBECONFIG2 exec pods/alpine -n ns-floating-vl3-basic -- ping -c 4 172.16.1.0`)
 }
 func (s *Suite) Floating_vl3_dns(t *testing.T) {
-	r := s.Runner("/home/nikita/repos/NSM/deployments-k8s/examples/multicluster/usecases/floating_vl3-dns")
+	r := s.Runner("../deployments-k8s/examples/multicluster/usecases/floating_vl3-dns")
 	t.Cleanup(func() {
 		r.Run(`kubectl --kubeconfig=$KUBECONFIG3 delete -k https://github.com/networkservicemesh/deployments-k8s/examples/multicluster/usecases/floating_vl3-dns/cluster3?ref=5a9bdf42902474b17fea95ab459ce98d7b5aa3d0`)
 		r.Run(`kubectl --kubeconfig=$KUBECONFIG2 delete -k https://github.com/networkservicemesh/deployments-k8s/examples/multicluster/usecases/floating_vl3-dns/cluster2?ref=5a9bdf42902474b17fea95ab459ce98d7b5aa3d0`)
@@ -193,7 +193,7 @@ func (s *Suite) Floating_vl3_dns(t *testing.T) {
 	r.Run(`kubectl --kubeconfig=$KUBECONFIG2 exec pods/alpine-2 -n ns-floating-vl3-dns -- ping -c2 -i 0.5 $nse2.floating-vl3-dns.my.cluster3. -4`)
 }
 func (s *Suite) Floating_vl3_scale_from_zero(t *testing.T) {
-	r := s.Runner("/home/nikita/repos/NSM/deployments-k8s/examples/multicluster/usecases/floating_vl3-scale-from-zero")
+	r := s.Runner("../deployments-k8s/examples/multicluster/usecases/floating_vl3-scale-from-zero")
 	t.Cleanup(func() {
 		r.Run(`kubectl --kubeconfig=$KUBECONFIG3 delete -k https://github.com/networkservicemesh/deployments-k8s/examples/multicluster/usecases/floating_vl3-scale-from-zero/cluster3?ref=5a9bdf42902474b17fea95ab459ce98d7b5aa3d0`)
 		r.Run(`kubectl --kubeconfig=$KUBECONFIG2 delete -k https://github.com/networkservicemesh/deployments-k8s/examples/multicluster/usecases/floating_vl3-scale-from-zero/cluster2?ref=5a9bdf42902474b17fea95ab459ce98d7b5aa3d0`)
@@ -210,7 +210,7 @@ func (s *Suite) Floating_vl3_scale_from_zero(t *testing.T) {
 	r.Run(`kubectl --kubeconfig=$KUBECONFIG2 exec pods/alpine -n ns-floating-vl3-scale-from-zero -- ping -c 4 172.16.0.0` + "\n" + `kubectl --kubeconfig=$KUBECONFIG2 exec pods/alpine -n ns-floating-vl3-scale-from-zero -- ping -c 4 172.16.1.0`)
 }
 func (s *Suite) Interdomain_Kernel2Ethernet2Kernel(t *testing.T) {
-	r := s.Runner("/home/nikita/repos/NSM/deployments-k8s/examples/multicluster/usecases/interdomain_Kernel2Ethernet2Kernel")
+	r := s.Runner("../deployments-k8s/examples/multicluster/usecases/interdomain_Kernel2Ethernet2Kernel")
 	t.Cleanup(func() {
 		r.Run(`kubectl --kubeconfig=$KUBECONFIG1 delete ns ns-interdomain-kernel2ethernet2kernel`)
 		r.Run(`kubectl --kubeconfig=$KUBECONFIG2 delete ns ns-interdomain-kernel2ethernet2kernel`)
@@ -223,7 +223,7 @@ func (s *Suite) Interdomain_Kernel2Ethernet2Kernel(t *testing.T) {
 	r.Run(`kubectl --kubeconfig=$KUBECONFIG2 exec deployments/nse-kernel -n ns-interdomain-kernel2ethernet2kernel -- ping -c 4 172.16.1.3`)
 }
 func (s *Suite) Interdomain_Kernel2IP2Kernel(t *testing.T) {
-	r := s.Runner("/home/nikita/repos/NSM/deployments-k8s/examples/multicluster/usecases/interdomain_Kernel2IP2Kernel")
+	r := s.Runner("../deployments-k8s/examples/multicluster/usecases/interdomain_Kernel2IP2Kernel")
 	t.Cleanup(func() {
 		r.Run(`kubectl --kubeconfig=$KUBECONFIG1 delete ns ns-interdomain-kernel2ip2kernel`)
 		r.Run(`kubectl --kubeconfig=$KUBECONFIG2 delete ns ns-interdomain-kernel2ip2kernel`)
@@ -236,7 +236,7 @@ func (s *Suite) Interdomain_Kernel2IP2Kernel(t *testing.T) {
 	r.Run(`kubectl --kubeconfig=$KUBECONFIG2 exec deployments/nse-kernel -n ns-interdomain-kernel2ip2kernel -- ping -c 4 172.16.1.3`)
 }
 func (s *Suite) Interdomain_dns(t *testing.T) {
-	r := s.Runner("/home/nikita/repos/NSM/deployments-k8s/examples/multicluster/usecases/interdomain_dns")
+	r := s.Runner("../deployments-k8s/examples/multicluster/usecases/interdomain_dns")
 	t.Cleanup(func() {
 		r.Run(`kubectl --kubeconfig=$KUBECONFIG1 delete ns ns-interdomain-dns`)
 		r.Run(`kubectl --kubeconfig=$KUBECONFIG2 delete ns ns-interdomain-dns`)
