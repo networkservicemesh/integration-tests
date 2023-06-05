@@ -2,10 +2,6 @@
 package multiforwarder
 
 import (
-	"fmt"
-	"sync"
-	"testing"
-
 	"github.com/stretchr/testify/suite"
 
 	"github.com/networkservicemesh/integration-tests/extensions/base"
@@ -34,44 +30,9 @@ func (s *Suite) SetupSuite() {
 	r.Run(`kubectl apply -k https://github.com/networkservicemesh/deployments-k8s/examples/multiforwarder?ref=5a9bdf42902474b17fea95ab459ce98d7b5aa3d0`)
 	r.Run(`WH=$(kubectl get pods -l app=admission-webhook-k8s -n nsm-system --template '{{range .items}}{{.metadata.name}}{{"\n"}}{{end}}')` + "\n" + `kubectl wait --for=condition=ready --timeout=1m pod ${WH} -n nsm-system`)
 }
-
-const workerCount = 5
-
-func worker(jobsCh <-chan func(), wg *sync.WaitGroup) {
-	for j := range jobsCh {
-		fmt.Println("Executing a job...")
-		j()
-	}
-	fmt.Println("Worker is finishing...")
-	wg.Done()
-}
-func (s *Suite) TestAll() {
-	tests := []func(t *testing.T){
-		s.Kernel2Ethernet2Kernel,
-		s.Kernel2Ethernet2Kernel_Vfio2Noop,
-		s.Kernel2Kernel,
-		s.Kernel2Kernel_Vfio2Noop,
-		s.Memif2Memif,
-		s.SriovKernel2Noop,
-		s.Vfio2Noop,
-	}
-	jobCh := make(chan func(), len(tests))
-	wg := new(sync.WaitGroup)
-	wg.Add(workerCount)
-	for i := 0; i < workerCount; i++ {
-		go worker(jobCh, wg)
-	}
-	for i := range tests {
-		test := tests[i]
-		jobCh <- func() {
-			s.T().Run("TestName", test)
-		}
-	}
-	wg.Wait()
-}
-func (s *Suite) Kernel2Ethernet2Kernel(t *testing.T) {
+func (s *Suite) TestKernel2Ethernet2Kernel() {
 	r := s.Runner("../deployments-k8s/examples/use-cases/Kernel2Ethernet2Kernel")
-	t.Cleanup(func() {
+	s.T().Cleanup(func() {
 		r.Run(`kubectl delete ns ns-kernel2ethernet2kernel`)
 	})
 	r.Run(`kubectl apply -k https://github.com/networkservicemesh/deployments-k8s/examples/use-cases/Kernel2Ethernet2Kernel?ref=5a9bdf42902474b17fea95ab459ce98d7b5aa3d0`)
@@ -80,9 +41,9 @@ func (s *Suite) Kernel2Ethernet2Kernel(t *testing.T) {
 	r.Run(`kubectl exec pods/alpine -n ns-kernel2ethernet2kernel -- ping -c 4 172.16.1.100`)
 	r.Run(`kubectl exec deployments/nse-kernel -n ns-kernel2ethernet2kernel -- ping -c 4 172.16.1.101`)
 }
-func (s *Suite) Kernel2Ethernet2Kernel_Vfio2Noop(t *testing.T) {
+func (s *Suite) TestKernel2Ethernet2Kernel_Vfio2Noop() {
 	r := s.Runner("../deployments-k8s/examples/use-cases/Kernel2Ethernet2Kernel_Vfio2Noop")
-	t.Cleanup(func() {
+	s.T().Cleanup(func() {
 		r.Run(`kubectl -n ns-kernel2ethernet2kernel-vfio2noop exec deployments/nse-vfio --container ponger -- /bin/bash -c '\` + "\n" + `  (sleep 10 && kill $(pgrep "pingpong")) 1>/dev/null 2>&1 &                    \` + "\n" + `'`)
 		r.Run(`kubectl delete ns ns-kernel2ethernet2kernel-vfio2noop`)
 	})
@@ -96,9 +57,9 @@ func (s *Suite) Kernel2Ethernet2Kernel_Vfio2Noop(t *testing.T) {
 	r.Run(`kubectl exec deployments/nse-kernel -n ns-kernel2ethernet2kernel-vfio2noop -- ping -c 4 172.16.1.101`)
 	r.Run(`dpdk_ping "0a:55:44:33:22:00" "0a:55:44:33:22:11"`)
 }
-func (s *Suite) Kernel2Kernel(t *testing.T) {
+func (s *Suite) TestKernel2Kernel() {
 	r := s.Runner("../deployments-k8s/examples/use-cases/Kernel2Kernel")
-	t.Cleanup(func() {
+	s.T().Cleanup(func() {
 		r.Run(`kubectl delete ns ns-kernel2kernel`)
 	})
 	r.Run(`kubectl apply -k https://github.com/networkservicemesh/deployments-k8s/examples/use-cases/Kernel2Kernel?ref=5a9bdf42902474b17fea95ab459ce98d7b5aa3d0`)
@@ -107,9 +68,9 @@ func (s *Suite) Kernel2Kernel(t *testing.T) {
 	r.Run(`kubectl exec pods/alpine -n ns-kernel2kernel -- ping -c 4 172.16.1.100`)
 	r.Run(`kubectl exec deployments/nse-kernel -n ns-kernel2kernel -- ping -c 4 172.16.1.101`)
 }
-func (s *Suite) Kernel2Kernel_Vfio2Noop(t *testing.T) {
+func (s *Suite) TestKernel2Kernel_Vfio2Noop() {
 	r := s.Runner("../deployments-k8s/examples/use-cases/Kernel2Kernel_Vfio2Noop")
-	t.Cleanup(func() {
+	s.T().Cleanup(func() {
 		r.Run(`kubectl -n ns-kernel2kernel-vfio2noop exec deployments/nse-vfio --container ponger -- /bin/bash -c '\` + "\n" + `  (sleep 10 && kill $(pgrep "pingpong")) 1>/dev/null 2>&1 &                    \` + "\n" + `'`)
 		r.Run(`kubectl delete ns ns-kernel2kernel-vfio2noop`)
 	})
@@ -123,9 +84,9 @@ func (s *Suite) Kernel2Kernel_Vfio2Noop(t *testing.T) {
 	r.Run(`kubectl exec deployments/nse-kernel -n ns-kernel2kernel-vfio2noop -- ping -c 4 172.16.1.101`)
 	r.Run(`dpdk_ping "0a:55:44:33:22:00" "0a:55:44:33:22:11"`)
 }
-func (s *Suite) Memif2Memif(t *testing.T) {
+func (s *Suite) TestMemif2Memif() {
 	r := s.Runner("../deployments-k8s/examples/use-cases/Memif2Memif")
-	t.Cleanup(func() {
+	s.T().Cleanup(func() {
 		r.Run(`kubectl delete ns ns-memif2memif`)
 	})
 	r.Run(`kubectl apply -k https://github.com/networkservicemesh/deployments-k8s/examples/use-cases/Memif2Memif?ref=5a9bdf42902474b17fea95ab459ce98d7b5aa3d0`)
@@ -134,9 +95,9 @@ func (s *Suite) Memif2Memif(t *testing.T) {
 	r.Run(`result=$(kubectl exec deployments/nsc-memif -n "ns-memif2memif" -- vppctl ping 172.16.1.100 repeat 4)` + "\n" + `echo ${result}` + "\n" + `! echo ${result} | grep -E -q "(100% packet loss)|(0 sent)|(no egress interface)"`)
 	r.Run(`result=$(kubectl exec deployments/nse-memif -n "ns-memif2memif" -- vppctl ping 172.16.1.101 repeat 4)` + "\n" + `echo ${result}` + "\n" + `! echo ${result} | grep -E -q "(100% packet loss)|(0 sent)|(no egress interface)"`)
 }
-func (s *Suite) SriovKernel2Noop(t *testing.T) {
+func (s *Suite) TestSriovKernel2Noop() {
 	r := s.Runner("../deployments-k8s/examples/use-cases/SriovKernel2Noop")
-	t.Cleanup(func() {
+	s.T().Cleanup(func() {
 		r.Run(`kubectl delete ns ns-sriov-kernel2noop`)
 	})
 	r.Run(`kubectl apply -k https://github.com/networkservicemesh/deployments-k8s/examples/use-cases/SriovKernel2Noop/ponger?ref=5a9bdf42902474b17fea95ab459ce98d7b5aa3d0`)
@@ -147,9 +108,9 @@ func (s *Suite) SriovKernel2Noop(t *testing.T) {
 	r.Run(`kubectl -n ns-sriov-kernel2noop wait --for=condition=ready --timeout=1m pod -l app=nse-noop`)
 	r.Run(`kubectl -n ns-sriov-kernel2noop exec deployments/nsc-kernel -- ping -c 4 172.16.1.100`)
 }
-func (s *Suite) Vfio2Noop(t *testing.T) {
+func (s *Suite) TestVfio2Noop() {
 	r := s.Runner("../deployments-k8s/examples/use-cases/Vfio2Noop")
-	t.Cleanup(func() {
+	s.T().Cleanup(func() {
 		r.Run(`kubectl -n ns-vfio2noop exec deployments/nse-vfio --container ponger -- /bin/bash -c '\` + "\n" + `  (sleep 10 && kill $(pgrep "pingpong")) 1>/dev/null 2>&1 &             \` + "\n" + `'`)
 		r.Run(`kubectl delete ns ns-vfio2noop`)
 	})

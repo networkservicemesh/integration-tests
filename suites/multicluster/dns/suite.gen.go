@@ -2,10 +2,6 @@
 package dns
 
 import (
-	"fmt"
-	"sync"
-	"testing"
-
 	"github.com/stretchr/testify/suite"
 
 	"github.com/networkservicemesh/integration-tests/extensions/base"
@@ -47,32 +43,5 @@ func (s *Suite) SetupSuite() {
 	r.Run(`kubectl --kubeconfig=$KUBECONFIG2 apply -f - <<EOF` + "\n" + `apiVersion: v1` + "\n" + `kind: ConfigMap` + "\n" + `metadata:` + "\n" + `  name: coredns-custom` + "\n" + `  namespace: kube-system` + "\n" + `data:` + "\n" + `  server.override: |` + "\n" + `    k8s_external my.cluster2` + "\n" + `  proxy1.server: |` + "\n" + `    my.cluster1:53 {` + "\n" + `      forward . ${ip1}:53 {` + "\n" + `        force_tcp` + "\n" + `      }` + "\n" + `    }` + "\n" + `  proxy3.server: |` + "\n" + `    my.cluster3:53 {` + "\n" + `      forward . ${ip3}:53 {` + "\n" + `        force_tcp` + "\n" + `      }` + "\n" + `    }` + "\n" + `EOF`)
 	r.Run(`kubectl --kubeconfig=$KUBECONFIG3 apply -f - <<EOF` + "\n" + `apiVersion: v1` + "\n" + `kind: ConfigMap` + "\n" + `metadata:` + "\n" + `  name: coredns` + "\n" + `  namespace: kube-system` + "\n" + `data:` + "\n" + `  Corefile: |` + "\n" + `    .:53 {` + "\n" + `        errors` + "\n" + `        health {` + "\n" + `            lameduck 5s` + "\n" + `        }` + "\n" + `        ready` + "\n" + `        kubernetes cluster.local in-addr.arpa ip6.arpa {` + "\n" + `            pods insecure` + "\n" + `            fallthrough in-addr.arpa ip6.arpa` + "\n" + `            ttl 30` + "\n" + `        }` + "\n" + `        k8s_external my.cluster3` + "\n" + `        prometheus :9153` + "\n" + `        forward . /etc/resolv.conf {` + "\n" + `            max_concurrent 1000` + "\n" + `        }` + "\n" + `        loop` + "\n" + `        reload 5s` + "\n" + `    }` + "\n" + `    my.cluster1:53 {` + "\n" + `      forward . ${ip1}:53 {` + "\n" + `        force_tcp` + "\n" + `      }` + "\n" + `    }` + "\n" + `    my.cluster2:53 {` + "\n" + `      forward . ${ip2}:53 {` + "\n" + `        force_tcp` + "\n" + `      }` + "\n" + `    }` + "\n" + `EOF`)
 	r.Run(`kubectl --kubeconfig=$KUBECONFIG3 apply -f - <<EOF` + "\n" + `apiVersion: v1` + "\n" + `kind: ConfigMap` + "\n" + `metadata:` + "\n" + `  name: coredns-custom` + "\n" + `  namespace: kube-system` + "\n" + `data:` + "\n" + `  server.override: |` + "\n" + `    k8s_external my.cluster3` + "\n" + `  proxy1.server: |` + "\n" + `    my.cluster1:53 {` + "\n" + `      forward . ${ip1}:53 {` + "\n" + `        force_tcp` + "\n" + `      }` + "\n" + `    }` + "\n" + `  proxy2.server: |` + "\n" + `    my.cluster2:53 {` + "\n" + `      forward . ${ip2}:53 {` + "\n" + `        force_tcp` + "\n" + `      }` + "\n" + `    }` + "\n" + `EOF`)
-}
-
-const workerCount = 5
-
-func worker(jobsCh <-chan func(), wg *sync.WaitGroup) {
-	for j := range jobsCh {
-		fmt.Println("Executing a job...")
-		j()
-	}
-	fmt.Println("Worker is finishing...")
-	wg.Done()
-}
-func (s *Suite) TestAll() {
-	tests := []func(t *testing.T){}
-	jobCh := make(chan func(), len(tests))
-	wg := new(sync.WaitGroup)
-	wg.Add(workerCount)
-	for i := 0; i < workerCount; i++ {
-		go worker(jobCh, wg)
-	}
-	for i := range tests {
-		test := tests[i]
-		jobCh <- func() {
-			s.T().Run("TestName", test)
-		}
-	}
-	wg.Wait()
 }
 func (s *Suite) Test() {}

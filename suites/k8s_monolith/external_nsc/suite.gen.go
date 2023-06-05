@@ -2,10 +2,6 @@
 package external_nsc
 
 import (
-	"fmt"
-	"sync"
-	"testing"
-
 	"github.com/stretchr/testify/suite"
 
 	"github.com/networkservicemesh/integration-tests/extensions/base"
@@ -42,38 +38,9 @@ func (s *Suite) SetupSuite() {
 	r.Run(`kubectl apply -k https://github.com/networkservicemesh/deployments-k8s/examples/k8s_monolith/configuration/cluster?ref=5a9bdf42902474b17fea95ab459ce98d7b5aa3d0`)
 	r.Run(`kubectl get services registry -n nsm-system -o go-template='{{index (index (index (index .status "loadBalancer") "ingress") 0) "ip"}}'`)
 }
-
-const workerCount = 5
-
-func worker(jobsCh <-chan func(), wg *sync.WaitGroup) {
-	for j := range jobsCh {
-		fmt.Println("Executing a job...")
-		j()
-	}
-	fmt.Println("Worker is finishing...")
-	wg.Done()
-}
-func (s *Suite) TestAll() {
-	tests := []func(t *testing.T){
-		s.Kernel2IP2Kernel,
-	}
-	jobCh := make(chan func(), len(tests))
-	wg := new(sync.WaitGroup)
-	wg.Add(workerCount)
-	for i := 0; i < workerCount; i++ {
-		go worker(jobCh, wg)
-	}
-	for i := range tests {
-		test := tests[i]
-		jobCh <- func() {
-			s.T().Run("TestName", test)
-		}
-	}
-	wg.Wait()
-}
-func (s *Suite) Kernel2IP2Kernel(t *testing.T) {
+func (s *Suite) TestKernel2IP2Kernel() {
 	r := s.Runner("../deployments-k8s/examples/k8s_monolith/external_nsc/usecases/Kernel2IP2Kernel")
-	t.Cleanup(func() {
+	s.T().Cleanup(func() {
 		r.Run(`kubectl delete ns ns-kernel2ip2kernel-monolith-nsc`)
 	})
 	r.Run(`kubectl apply -k https://github.com/networkservicemesh/deployments-k8s/examples/k8s_monolith/external_nsc/usecases/Kernel2IP2Kernel?ref=5a9bdf42902474b17fea95ab459ce98d7b5aa3d0`)

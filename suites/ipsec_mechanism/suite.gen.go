@@ -2,10 +2,6 @@
 package ipsec_mechanism
 
 import (
-	"fmt"
-	"sync"
-	"testing"
-
 	"github.com/stretchr/testify/suite"
 
 	"github.com/networkservicemesh/integration-tests/extensions/base"
@@ -34,41 +30,9 @@ func (s *Suite) SetupSuite() {
 	r.Run(`kubectl apply -k https://github.com/networkservicemesh/deployments-k8s/examples/ipsec_mechanism?ref=5a9bdf42902474b17fea95ab459ce98d7b5aa3d0`)
 	r.Run(`WH=$(kubectl get pods -l app=admission-webhook-k8s -n nsm-system --template '{{range .items}}{{.metadata.name}}{{"\n"}}{{end}}')` + "\n" + `kubectl wait --for=condition=ready --timeout=1m pod ${WH} -n nsm-system`)
 }
-
-const workerCount = 5
-
-func worker(jobsCh <-chan func(), wg *sync.WaitGroup) {
-	for j := range jobsCh {
-		fmt.Println("Executing a job...")
-		j()
-	}
-	fmt.Println("Worker is finishing...")
-	wg.Done()
-}
-func (s *Suite) TestAll() {
-	tests := []func(t *testing.T){
-		s.Kernel2IP2Kernel,
-		s.Kernel2IP2Memif,
-		s.Memif2IP2Kernel,
-		s.Memif2IP2Memif,
-	}
-	jobCh := make(chan func(), len(tests))
-	wg := new(sync.WaitGroup)
-	wg.Add(workerCount)
-	for i := 0; i < workerCount; i++ {
-		go worker(jobCh, wg)
-	}
-	for i := range tests {
-		test := tests[i]
-		jobCh <- func() {
-			s.T().Run("TestName", test)
-		}
-	}
-	wg.Wait()
-}
-func (s *Suite) Kernel2IP2Kernel(t *testing.T) {
+func (s *Suite) TestKernel2IP2Kernel() {
 	r := s.Runner("../deployments-k8s/examples/use-cases/Kernel2IP2Kernel")
-	t.Cleanup(func() {
+	s.T().Cleanup(func() {
 		r.Run(`kubectl delete ns ns-kernel2ip2kernel`)
 	})
 	r.Run(`kubectl apply -k https://github.com/networkservicemesh/deployments-k8s/examples/use-cases/Kernel2IP2Kernel?ref=5a9bdf42902474b17fea95ab459ce98d7b5aa3d0`)
@@ -77,9 +41,9 @@ func (s *Suite) Kernel2IP2Kernel(t *testing.T) {
 	r.Run(`kubectl exec pods/alpine -n ns-kernel2ip2kernel -- ping -c 4 172.16.1.100`)
 	r.Run(`kubectl exec deployments/nse-kernel -n ns-kernel2ip2kernel -- ping -c 4 172.16.1.101`)
 }
-func (s *Suite) Kernel2IP2Memif(t *testing.T) {
+func (s *Suite) TestKernel2IP2Memif() {
 	r := s.Runner("../deployments-k8s/examples/use-cases/Kernel2IP2Memif")
-	t.Cleanup(func() {
+	s.T().Cleanup(func() {
 		r.Run(`kubectl delete ns ns-kernel2ip2memif`)
 	})
 	r.Run(`kubectl apply -k https://github.com/networkservicemesh/deployments-k8s/examples/use-cases/Kernel2IP2Memif?ref=5a9bdf42902474b17fea95ab459ce98d7b5aa3d0`)
@@ -88,9 +52,9 @@ func (s *Suite) Kernel2IP2Memif(t *testing.T) {
 	r.Run(`kubectl exec pods/alpine -n ns-kernel2ip2memif -- ping -c 4 172.16.1.100`)
 	r.Run(`result=$(kubectl exec deployments/nse-memif -n "ns-kernel2ip2memif" -- vppctl ping 172.16.1.101 repeat 4)` + "\n" + `echo ${result}` + "\n" + `! echo ${result} | grep -E -q "(100% packet loss)|(0 sent)|(no egress interface)"`)
 }
-func (s *Suite) Memif2IP2Kernel(t *testing.T) {
+func (s *Suite) TestMemif2IP2Kernel() {
 	r := s.Runner("../deployments-k8s/examples/use-cases/Memif2IP2Kernel")
-	t.Cleanup(func() {
+	s.T().Cleanup(func() {
 		r.Run(`kubectl delete ns ns-memif2ip2kernel`)
 	})
 	r.Run(`kubectl apply -k https://github.com/networkservicemesh/deployments-k8s/examples/use-cases/Memif2IP2Kernel?ref=5a9bdf42902474b17fea95ab459ce98d7b5aa3d0`)
@@ -99,9 +63,9 @@ func (s *Suite) Memif2IP2Kernel(t *testing.T) {
 	r.Run(`result=$(kubectl exec deployments/nsc-memif -n "ns-memif2ip2kernel" -- vppctl ping 172.16.1.100 repeat 4)` + "\n" + `echo ${result}` + "\n" + `! echo ${result} | grep -E -q "(100% packet loss)|(0 sent)|(no egress interface)"`)
 	r.Run(`kubectl exec deployments/nse-kernel -n ns-memif2ip2kernel -- ping -c 4 172.16.1.101`)
 }
-func (s *Suite) Memif2IP2Memif(t *testing.T) {
+func (s *Suite) TestMemif2IP2Memif() {
 	r := s.Runner("../deployments-k8s/examples/use-cases/Memif2IP2Memif")
-	t.Cleanup(func() {
+	s.T().Cleanup(func() {
 		r.Run(`kubectl delete ns ns-memif2ip2memif`)
 	})
 	r.Run(`kubectl apply -k https://github.com/networkservicemesh/deployments-k8s/examples/use-cases/Memif2IP2Memif?ref=5a9bdf42902474b17fea95ab459ce98d7b5aa3d0`)

@@ -2,10 +2,6 @@
 package sriov
 
 import (
-	"fmt"
-	"sync"
-	"testing"
-
 	"github.com/stretchr/testify/suite"
 
 	"github.com/networkservicemesh/integration-tests/extensions/base"
@@ -33,39 +29,9 @@ func (s *Suite) SetupSuite() {
 	})
 	r.Run(`kubectl apply -k https://github.com/networkservicemesh/deployments-k8s/examples/sriov?ref=5a9bdf42902474b17fea95ab459ce98d7b5aa3d0`)
 }
-
-const workerCount = 5
-
-func worker(jobsCh <-chan func(), wg *sync.WaitGroup) {
-	for j := range jobsCh {
-		fmt.Println("Executing a job...")
-		j()
-	}
-	fmt.Println("Worker is finishing...")
-	wg.Done()
-}
-func (s *Suite) TestAll() {
-	tests := []func(t *testing.T){
-		s.SriovKernel2Noop,
-		s.Vfio2Noop,
-	}
-	jobCh := make(chan func(), len(tests))
-	wg := new(sync.WaitGroup)
-	wg.Add(workerCount)
-	for i := 0; i < workerCount; i++ {
-		go worker(jobCh, wg)
-	}
-	for i := range tests {
-		test := tests[i]
-		jobCh <- func() {
-			s.T().Run("TestName", test)
-		}
-	}
-	wg.Wait()
-}
-func (s *Suite) SriovKernel2Noop(t *testing.T) {
+func (s *Suite) TestSriovKernel2Noop() {
 	r := s.Runner("../deployments-k8s/examples/use-cases/SriovKernel2Noop")
-	t.Cleanup(func() {
+	s.T().Cleanup(func() {
 		r.Run(`kubectl delete ns ns-sriov-kernel2noop`)
 	})
 	r.Run(`kubectl apply -k https://github.com/networkservicemesh/deployments-k8s/examples/use-cases/SriovKernel2Noop/ponger?ref=5a9bdf42902474b17fea95ab459ce98d7b5aa3d0`)
@@ -76,9 +42,9 @@ func (s *Suite) SriovKernel2Noop(t *testing.T) {
 	r.Run(`kubectl -n ns-sriov-kernel2noop wait --for=condition=ready --timeout=1m pod -l app=nse-noop`)
 	r.Run(`kubectl -n ns-sriov-kernel2noop exec deployments/nsc-kernel -- ping -c 4 172.16.1.100`)
 }
-func (s *Suite) Vfio2Noop(t *testing.T) {
+func (s *Suite) TestVfio2Noop() {
 	r := s.Runner("../deployments-k8s/examples/use-cases/Vfio2Noop")
-	t.Cleanup(func() {
+	s.T().Cleanup(func() {
 		r.Run(`kubectl -n ns-vfio2noop exec deployments/nse-vfio --container ponger -- /bin/bash -c '\` + "\n" + `  (sleep 10 && kill $(pgrep "pingpong")) 1>/dev/null 2>&1 &             \` + "\n" + `'`)
 		r.Run(`kubectl delete ns ns-vfio2noop`)
 	})
