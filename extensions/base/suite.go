@@ -21,6 +21,7 @@ package base
 
 import (
 	"fmt"
+	"path/filepath"
 	"strings"
 
 	"github.com/networkservicemesh/gotestmd/pkg/suites/shell"
@@ -44,8 +45,8 @@ func (s *Suite) AfterTest(_, _ string) {
 }
 
 // BeforeTest starts capture logs for each test in the suite.
-func (s *Suite) BeforeTest(_, _ string) {
-	s.storeTestLogs = logs.Capture(s.T().Name())
+func (s *Suite) BeforeTest(suiteName, methodName string) {
+	s.storeTestLogs = logs.Capture(filepath.Join(suiteName, methodName))
 }
 
 // TearDownSuite stores logs from containers that spawned during SuiteSetup.

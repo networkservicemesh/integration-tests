@@ -74,6 +74,7 @@ func Run(t *testing.T, s suite.TestingSuite) {
 			F: func(testingT *testing.T) {
 				defer recoverAndFailOnPanic(t)
 
+				testingT.Parallel()
 				defer func() {
 					r := recover()
 
@@ -105,8 +106,7 @@ func Run(t *testing.T, s suite.TestingSuite) {
 				}
 
 				subS := reflect.New(reflect.ValueOf(s).Elem().Type())
-				meth := subS.MethodByName("SetT")
-				meth.Call([]reflect.Value{reflect.ValueOf(testingT)})
+				subS.MethodByName("SetT").Call([]reflect.Value{reflect.ValueOf(testingT)})
 
 				method.Func.Call([]reflect.Value{subS})
 			},

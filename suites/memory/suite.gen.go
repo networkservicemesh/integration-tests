@@ -31,7 +31,6 @@ func (s *Suite) SetupSuite() {
 	r.Run(`WH=$(kubectl get pods -l app=admission-webhook-k8s -n nsm-system --template '{{range .items}}{{.metadata.name}}{{"\n"}}{{end}}')` + "\n" + `kubectl wait --for=condition=ready --timeout=1m pod ${WH} -n nsm-system`)
 }
 func (s *Suite) TestKernel2Ethernet2Kernel() {
-	s.T().Parallel()
 	r := s.Runner("../deployments-k8s/examples/memory/Kernel2Ethernet2Kernel")
 	s.T().Cleanup(func() {
 		r.Run(`kubectl delete ns ns-kernel2ethernet2kernel`)
@@ -43,7 +42,6 @@ func (s *Suite) TestKernel2Ethernet2Kernel() {
 	r.Run(`kubectl exec deployments/nse-kernel -n ns-kernel2ethernet2kernel -- ping -c 4 172.16.1.101`)
 }
 func (s *Suite) TestKernel2Kernel() {
-	s.T().Parallel()
 	r := s.Runner("../deployments-k8s/examples/memory/Kernel2Kernel")
 	s.T().Cleanup(func() {
 		r.Run(`kubectl delete ns ns-kernel2kernel`)
@@ -55,7 +53,6 @@ func (s *Suite) TestKernel2Kernel() {
 	r.Run(`kubectl exec deployments/nse-kernel -n ns-kernel2kernel -- ping -c 4 172.16.1.101`)
 }
 func (s *Suite) TestMemif2Memif() {
-	s.T().Parallel()
 	r := s.Runner("../deployments-k8s/examples/memory/Memif2Memif")
 	s.T().Cleanup(func() {
 		r.Run(`kubectl delete ns ns-memif2memif`)
