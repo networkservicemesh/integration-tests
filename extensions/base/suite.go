@@ -20,6 +20,7 @@
 package base
 
 import (
+	"context"
 	"fmt"
 	"strings"
 
@@ -33,24 +34,15 @@ import (
 type Suite struct {
 	shell.Suite
 	// Add other extensions here
-	checkout                      checkout.Suite
-	prefetch                      prefetch.Suite
-	storeTestLogs, storeSuiteLogs func()
-}
-
-// AfterTest stores logs after each test in the suite.
-func (s *Suite) AfterTest(_, _ string) {
-	s.storeTestLogs()
-}
-
-// BeforeTest starts capture logs for each test in the suite.
-func (s *Suite) BeforeTest(_, _ string) {
-	s.storeTestLogs = logs.Capture(s.T().Name())
+	checkout        checkout.Suite
+	prefetch        prefetch.Suite
+	nsMonitorCtx    context.Context
+	nsMonitorCancel context.CancelFunc
 }
 
 // TearDownSuite stores logs from containers that spawned during SuiteSetup.
 func (s *Suite) TearDownSuite() {
-	s.storeSuiteLogs()
+	s.nsMonitorCancel()
 }
 
 const (
@@ -59,10 +51,10 @@ const (
 
 // SetupSuite runs all extensions
 func (s *Suite) SetupSuite() {
-	repo := "networkservicemesh/deployments-k8s"
+	repo := "NikitaSkrynnik/deployments-k8s"
 	version := sha[:8]
 
-	s.checkout.Version = version
+	s.checkout.Version = "parallel"
 
 	if strings.Contains(sha, "tags") {
 		s.checkout.Version = sha
@@ -86,6 +78,6 @@ func (s *Suite) SetupSuite() {
 
 	s.prefetch.SetT(s.T())
 	s.prefetch.SetupSuite()
-
-	s.storeSuiteLogs = logs.Capture(s.T().Name())
+	s.nsMonitorCtx, s.nsMonitorCancel = context.WithCancel(context.Background())
+	logs.MonitorNamespaces(s.nsMonitorCtx, s.T().Name())
 }
