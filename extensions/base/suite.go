@@ -20,8 +20,8 @@
 package base
 
 import (
+	"context"
 	"fmt"
-	"path/filepath"
 	"strings"
 
 	"github.com/networkservicemesh/gotestmd/pkg/suites/shell"
@@ -37,21 +37,24 @@ type Suite struct {
 	checkout                      checkout.Suite
 	prefetch                      prefetch.Suite
 	storeTestLogs, storeSuiteLogs func()
+	nsMonitorCtx                  context.Context
+	nsMonitorCancel               context.CancelFunc
 }
 
 // AfterTest stores logs after each test in the suite.
 func (s *Suite) AfterTest(_, _ string) {
-	s.storeTestLogs()
+	//s.storeTestLogs()
 }
 
 // BeforeTest starts capture logs for each test in the suite.
 func (s *Suite) BeforeTest(suiteName, methodName string) {
-	s.storeTestLogs = logs.Capture(filepath.Join(suiteName, methodName))
+	//s.storeTestLogs = logs.Capture(filepath.Join(suiteName, methodName))
 }
 
 // TearDownSuite stores logs from containers that spawned during SuiteSetup.
 func (s *Suite) TearDownSuite() {
 	s.storeSuiteLogs()
+	s.nsMonitorCancel()
 }
 
 const (
@@ -89,4 +92,7 @@ func (s *Suite) SetupSuite() {
 	s.prefetch.SetupSuite()
 
 	s.storeSuiteLogs = logs.Capture(s.T().Name())
+
+	s.nsMonitorCtx, s.nsMonitorCancel = context.WithCancel(context.Background())
+	logs.MonitorNamespaces(s.nsMonitorCtx)
 }

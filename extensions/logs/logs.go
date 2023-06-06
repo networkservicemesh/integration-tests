@@ -31,6 +31,7 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/edwarnicke/genericsync"
 	"github.com/kelseyhightower/envconfig"
 	"github.com/sirupsen/logrus"
 	corev1 "k8s.io/api/core/v1"
@@ -54,7 +55,12 @@ var (
 	kubeClients []kubernetes.Interface
 	kubeConfigs []string
 	matchRegex  *regexp.Regexp
+	nsMap       genericsync.Map[string, *namespace]
 )
+
+type namespace struct {
+	PodLogs genericsync.Map[string, []byte]
+}
 
 // Config is env config to setup log collecting.
 type Config struct {
@@ -284,4 +290,58 @@ func Capture(name string) context.CancelFunc {
 		}
 		pushArtifacts()
 	}
+}
+
+func collectLogs(ctx context.Context, kubeClient kubernetes.Interface, pod *corev1.Pod) {
+
+}
+
+func StreamCollectLogs(ctx context.Context, kubeClient kubernetes.Interface) {
+	nsList := make([]string, 0)
+	nsMap.Range(func(key string, value *namespace) bool {
+		nsList = append(nsList, key)
+		return true
+	})
+
+	for _, ns := range nsList {
+		podList, _ := kubeClient.CoreV1().Pods(ns).List(ctx, metav1.ListOptions{})
+		for _, pod := range podList.Items {
+			req := kubeClient.CoreV1().Pods(ns).GetLogs(pod.Name, &corev1.PodLogOptions{Follow: true})
+			req.Stream(ctx)
+		}
+	}
+}
+
+func monitorNamespaces(ctx context.Context, kubeClient kubernetes.Interface) {
+	for {
+		select {
+		case <-ctx.Done():
+			return
+		default:
+		}
+
+		getCtx, cancel := context.WithTimeout(ctx, config.Timeout)
+		defer cancel()
+		nsList, err := kubeClient.CoreV1().Namespaces().List(getCtx, metav1.ListOptions{})
+		if err != nil {
+			return
+		}
+
+		for _, ns := range nsList.Items {
+			if matchRegex.MatchString(ns.String()) {
+				nsMap.LoadOrStore(ns.Name, &namespace{})
+			}
+		}
+
+		nsMap.Range(func(key string, value *namespace) bool {
+			fmt.Println(key)
+			return true
+		})
+
+		time.Sleep(5000 * time.Millisecond)
+	}
+}
+
+func MonitorNamespaces(ctx context.Context) {
+	go monitorNamespaces(ctx, kubeClients[0])
 }
