@@ -21,46 +21,35 @@ package logs
 
 import (
 	"context"
-	"fmt"
 	"io/ioutil"
 	"os"
-	"os/signal"
 	"path/filepath"
-	"regexp"
-	"sync"
-	"syscall"
 	"time"
 
-	"github.com/edwarnicke/genericsync"
-	"github.com/kelseyhightower/envconfig"
 	"github.com/sirupsen/logrus"
 	corev1 "k8s.io/api/core/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
-	"k8s.io/client-go/tools/clientcmd"
-
-	"github.com/networkservicemesh/gotestmd/pkg/bash"
 )
 
-const (
-	defaultQPS        = 5 // this is default value for QPS of kubeconfig. See at documentation.
-	fromAllNamespaces = ""
-)
+// const (
+// 	defaultQPS        = 5 // this is default value for QPS of kubeconfig. See at documentation.
+// 	fromAllNamespaces = ""
+// )
 
-var (
-	once        sync.Once
-	config      Config
-	jobsCh      chan func()
-	ctx         context.Context
-	kubeClients []kubernetes.Interface
-	kubeConfigs []string
-	matchRegex  *regexp.Regexp
-	nsMap       genericsync.Map[string, *namespace]
-)
+// var (
+// 	once        sync.Once
+// 	config      Config
+// 	jobsCh      chan func()
+// 	ctx         context.Context
+// 	kubeClients []kubernetes.Interface
+// 	kubeConfigs []string
+// 	matchRegex  *regexp.Regexp
+// 	nsMap       genericsync.Map[string, *namespace]
+// )
 
-type namespace struct {
-	PodLogs genericsync.Map[string, []byte]
-}
+// type namespace struct {
+// 	PodLogs genericsync.Map[string, []byte]
+// }
 
 // Config is env config to setup log collecting.
 type Config struct {
@@ -110,238 +99,238 @@ func savePodLogs(ctx context.Context, kubeClient kubernetes.Interface, pod *core
 	}
 }
 
-func captureLogs(kubeClient kubernetes.Interface, from time.Time, dir string) {
-	operationCtx, cancel := context.WithTimeout(ctx, config.Timeout)
-	defer cancel()
-	resp, err := kubeClient.CoreV1().Pods(fromAllNamespaces).List(operationCtx, metav1.ListOptions{})
-	if err != nil {
-		logrus.Errorf("An error while retrieving list of pods: %v", err.Error())
-	}
-	var wg sync.WaitGroup
+// func captureLogs(kubeClient kubernetes.Interface, from time.Time, dir string) {
+// 	operationCtx, cancel := context.WithTimeout(ctx, config.Timeout)
+// 	defer cancel()
+// 	resp, err := kubeClient.CoreV1().Pods(fromAllNamespaces).List(operationCtx, metav1.ListOptions{})
+// 	if err != nil {
+// 		logrus.Errorf("An error while retrieving list of pods: %v", err.Error())
+// 	}
+// 	var wg sync.WaitGroup
 
-	for i := 0; i < len(resp.Items); i++ {
-		pod := &resp.Items[i]
-		if !matchRegex.MatchString(pod.Namespace) {
-			continue
-		}
-		wg.Add(1)
-		captureLogsTask := func() {
-			opts := &corev1.PodLogOptions{
-				SinceTime: &metav1.Time{Time: from},
-			}
-			savePodLogs(operationCtx, kubeClient, pod, opts, false, dir)
-			savePodLogs(operationCtx, kubeClient, pod, opts, true, dir)
+// 	for i := 0; i < len(resp.Items); i++ {
+// 		pod := &resp.Items[i]
+// 		if !matchRegex.MatchString(pod.Namespace) {
+// 			continue
+// 		}
+// 		wg.Add(1)
+// 		captureLogsTask := func() {
+// 			opts := &corev1.PodLogOptions{
+// 				SinceTime: &metav1.Time{Time: from},
+// 			}
+// 			savePodLogs(operationCtx, kubeClient, pod, opts, false, dir)
+// 			savePodLogs(operationCtx, kubeClient, pod, opts, true, dir)
 
-			wg.Done()
-		}
-		select {
-		case <-ctx.Done():
-			return
-		case jobsCh <- captureLogsTask:
-			continue
-		}
-	}
+// 			wg.Done()
+// 		}
+// 		select {
+// 		case <-ctx.Done():
+// 			return
+// 		case jobsCh <- captureLogsTask:
+// 			continue
+// 		}
+// 	}
 
-	wg.Wait()
-}
+// 	wg.Wait()
+// }
 
-func initialize() {
-	const prefix = "logs"
-	if err := envconfig.Usage(prefix, &config); err != nil {
-		logrus.Fatal(err.Error())
-	}
+// func initialize() {
+// 	const prefix = "logs"
+// 	if err := envconfig.Usage(prefix, &config); err != nil {
+// 		logrus.Fatal(err.Error())
+// 	}
 
-	if err := envconfig.Process(prefix, &config); err != nil {
-		logrus.Fatal(err.Error())
-	}
+// 	if err := envconfig.Process(prefix, &config); err != nil {
+// 		logrus.Fatal(err.Error())
+// 	}
 
-	matchRegex = regexp.MustCompile(config.AllowedNamespaces)
+// 	matchRegex = regexp.MustCompile(config.AllowedNamespaces)
 
-	jobsCh = make(chan func(), config.WorkerCount)
+// 	jobsCh = make(chan func(), config.WorkerCount)
 
-	var singleClusterKubeConfig = os.Getenv("KUBECONFIG")
+// 	var singleClusterKubeConfig = os.Getenv("KUBECONFIG")
 
-	if singleClusterKubeConfig == "" {
-		singleClusterKubeConfig = filepath.Join(os.Getenv("HOME"), ".kube", "config")
-	}
+// 	if singleClusterKubeConfig == "" {
+// 		singleClusterKubeConfig = filepath.Join(os.Getenv("HOME"), ".kube", "config")
+// 	}
 
-	kubeConfigs = []string{}
+// 	kubeConfigs = []string{}
 
-	for i := 1; i <= config.MaxKubeConfigs; i++ {
-		kubeConfig := os.Getenv("KUBECONFIG" + fmt.Sprint(i))
-		if kubeConfig != "" {
-			kubeConfigs = append(kubeConfigs, kubeConfig)
-		}
-	}
+// 	for i := 1; i <= config.MaxKubeConfigs; i++ {
+// 		kubeConfig := os.Getenv("KUBECONFIG" + fmt.Sprint(i))
+// 		if kubeConfig != "" {
+// 			kubeConfigs = append(kubeConfigs, kubeConfig)
+// 		}
+// 	}
 
-	if len(kubeConfigs) == 0 {
-		kubeConfigs = append(kubeConfigs, singleClusterKubeConfig)
-	}
+// 	if len(kubeConfigs) == 0 {
+// 		kubeConfigs = append(kubeConfigs, singleClusterKubeConfig)
+// 	}
 
-	for _, cfg := range kubeConfigs {
-		kubeconfig, err := clientcmd.BuildConfigFromFlags("", cfg)
-		if err != nil {
-			logrus.Fatal(err.Error())
-		}
+// 	for _, cfg := range kubeConfigs {
+// 		kubeconfig, err := clientcmd.BuildConfigFromFlags("", cfg)
+// 		if err != nil {
+// 			logrus.Fatal(err.Error())
+// 		}
 
-		kubeconfig.QPS = float32(config.WorkerCount) * defaultQPS
-		kubeconfig.Burst = int(kubeconfig.QPS) * 2
+// 		kubeconfig.QPS = float32(config.WorkerCount) * defaultQPS
+// 		kubeconfig.Burst = int(kubeconfig.QPS) * 2
 
-		kubeClient, err := kubernetes.NewForConfig(kubeconfig)
-		if err != nil {
-			logrus.Fatal(err.Error())
-		}
+// 		kubeClient, err := kubernetes.NewForConfig(kubeconfig)
+// 		if err != nil {
+// 			logrus.Fatal(err.Error())
+// 		}
 
-		kubeClients = append(kubeClients, kubeClient)
-	}
+// 		kubeClients = append(kubeClients, kubeClient)
+// 	}
 
-	var cancel context.CancelFunc
-	ctx, cancel = signal.NotifyContext(context.Background(),
-		os.Interrupt,
-		os.Kill,
-		syscall.SIGHUP,
-		syscall.SIGTERM,
-		syscall.SIGQUIT,
-	)
+// 	var cancel context.CancelFunc
+// 	ctx, cancel = signal.NotifyContext(context.Background(),
+// 		os.Interrupt,
+// 		os.Kill,
+// 		syscall.SIGHUP,
+// 		syscall.SIGTERM,
+// 		syscall.SIGQUIT,
+// 	)
 
-	for i := 0; i < config.WorkerCount; i++ {
-		go func() {
-			for j := range jobsCh {
-				j()
-			}
-		}()
-	}
+// 	for i := 0; i < config.WorkerCount; i++ {
+// 		go func() {
+// 			for j := range jobsCh {
+// 				j()
+// 			}
+// 		}()
+// 	}
 
-	go func() {
-		defer cancel()
-		<-ctx.Done()
-		close(jobsCh)
-	}()
-}
+// 	go func() {
+// 		defer cancel()
+// 		<-ctx.Done()
+// 		close(jobsCh)
+// 	}()
+// }
 
-func capture(kubeClient kubernetes.Interface, name string) context.CancelFunc {
-	now := time.Now()
+// func capture(kubeClient kubernetes.Interface, name string) context.CancelFunc {
+// 	now := time.Now()
 
-	dir := filepath.Join(config.ArtifactsDir, name)
-	_ = os.MkdirAll(dir, os.ModePerm)
+// 	dir := filepath.Join(config.ArtifactsDir, name)
+// 	_ = os.MkdirAll(dir, os.ModePerm)
 
-	return func() {
-		captureLogs(kubeClient, now, dir)
-	}
-}
+// 	return func() {
+// 		captureLogs(kubeClient, now, dir)
+// 	}
+// }
 
-// TODO: do not use bash runner to get describe info. Use kubernetes API instead.
-func describePods(kubeClient kubernetes.Interface, kubeConfig, name string) {
-	getCtx, cancel := context.WithTimeout(ctx, config.Timeout)
-	defer cancel()
+// // TODO: do not use bash runner to get describe info. Use kubernetes API instead.
+// func describePods(kubeClient kubernetes.Interface, kubeConfig, name string) {
+// 	getCtx, cancel := context.WithTimeout(ctx, config.Timeout)
+// 	defer cancel()
 
-	nsList, err := kubeClient.CoreV1().Namespaces().List(getCtx, metav1.ListOptions{})
-	if err != nil {
-		return
-	}
+// 	nsList, err := kubeClient.CoreV1().Namespaces().List(getCtx, metav1.ListOptions{})
+// 	if err != nil {
+// 		return
+// 	}
 
-	runner, err := bash.New()
-	if err != nil {
-		return
-	}
+// 	runner, err := bash.New()
+// 	if err != nil {
+// 		return
+// 	}
 
-	for _, ns := range filterNamespaces(nsList) {
-		p := filepath.Join(config.ArtifactsDir, name, "describe-"+ns+".log")
-		_, _, exitCode, err := runner.Run(fmt.Sprintf("kubectl --kubeconfig %v describe pods -n %v > %v", kubeConfig, ns, p))
-		if exitCode != 0 || err != nil {
-			logrus.Errorf("An error while retrieving describe for namespace: %v", ns)
-		}
-	}
-}
+// 	for _, ns := range filterNamespaces(nsList) {
+// 		p := filepath.Join(config.ArtifactsDir, name, "describe-"+ns+".log")
+// 		_, _, exitCode, err := runner.Run(fmt.Sprintf("kubectl --kubeconfig %v describe pods -n %v > %v", kubeConfig, ns, p))
+// 		if exitCode != 0 || err != nil {
+// 			logrus.Errorf("An error while retrieving describe for namespace: %v", ns)
+// 		}
+// 	}
+// }
 
-func filterNamespaces(nsList *corev1.NamespaceList) []string {
-	var rv []string
+// func filterNamespaces(nsList *corev1.NamespaceList) []string {
+// 	var rv []string
 
-	for i := 0; i < len(nsList.Items); i++ {
-		if matchRegex.MatchString(nsList.Items[i].Name) && nsList.Items[i].Status.Phase == corev1.NamespaceActive {
-			rv = append(rv, nsList.Items[i].Name)
-		}
-	}
+// 	for i := 0; i < len(nsList.Items); i++ {
+// 		if matchRegex.MatchString(nsList.Items[i].Name) && nsList.Items[i].Status.Phase == corev1.NamespaceActive {
+// 			rv = append(rv, nsList.Items[i].Name)
+// 		}
+// 	}
 
-	return rv
-}
+// 	return rv
+// }
 
-// Capture returns a function that saves logs since Capture function has been called.
-func Capture(name string) context.CancelFunc {
-	once.Do(initialize)
+// // Capture returns a function that saves logs since Capture function has been called.
+// func Capture(name string) context.CancelFunc {
+// 	once.Do(initialize)
 
-	var pushArtifacts = func() {}
+// 	var pushArtifacts = func() {}
 
-	for i, client := range kubeClients {
-		var clusterPrefix = filepath.Join(fmt.Sprintf("cluster%v", i+1), name)
-		var prevPushFn = pushArtifacts
-		var nextPushFn = capture(client, clusterPrefix)
+// 	for i, client := range kubeClients {
+// 		var clusterPrefix = filepath.Join(fmt.Sprintf("cluster%v", i+1), name)
+// 		var prevPushFn = pushArtifacts
+// 		var nextPushFn = capture(client, clusterPrefix)
 
-		pushArtifacts = func() {
-			prevPushFn()
-			nextPushFn()
-		}
-	}
-	return func() {
-		for i, client := range kubeClients {
-			var clusterPrefix = filepath.Join(fmt.Sprintf("cluster%v", i+1), name)
+// 		pushArtifacts = func() {
+// 			prevPushFn()
+// 			nextPushFn()
+// 		}
+// 	}
+// 	return func() {
+// 		for i, client := range kubeClients {
+// 			var clusterPrefix = filepath.Join(fmt.Sprintf("cluster%v", i+1), name)
 
-			describePods(client, kubeConfigs[i], clusterPrefix)
-		}
-		pushArtifacts()
-	}
-}
+// 			describePods(client, kubeConfigs[i], clusterPrefix)
+// 		}
+// 		pushArtifacts()
+// 	}
+// }
 
-func collectLogs(ctx context.Context, kubeClient kubernetes.Interface, pod *corev1.Pod) {
+// func collectLogs(ctx context.Context, kubeClient kubernetes.Interface, pod *corev1.Pod) {
 
-}
+// }
 
-func StreamCollectLogs(ctx context.Context, kubeClient kubernetes.Interface) {
-	nsList := make([]string, 0)
-	nsMap.Range(func(key string, value *namespace) bool {
-		nsList = append(nsList, key)
-		return true
-	})
+// func StreamCollectLogs(ctx context.Context, kubeClient kubernetes.Interface) {
+// 	nsList := make([]string, 0)
+// 	nsMap.Range(func(key string, value *namespace) bool {
+// 		nsList = append(nsList, key)
+// 		return true
+// 	})
 
-	for _, ns := range nsList {
-		podList, _ := kubeClient.CoreV1().Pods(ns).List(ctx, metav1.ListOptions{})
-		for _, pod := range podList.Items {
-			req := kubeClient.CoreV1().Pods(ns).GetLogs(pod.Name, &corev1.PodLogOptions{Follow: true})
-			req.Stream(ctx)
-		}
-	}
-}
+// 	for _, ns := range nsList {
+// 		podList, _ := kubeClient.CoreV1().Pods(ns).List(ctx, metav1.ListOptions{})
+// 		for _, pod := range podList.Items {
+// 			req := kubeClient.CoreV1().Pods(ns).GetLogs(pod.Name, &corev1.PodLogOptions{Follow: true})
+// 			req.Stream(ctx)
+// 		}
+// 	}
+// }
 
-func monitorNamespaces(ctx context.Context, kubeClient kubernetes.Interface) {
-	for {
-		select {
-		case <-ctx.Done():
-			return
-		default:
-		}
+// func monitorNamespaces(ctx context.Context, kubeClient kubernetes.Interface) {
+// 	for {
+// 		select {
+// 		case <-ctx.Done():
+// 			return
+// 		default:
+// 		}
 
-		getCtx, cancel := context.WithTimeout(ctx, config.Timeout)
-		defer cancel()
-		nsList, err := kubeClient.CoreV1().Namespaces().List(getCtx, metav1.ListOptions{})
-		if err != nil {
-			return
-		}
+// 		getCtx, cancel := context.WithTimeout(ctx, config.Timeout)
+// 		defer cancel()
+// 		nsList, err := kubeClient.CoreV1().Namespaces().List(getCtx, metav1.ListOptions{})
+// 		if err != nil {
+// 			return
+// 		}
 
-		for _, ns := range nsList.Items {
-			if matchRegex.MatchString(ns.String()) {
-				nsMap.LoadOrStore(ns.Name, &namespace{})
-			}
-		}
+// 		for _, ns := range nsList.Items {
+// 			if matchRegex.MatchString(ns.String()) {
+// 				nsMap.LoadOrStore(ns.Name, &namespace{})
+// 			}
+// 		}
 
-		nsMap.Range(func(key string, value *namespace) bool {
-			fmt.Println(key)
-			return true
-		})
+// 		nsMap.Range(func(key string, value *namespace) bool {
+// 			fmt.Println(key)
+// 			return true
+// 		})
 
-		time.Sleep(5000 * time.Millisecond)
-	}
-}
+// 		time.Sleep(5000 * time.Millisecond)
+// 	}
+// }
 
-func MonitorNamespaces(ctx context.Context) {
-	go monitorNamespaces(ctx, kubeClients[0])
-}
+// func MonitorNamespaces(ctx context.Context) {
+// 	go monitorNamespaces(ctx, kubeClients[0])
+// }
