@@ -20,6 +20,7 @@ package parallel
 import (
 	"reflect"
 	"runtime/debug"
+	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/suite"
@@ -37,6 +38,7 @@ func failOnPanic(t *testing.T, r interface{}) {
 	}
 }
 
+// Run runs suite tests in parallel
 func Run(t *testing.T, s suite.TestingSuite, excludedTests ...string) {
 	excludedTestsSet := make(map[string]struct{})
 	for _, test := range excludedTests {
@@ -60,6 +62,9 @@ func Run(t *testing.T, s suite.TestingSuite, excludedTests ...string) {
 
 	for i := 0; i < methodFinder.NumMethod(); i++ {
 		method := methodFinder.Method(i)
+		if ok := strings.HasPrefix(method.Name, "Test"); !ok {
+			continue
+		}
 		parallel := true
 		if _, ok := excludedTestsSet[method.Name]; ok {
 			parallel = false
