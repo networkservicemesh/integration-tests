@@ -1,5 +1,7 @@
 // Copyright (c) 2021 Doc.ai and/or its affiliates.
 //
+// Copyright (c) 2023 Cisco and/or its affiliates.
+//
 // SPDX-License-Identifier: Apache-2.0
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
@@ -20,7 +22,7 @@ package images
 import (
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"net/url"
 	"os"
@@ -87,7 +89,7 @@ func readContent(rawurl string) []byte {
 	var u, _ = url.Parse(rawurl)
 	if u.Scheme == fileScheme {
 		var p = filepath.Join(u.Hostname(), u.Path)
-		b, err := ioutil.ReadFile(filepath.Clean(p))
+		b, err := os.ReadFile(filepath.Clean(p))
 		if err == nil {
 			return b
 		}
@@ -102,7 +104,7 @@ func readContent(rawurl string) []byte {
 		defer func() {
 			_ = resp.Body.Close()
 		}()
-		b, err := ioutil.ReadAll(resp.Body)
+		b, err := io.ReadAll(resp.Body)
 		if err != nil {
 			return nil
 		}
@@ -136,7 +138,7 @@ func reteriveLocalFileList(rawurl string, match func(string) bool) []string {
 
 	var result []string
 
-	files, err := ioutil.ReadDir(basePath)
+	files, err := os.ReadDir(basePath)
 	if err != nil {
 		return nil
 	}
