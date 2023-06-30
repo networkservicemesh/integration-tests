@@ -22,7 +22,6 @@ package logs
 import (
 	"context"
 	"fmt"
-	"io/ioutil"
 	"os"
 	"os/signal"
 	"path/filepath"
@@ -96,7 +95,7 @@ func savePodLogs(ctx context.Context, kubeClient kubernetes.Interface, pod *core
 			if opts.Previous {
 				suffix = "-previous.log"
 			}
-			err = ioutil.WriteFile(filepath.Join(dir, pod.Name+containerName+suffix), data, os.ModePerm)
+			err = os.WriteFile(filepath.Join(dir, pod.Name+containerName+suffix), data, os.ModePerm)
 			if err != nil {
 				logrus.Errorf("An error during saving logs: %v", err.Error())
 			}
