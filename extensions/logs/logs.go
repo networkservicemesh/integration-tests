@@ -149,6 +149,10 @@ func initialize() {
 		logrus.Fatal(err.Error())
 	}
 
+	if !config.LogCollectionEnabled {
+		return
+	}
+
 	matchRegex = regexp.MustCompile(config.AllowedNamespaces)
 
 	jobsCh = make(chan func(), config.WorkerCount)
@@ -262,13 +266,12 @@ func filterNamespaces(nsList *corev1.NamespaceList) []string {
 
 // Capture returns a function that saves logs since Capture function has been called.
 func Capture(name string) context.CancelFunc {
-	if !config.LogCollectionEnabled {
-		return nil
-	}
-
 	once.Do(initialize)
 
 	var pushArtifacts = func() {}
+	if !config.LogCollectionEnabled {
+		return pushArtifacts
+	}
 
 	for i, client := range kubeClients {
 		var clusterPrefix = filepath.Join(fmt.Sprintf("cluster%v", i+1), name)
