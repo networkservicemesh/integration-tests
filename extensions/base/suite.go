@@ -25,6 +25,7 @@ import (
 
 	"github.com/networkservicemesh/gotestmd/pkg/suites/shell"
 	"github.com/networkservicemesh/integration-tests/extensions/checkout"
+	"github.com/networkservicemesh/integration-tests/extensions/logs"
 	"github.com/networkservicemesh/integration-tests/extensions/prefetch"
 )
 
@@ -32,8 +33,24 @@ import (
 type Suite struct {
 	shell.Suite
 	// Add other extensions here
-	checkout checkout.Suite
-	prefetch prefetch.Suite
+	checkout                      checkout.Suite
+	prefetch                      prefetch.Suite
+	storeTestLogs, storeSuiteLogs func()
+}
+
+// AfterTest stores logs after each test in the suite.
+func (s *Suite) AfterTest(_, _ string) {
+	s.storeTestLogs()
+}
+
+// BeforeTest starts capture logs for each test in the suite.
+func (s *Suite) BeforeTest(_, _ string) {
+	s.storeTestLogs = logs.Capture(s.T().Name())
+}
+
+// TearDownSuite stores logs from containers that spawned during SuiteSetup.
+func (s *Suite) TearDownSuite() {
+	s.storeSuiteLogs()
 }
 
 const (
@@ -69,4 +86,6 @@ func (s *Suite) SetupSuite() {
 
 	s.prefetch.SetT(s.T())
 	s.prefetch.SetupSuite()
+
+	s.storeSuiteLogs = logs.Capture(s.T().Name())
 }
