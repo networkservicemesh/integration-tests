@@ -57,11 +57,12 @@ var (
 
 // Config is env config to setup log collecting.
 type Config struct {
-	ArtifactsDir      string        `default:"logs" desc:"Directory for storing container logs" envconfig:"ARTIFACTS_DIR"`
-	Timeout           time.Duration `default:"10s" desc:"Context timeout for kubernetes queries" split_words:"true"`
-	WorkerCount       int           `default:"8" desc:"Number of log collector workers" split_words:"true"`
-	MaxKubeConfigs    int           `default:"3" desc:"Number of used kubeconfigs" split_words:"true"`
-	AllowedNamespaces string        `default:"(ns-.*)|(nsm-system)|(spire)|(observability)" desc:"Regex of allowed namespaces" split_words:"true"`
+	ArtifactsDir         string        `default:"logs" desc:"Directory for storing container logs" envconfig:"ARTIFACTS_DIR"`
+	Timeout              time.Duration `default:"10s" desc:"Context timeout for kubernetes queries" split_words:"true"`
+	WorkerCount          int           `default:"8" desc:"Number of log collector workers" split_words:"true"`
+	MaxKubeConfigs       int           `default:"3" desc:"Number of used kubeconfigs" split_words:"true"`
+	AllowedNamespaces    string        `default:"(ns-.*)|(nsm-system)|(spire)|(observability)" desc:"Regex of allowed namespaces" split_words:"true"`
+	LogCollectionEnabled bool          `default:"true" desc:"Boolean variable which enables log collection" split_words:"true"`
 }
 
 func savePodLogs(ctx context.Context, kubeClient kubernetes.Interface, pod *corev1.Pod, opts *corev1.PodLogOptions, fromInitContainers bool, dir string) {
@@ -146,6 +147,10 @@ func initialize() {
 
 	if err := envconfig.Process(prefix, &config); err != nil {
 		logrus.Fatal(err.Error())
+	}
+
+	if !config.LogCollectionEnabled {
+		return
 	}
 
 	matchRegex = regexp.MustCompile(config.AllowedNamespaces)
@@ -264,6 +269,9 @@ func Capture(name string) context.CancelFunc {
 	once.Do(initialize)
 
 	var pushArtifacts = func() {}
+	if !config.LogCollectionEnabled {
+		return pushArtifacts
+	}
 
 	for i, client := range kubeClients {
 		var clusterPrefix = filepath.Join(fmt.Sprintf("cluster%v", i+1), name)
