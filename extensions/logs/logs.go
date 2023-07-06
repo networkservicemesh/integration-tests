@@ -34,6 +34,7 @@ import (
 	"github.com/edwarnicke/genericsync"
 	"github.com/google/uuid"
 	"github.com/kelseyhightower/envconfig"
+	"github.com/networkservicemesh/gotestmd/pkg/bash"
 	"github.com/sirupsen/logrus"
 	corev1 "k8s.io/api/core/v1"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -116,6 +117,35 @@ func initialize() {
 		}
 
 		kubeClients = append(kubeClients, kubeClient)
+	}
+}
+
+func ClusterDump(ctx context.Context, name string) {
+	if _, ok := suiteMap.LoadOrStore(name, struct{}{}); ok {
+		return
+	}
+
+	runner, err := bash.New()
+	if err != nil {
+		logrus.Errorf("An error while getting cluster dump")
+		return
+
+	}
+
+	suitedir := filepath.Join(config.ArtifactsDir, fmt.Sprintf("cluster%v", 0), name)
+
+	for {
+		select {
+		case <-ctx.Done():
+			return
+		default:
+			_, _, exitCode, err := runner.Run(fmt.Sprintf("kubectl cluster-info dump --all-namespaces --output-directory=%s", suitedir))
+			if exitCode != 0 || err != nil {
+				logrus.Errorf("An error while getting cluster dump. Exit Code: %v, Error: %s", exitCode, err)
+			}
+
+			time.Sleep(time.Second)
+		}
 	}
 }
 
