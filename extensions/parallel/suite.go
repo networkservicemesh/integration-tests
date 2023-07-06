@@ -102,29 +102,30 @@ func newTest(t *testing.T, s suite.TestingSuite, methodFinder reflect.Type, meth
 			if parallel {
 				testingT.Parallel()
 			}
+
+			subS := reflect.New(reflect.ValueOf(s).Elem().Type())
+			subS.MethodByName("SetT").Call([]reflect.Value{reflect.ValueOf(testingT)})
+
 			defer func() {
 				r := recover()
 
-				if afterTestSuite, ok := s.(suite.AfterTest); ok {
+				if afterTestSuite, ok := subS.Interface().(suite.AfterTest); ok {
 					afterTestSuite.AfterTest(methodFinder.Elem().Name(), method.Name)
 				}
 
-				if tearDownTestSuite, ok := s.(suite.TearDownTestSuite); ok {
+				if tearDownTestSuite, ok := subS.Interface().(suite.TearDownTestSuite); ok {
 					tearDownTestSuite.TearDownTest()
 				}
 
 				failOnPanic(t, r)
 			}()
 
-			if setupTestSuite, ok := s.(suite.SetupTestSuite); ok {
+			if setupTestSuite, ok := subS.Interface().(suite.SetupTestSuite); ok {
 				setupTestSuite.SetupTest()
 			}
-			if beforeTestSuite, ok := s.(suite.BeforeTest); ok {
+			if beforeTestSuite, ok := subS.Interface().(suite.BeforeTest); ok {
 				beforeTestSuite.BeforeTest(methodFinder.Elem().Name(), method.Name)
 			}
-
-			subS := reflect.New(reflect.ValueOf(s).Elem().Type())
-			subS.MethodByName("SetT").Call([]reflect.Value{reflect.ValueOf(testingT)})
 
 			method.Func.Call([]reflect.Value{subS})
 		},
