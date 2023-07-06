@@ -51,10 +51,10 @@ const (
 
 // SetupSuite runs all extensions
 func (s *Suite) SetupSuite() {
-	repo := "NikitaSkrynnik/deployments-k8s"
+	repo := "networkservicemesh/deployments-k8s"
 	version := sha[:8]
 
-	s.checkout.Version = "parallel"
+	s.checkout.Version = version
 
 	if strings.Contains(sha, "tags") {
 		s.checkout.Version = sha

@@ -60,14 +60,6 @@ func Run(t *testing.T, s suite.TestingSuite, excludedTests ...string) {
 		}
 	})
 
-	t.Cleanup(func() {
-		if suiteSetupDone {
-			if tearDownAllSuite, ok := s.(suite.TearDownAllSuite); ok {
-				tearDownAllSuite.TearDownSuite()
-			}
-		}
-	})
-
 	for i := 0; i < methodFinder.NumMethod(); i++ {
 		method := methodFinder.Method(i)
 		if ok := strings.HasPrefix(method.Name, "Test"); !ok {
