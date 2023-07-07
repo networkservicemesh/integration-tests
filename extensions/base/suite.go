@@ -84,5 +84,4 @@ func (s *Suite) SetupSuite() {
 	s.prefetch.SetT(s.T())
 	s.prefetch.SetupSuite()
 	s.nsMonitorCtx, s.nsMonitorCancel = context.WithCancel(context.Background())
-	go logs.ClusterDump(s.nsMonitorCtx, s.T().Name())
 }
