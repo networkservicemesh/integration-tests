@@ -28,6 +28,7 @@ import (
 	"os"
 	"path/filepath"
 	"regexp"
+	"strings"
 	"sync"
 	"time"
 
@@ -121,6 +122,7 @@ func initialize() {
 }
 
 func ClusterDump(ctx context.Context, name string) {
+	once.Do(initialize)
 	if _, ok := suiteMap.LoadOrStore(name, struct{}{}); ok {
 		return
 	}
@@ -139,14 +141,29 @@ func ClusterDump(ctx context.Context, name string) {
 		case <-ctx.Done():
 			return
 		default:
-			_, _, exitCode, err := runner.Run(fmt.Sprintf("kubectl cluster-info dump --all-namespaces --output-directory=%s", suitedir))
+			nsList, _ := kubeClients[0].CoreV1().Namespaces().List(ctx, v1.ListOptions{})
+
+			filtered := filterNamespaces(nsList)
+			_, _, exitCode, err := runner.Run(fmt.Sprintf("kubectl cluster-info dump --output-directory=%s --namespaces %s", suitedir, strings.Join(filtered, ",")))
 			if exitCode != 0 || err != nil {
 				logrus.Errorf("An error while getting cluster dump. Exit Code: %v, Error: %s", exitCode, err)
 			}
 
-			time.Sleep(time.Second)
+			time.Sleep(2 * time.Second)
 		}
 	}
+}
+
+func filterNamespaces(nsList *corev1.NamespaceList) []string {
+	result := make([]string, 0)
+
+	for _, ns := range nsList.Items {
+		if matchRegex.MatchString(ns.Name) {
+			result = append(result, ns.Name)
+		}
+	}
+
+	return result
 }
 
 func MonitorNamespaces(ctx context.Context, name string) {
