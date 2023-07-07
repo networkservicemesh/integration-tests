@@ -20,11 +20,8 @@
 package logs
 
 import (
-	"bytes"
 	"context"
-	"errors"
 	"fmt"
-	"io"
 	"os"
 	"path/filepath"
 	"regexp"
@@ -32,14 +29,11 @@ import (
 	"sync"
 	"time"
 
-	"github.com/edwarnicke/genericsync"
-	"github.com/google/uuid"
 	"github.com/kelseyhightower/envconfig"
 	"github.com/networkservicemesh/gotestmd/pkg/bash"
 	"github.com/sirupsen/logrus"
 	corev1 "k8s.io/api/core/v1"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/watch"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/tools/clientcmd"
 )
@@ -50,13 +44,11 @@ const (
 )
 
 var (
-	m           sync.Mutex
 	once        sync.Once
 	config      Config
 	kubeClients []kubernetes.Interface
 	kubeConfigs []string
 	matchRegex  *regexp.Regexp
-	suiteMap    genericsync.Map[string, struct{}]
 	runner      *bash.Bash
 )
 
@@ -121,23 +113,26 @@ func initialize() {
 	runner, _ = bash.New()
 }
 
-func ClusterDump(ctx context.Context, name string) {
+func init() {
 	once.Do(initialize)
 
-	m.Lock()
-	defer m.Unlock()
-	suitedir := filepath.Join(config.ArtifactsDir, fmt.Sprintf("cluster%v", 0), name)
+	ctx := context.Background()
 
-	nsList, _ := kubeClients[0].CoreV1().Namespaces().List(ctx, v1.ListOptions{})
+	go func() {
+		for {
+			suitedir := filepath.Join(config.ArtifactsDir, fmt.Sprintf("cluster%v", 0))
 
-	filtered := filterNamespaces(nsList)
-	_, _, exitCode, err := runner.Run(fmt.Sprintf("kubectl cluster-info dump --output-directory=%s --namespaces %s", suitedir, strings.Join(filtered, ",")))
-	if exitCode != 0 || err != nil {
-		logrus.Errorf("An error while getting cluster dump. Exit Code: %v, Error: %s", exitCode, err)
-	}
+			nsList, _ := kubeClients[0].CoreV1().Namespaces().List(ctx, v1.ListOptions{})
+			filtered := filterNamespaces(nsList)
 
-	time.Sleep(2 * time.Second)
+			_, _, exitCode, err := runner.Run(fmt.Sprintf("kubectl cluster-info dump --output-directory=%s --namespaces %s", suitedir, strings.Join(filtered, ",")))
+			if exitCode != 0 || err != nil {
+				logrus.Errorf("An error while getting cluster dump. Exit Code: %v, Error: %s", exitCode, err)
+			}
 
+			time.Sleep(5 * time.Second)
+		}
+	}()
 }
 
 func filterNamespaces(nsList *corev1.NamespaceList) []string {
@@ -150,179 +145,4 @@ func filterNamespaces(nsList *corev1.NamespaceList) []string {
 	}
 
 	return result
-}
-
-func MonitorNamespaces(ctx context.Context, name string) {
-	if _, ok := suiteMap.LoadOrStore(name, struct{}{}); ok {
-		return
-	}
-	once.Do(initialize)
-	for i := range kubeClients {
-		suitedir := filepath.Join(config.ArtifactsDir, fmt.Sprintf("cluster%v", i), name)
-		go monitorNamespaces(ctx, kubeClients[i], suitedir)
-	}
-}
-
-type logCollector struct {
-	kubeClient kubernetes.Interface
-	suiteName  string
-}
-
-func monitorNamespaces(ctx context.Context, kubeClient kubernetes.Interface, suiteName string) {
-	podMap := make(map[string]func())
-	watcher, _ := kubeClient.CoreV1().Pods(v1.NamespaceAll).Watch(ctx, v1.ListOptions{})
-	eventCh := watcher.ResultChan()
-
-	collector := &logCollector{
-		kubeClient: kubeClient,
-		suiteName:  suiteName,
-	}
-	for {
-		select {
-		case event := <-eventCh:
-			pod, ok := event.Object.(*corev1.Pod)
-			if !ok {
-				return
-			}
-
-			if event.Type == watch.Added {
-				if matchRegex.MatchString(pod.Namespace) {
-					podKey := fmt.Sprintf("%v-%v", pod.Namespace, pod.Name)
-					collectCtx, collectCancel := context.WithCancel(ctx)
-
-					if _, ok := podMap[podKey]; ok {
-						collectCancel()
-						return
-					}
-
-					podMap[podKey] = collectCancel
-					go collector.collectLogs(collectCtx, pod, uuid.NewString())
-				}
-			}
-
-			if event.Type == watch.Deleted {
-				if matchRegex.MatchString(pod.Namespace) {
-					cancel := podMap[fmt.Sprintf("%v-%v", pod.Namespace, pod.Name)]
-					cancel()
-				}
-			}
-		case <-ctx.Done():
-			watcher.Stop()
-		}
-
-	}
-}
-
-type logReader struct {
-	podLogOptions *corev1.PodLogOptions
-	LastTimeRead  time.Time
-	stream        io.ReadCloser
-	logBuffer     bytes.Buffer
-	outputFile    string
-	doStream      func(opts *corev1.PodLogOptions)
-	fileWriter    *os.File
-}
-
-func (l *logReader) Save() {
-	err := os.MkdirAll(filepath.Dir(l.outputFile), os.ModePerm)
-	if err != nil {
-		fmt.Printf("Error creating dir: %v", err.Error())
-	}
-	file, err := os.Create(l.outputFile)
-	if err != nil {
-		fmt.Printf("Error: %v occured when saving logs to file\n", err.Error())
-	}
-	defer file.Close()
-
-	file.Write(l.logBuffer.Bytes())
-	l.logBuffer.Reset()
-}
-
-func (l *logReader) Read(buffer []byte) (int, error) {
-	if l.stream == nil {
-		return 0, errors.New("stream is nil")
-	}
-	n, err := l.stream.Read(buffer)
-	if n != 0 {
-		l.LastTimeRead = time.Now()
-	}
-
-	return n, err
-}
-
-func (l *logCollector) collectLogs(collectCtx context.Context, pod *corev1.Pod, id string) {
-	readers := make([]*logReader, len(pod.Spec.Containers))
-	//bufferSize := int64(32 * 1024)
-	//buffer := make([]byte, bufferSize)
-
-	for i := range readers {
-		readers[i] = &logReader{}
-		container := pod.Spec.Containers[i].Name
-		readers[i].outputFile = filepath.Join(l.suiteName, pod.Namespace, pod.Name) + "-" + container + ".log"
-		readers[i].podLogOptions = &corev1.PodLogOptions{}
-		//readers[i].podLogOptions.Follow = true
-		readers[i].podLogOptions.Container = container
-
-		err := os.MkdirAll(filepath.Dir(readers[i].outputFile), os.ModePerm)
-		if err != nil {
-			fmt.Printf("Error creating dir: %v", err.Error())
-		}
-		file, err := os.Create(readers[i].outputFile)
-		readers[i].fileWriter = file
-		if err != nil {
-			fmt.Printf("Error opening file: %v", err.Error())
-		}
-
-		// readers[i].doStream = func(opts *corev1.PodLogOptions) {
-		// 	stream, _ := l.kubeClient.CoreV1().Pods(pod.Namespace).GetLogs(pod.Name, opts).Stream(collectCtx)
-		// 	for stream == nil {
-		// 		select {
-		// 		case <-collectCtx.Done():
-		// 			return
-		// 		default:
-		// 			time.Sleep(time.Second)
-		// 			stream, _ = l.kubeClient.CoreV1().Pods(pod.Namespace).GetLogs(pod.Name, opts).Stream(collectCtx)
-		// 		}
-		// 	}
-		// 	readers[i].stream = stream
-		// }
-		// readers[i].doStream(readers[i].podLogOptions)
-	}
-
-	for {
-		for _, reader := range readers {
-			buf, err := l.kubeClient.CoreV1().Pods(pod.Namespace).GetLogs(pod.Name, reader.podLogOptions).DoRaw(collectCtx)
-			if err == nil {
-				reader.podLogOptions.SinceTime = &v1.Time{time.Now()}
-				reader.fileWriter.Write(buf)
-			}
-			// if n, err := reader.Read(buffer); err != nil {
-			// 	if collectCtx.Err() == nil {
-			// 		if err == io.EOF {
-			// 			reader.podLogOptions.SinceTime = &v1.Time{Time: reader.LastTimeRead}
-			// 		}
-			// 		if reader.stream != nil {
-			// 			reader.stream.Close()
-			// 		}
-			// 		reader.doStream(reader.podLogOptions)
-			// 	}
-			// } else {
-			// 	reader.logBuffer.Write(buffer[:n])
-			// }
-		}
-
-		if collectCtx.Err() != nil {
-			break
-		}
-
-		time.Sleep(time.Second)
-	}
-
-	for _, reader := range readers {
-		reader.fileWriter.Close()
-		//reader.Save()
-		if reader.stream != nil {
-			reader.stream.Close()
-		}
-	}
 }

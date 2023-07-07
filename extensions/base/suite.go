@@ -26,7 +26,7 @@ import (
 
 	"github.com/networkservicemesh/gotestmd/pkg/suites/shell"
 	"github.com/networkservicemesh/integration-tests/extensions/checkout"
-	"github.com/networkservicemesh/integration-tests/extensions/logs"
+	_ "github.com/networkservicemesh/integration-tests/extensions/logs"
 	"github.com/networkservicemesh/integration-tests/extensions/prefetch"
 )
 
@@ -38,16 +38,6 @@ type Suite struct {
 	prefetch        prefetch.Suite
 	nsMonitorCtx    context.Context
 	nsMonitorCancel context.CancelFunc
-}
-
-func (s *Suite) AfterTest(suiteName, _ string) {
-	logs.ClusterDump(s.nsMonitorCtx, suiteName)
-}
-
-// TearDownSuite stores logs from containers that spawned during SuiteSetup.
-func (s *Suite) TearDownSuite() {
-	logs.ClusterDump(s.nsMonitorCtx, s.T().Name())
-	s.nsMonitorCancel()
 }
 
 const (
