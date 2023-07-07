@@ -132,25 +132,7 @@ func ClusterDump(ctx context.Context, name string) {
 		return
 	}
 
-	matchRegex = regexp.MustCompile(config.AllowedNamespaces)
-
-	var singleClusterKubeConfig = os.Getenv("KUBECONFIG")
-
-	if singleClusterKubeConfig == "" {
-		singleClusterKubeConfig = filepath.Join(os.Getenv("HOME"), ".kube", "config")
-	}
-	kubeconfig, err := clientcmd.BuildConfigFromFlags("", singleClusterKubeConfig)
-	if err != nil {
-		logrus.Fatal(err.Error())
-	}
-
-	kubeconfig.QPS = 500
-	kubeconfig.Burst = int(kubeconfig.QPS) * 2
-
-	kubeClient, err := kubernetes.NewForConfig(kubeconfig)
-	if err != nil {
-		logrus.Fatal(err.Error())
-	}
+	initialize()
 
 	suitedir := filepath.Join(config.ArtifactsDir, fmt.Sprintf("cluster%v", 0), name)
 
@@ -159,7 +141,7 @@ func ClusterDump(ctx context.Context, name string) {
 		case <-ctx.Done():
 			return
 		default:
-			nsList, _ := kubeClient.CoreV1().Namespaces().List(ctx, v1.ListOptions{})
+			nsList, _ := kubeClients[0].CoreV1().Namespaces().List(ctx, v1.ListOptions{})
 
 			filtered := filterNamespaces(nsList)
 			_, _, exitCode, err := runner.Run(fmt.Sprintf("kubectl cluster-info dump --output-directory=%s --namespaces %s", suitedir, strings.Join(filtered, ",")))
