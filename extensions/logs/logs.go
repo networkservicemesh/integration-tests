@@ -50,12 +50,14 @@ const (
 )
 
 var (
+	m           sync.Mutex
 	once        sync.Once
 	config      Config
 	kubeClients []kubernetes.Interface
 	kubeConfigs []string
 	matchRegex  *regexp.Regexp
 	suiteMap    genericsync.Map[string, struct{}]
+	runner      *bash.Bash
 )
 
 // Config is env config to setup log collecting.
@@ -119,39 +121,27 @@ func initialize() {
 
 		kubeClients = append(kubeClients, kubeClient)
 	}
+
+	runner, _ = bash.New()
 }
 
 func ClusterDump(ctx context.Context, name string) {
-	if _, ok := suiteMap.LoadOrStore(name, struct{}{}); ok {
-		return
-	}
+	once.Do(initialize)
 
-	runner, err := bash.New()
-	if err != nil {
-		logrus.Errorf("An error while getting cluster dump")
-		return
-	}
-
-	initialize()
-
+	m.Lock()
+	defer m.Unlock()
 	suitedir := filepath.Join(config.ArtifactsDir, fmt.Sprintf("cluster%v", 0), name)
 
-	for {
-		select {
-		case <-ctx.Done():
-			return
-		default:
-			nsList, _ := kubeClients[0].CoreV1().Namespaces().List(ctx, v1.ListOptions{})
+	nsList, _ := kubeClients[0].CoreV1().Namespaces().List(ctx, v1.ListOptions{})
 
-			filtered := filterNamespaces(nsList)
-			_, _, exitCode, err := runner.Run(fmt.Sprintf("kubectl cluster-info dump --output-directory=%s --namespaces %s", suitedir, strings.Join(filtered, ",")))
-			if exitCode != 0 || err != nil {
-				logrus.Errorf("An error while getting cluster dump. Exit Code: %v, Error: %s", exitCode, err)
-			}
-
-			time.Sleep(2 * time.Second)
-		}
+	filtered := filterNamespaces(nsList)
+	_, _, exitCode, err := runner.Run(fmt.Sprintf("kubectl cluster-info dump --output-directory=%s --namespaces %s", suitedir, strings.Join(filtered, ",")))
+	if exitCode != 0 || err != nil {
+		logrus.Errorf("An error while getting cluster dump. Exit Code: %v, Error: %s", exitCode, err)
 	}
+
+	time.Sleep(2 * time.Second)
+
 }
 
 func filterNamespaces(nsList *corev1.NamespaceList) []string {

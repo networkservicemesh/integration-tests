@@ -40,8 +40,13 @@ type Suite struct {
 	nsMonitorCancel context.CancelFunc
 }
 
+func (s *Suite) AfterTest(suiteName, _ string) {
+	logs.ClusterDump(s.nsMonitorCtx, suiteName)
+}
+
 // TearDownSuite stores logs from containers that spawned during SuiteSetup.
 func (s *Suite) TearDownSuite() {
+	logs.ClusterDump(s.nsMonitorCtx, s.T().Name())
 	s.nsMonitorCancel()
 }
 
@@ -76,8 +81,8 @@ func (s *Suite) SetupSuite() {
 		fmt.Sprintf("https://api.github.com/repos/%v/contents/apps?ref=%v", repo, version),
 	}
 
-	//s.prefetch.SetT(s.T())
-	//s.prefetch.SetupSuite()
+	s.prefetch.SetT(s.T())
+	s.prefetch.SetupSuite()
 	s.nsMonitorCtx, s.nsMonitorCancel = context.WithCancel(context.Background())
 	go logs.ClusterDump(s.nsMonitorCtx, s.T().Name())
 }
