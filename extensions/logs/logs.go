@@ -80,10 +80,6 @@ func initialize() {
 		logrus.Fatal(err.Error())
 	}
 
-	if !config.LogCollectionEnabled {
-		return
-	}
-
 	matchRegex = regexp.MustCompile(config.AllowedNamespaces)
 
 	var singleClusterKubeConfig = os.Getenv("KUBECONFIG")
