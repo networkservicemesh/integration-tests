@@ -130,8 +130,9 @@ func ClusterDump(ctx context.Context, name string) {
 	if err != nil {
 		logrus.Errorf("An error while getting cluster dump")
 		return
-
 	}
+
+	matchRegex = regexp.MustCompile(config.AllowedNamespaces)
 
 	var singleClusterKubeConfig = os.Getenv("KUBECONFIG")
 
