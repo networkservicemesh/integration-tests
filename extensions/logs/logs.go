@@ -23,10 +23,12 @@ import (
 	"context"
 	"fmt"
 	"os"
+	"os/signal"
 	"path/filepath"
 	"regexp"
 	"strings"
 	"sync"
+	"syscall"
 	"time"
 
 	"github.com/kelseyhightower/envconfig"
@@ -47,6 +49,7 @@ var (
 	m           sync.Mutex
 	once        sync.Once
 	config      Config
+	ctx         context.Context
 	kubeClients []kubernetes.Interface
 	kubeConfigs []string
 	matchRegex  *regexp.Regexp
@@ -112,22 +115,42 @@ func initialize() {
 	}
 
 	runner, _ = bash.New()
+
+	var cancel context.CancelFunc
+	ctx, cancel = signal.NotifyContext(context.Background(),
+		os.Interrupt,
+		os.Kill,
+		syscall.SIGHUP,
+		syscall.SIGTERM,
+		syscall.SIGQUIT,
+	)
+
+	go func() {
+		defer cancel()
+		<-ctx.Done()
+	}()
 }
 
 // ClusterDump saves logs from all pods in specified namespaces
-func ClusterDump(ctx context.Context, name string) {
+func ClusterDump() {
 	once.Do(initialize)
 
 	m.Lock()
 	defer m.Unlock()
-	suitedir := filepath.Join(config.ArtifactsDir, fmt.Sprintf("cluster%v", 0), name)
 
-	nsList, _ := kubeClients[0].CoreV1().Namespaces().List(ctx, v1.ListOptions{})
+	for i, client := range kubeClients {
+		suitedir := filepath.Join(config.ArtifactsDir, fmt.Sprintf("cluster%v", i))
+		nsList, _ := client.CoreV1().Namespaces().List(ctx, v1.ListOptions{})
 
-	filtered := filterNamespaces(nsList)
-	_, _, exitCode, err := runner.Run(fmt.Sprintf("kubectl cluster-info dump --output-directory=%s --namespaces %s", suitedir, strings.Join(filtered, ",")))
-	if exitCode != 0 || err != nil {
-		logrus.Errorf("An error while getting cluster dump. Exit Code: %v, Error: %s", exitCode, err)
+		_, _, exitCode, err := runner.Run(
+			fmt.Sprintf("kubectl --kubeconfig %v cluster-info dump --output-directory=%s --namespaces %s",
+				kubeConfigs[i],
+				suitedir,
+				strings.Join(filterNamespaces(nsList), ",")))
+
+		if exitCode != 0 || err != nil {
+			logrus.Errorf("An error while getting cluster dump. Exit Code: %v, Error: %s", exitCode, err)
+		}
 	}
 
 	time.Sleep(2 * time.Second)
