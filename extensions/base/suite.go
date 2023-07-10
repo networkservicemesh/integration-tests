@@ -40,6 +40,7 @@ type Suite struct {
 	nsMonitorCancel context.CancelFunc
 }
 
+// AfterTest stores logs after each test in the suite.
 func (s *Suite) AfterTest(_, _ string) {
 	logs.ClusterDump(s.nsMonitorCtx, s.T().Name())
 }

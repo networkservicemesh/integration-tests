@@ -30,17 +30,17 @@ import (
 	"time"
 
 	"github.com/kelseyhightower/envconfig"
-	"github.com/networkservicemesh/gotestmd/pkg/bash"
 	"github.com/sirupsen/logrus"
 	corev1 "k8s.io/api/core/v1"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/tools/clientcmd"
+
+	"github.com/networkservicemesh/gotestmd/pkg/bash"
 )
 
 const (
-	defaultQPS        = 500 // this is default value for QPS of kubeconfig. See at documentation.
-	fromAllNamespaces = ""
+	defaultQPS = 5 // this is default value for QPS of kubeconfig. See at documentation.
 )
 
 var (
@@ -114,6 +114,7 @@ func initialize() {
 	runner, _ = bash.New()
 }
 
+// ClusterDump saves logs from all pods in specified namespaces
 func ClusterDump(ctx context.Context, name string) {
 	once.Do(initialize)
 
@@ -130,15 +131,14 @@ func ClusterDump(ctx context.Context, name string) {
 	}
 
 	time.Sleep(2 * time.Second)
-
 }
 
 func filterNamespaces(nsList *corev1.NamespaceList) []string {
 	result := make([]string, 0)
 
-	for _, ns := range nsList.Items {
-		if matchRegex.MatchString(ns.Name) {
-			result = append(result, ns.Name)
+	for i := range nsList.Items {
+		if matchRegex.MatchString(nsList.Items[i].Name) {
+			result = append(result, nsList.Items[i].Name)
 		}
 	}
 
