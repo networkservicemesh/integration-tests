@@ -40,8 +40,8 @@ type Suite struct {
 	nsMonitorCancel context.CancelFunc
 }
 
-func (s *Suite) AfterTest(suiteName, _ string) {
-	logs.ClusterDump(s.nsMonitorCtx, suiteName)
+func (s *Suite) AfterTest(_, _ string) {
+	logs.ClusterDump(s.nsMonitorCtx, s.T().Name())
 }
 
 // TearDownSuite stores logs from containers that spawned during SuiteSetup.
