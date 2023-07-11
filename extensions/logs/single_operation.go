@@ -38,8 +38,8 @@ type singleOperation struct {
 	state int32
 }
 
-func (s *singleOperation) Wait() {
-	for atomic.AddInt32(&s.state, 0) != notScheduled {
+func (o *singleOperation) Wait() {
+	for atomic.AddInt32(&o.state, 0) != notScheduled {
 		<-time.After(time.Millisecond * 25)
 	}
 }
