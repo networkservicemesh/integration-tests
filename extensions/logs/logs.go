@@ -26,6 +26,7 @@ import (
 	"os/signal"
 	"path/filepath"
 	"regexp"
+	"strings"
 	"sync"
 	"syscall"
 	"time"
@@ -33,7 +34,7 @@ import (
 	"github.com/kelseyhightower/envconfig"
 	"github.com/sirupsen/logrus"
 	corev1 "k8s.io/api/core/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/tools/clientcmd"
 
@@ -41,18 +42,18 @@ import (
 )
 
 const (
-	defaultQPS        = 5 // this is default value for QPS of kubeconfig. See at documentation.
-	fromAllNamespaces = ""
+	defaultQPS = 5 // this is default value for QPS of kubeconfig. See at documentation.
 )
 
 var (
-	once        sync.Once
-	config      Config
-	jobsCh      chan func()
-	ctx         context.Context
-	kubeClients []kubernetes.Interface
-	kubeConfigs []string
-	matchRegex  *regexp.Regexp
+	once                       sync.Once
+	config                     Config
+	ctx                        context.Context
+	kubeClients                []kubernetes.Interface
+	kubeConfigs                []string
+	matchRegex                 *regexp.Regexp
+	runner                     *bash.Bash
+	clusterDumpSingleOperation Operation
 )
 
 // Config is env config to setup log collecting.
@@ -65,80 +66,6 @@ type Config struct {
 	LogCollectionEnabled bool          `default:"true" desc:"Boolean variable which enables log collection" split_words:"true"`
 }
 
-func savePodLogs(ctx context.Context, kubeClient kubernetes.Interface, pod *corev1.Pod, opts *corev1.PodLogOptions, fromInitContainers bool, dir string) {
-	containers := pod.Spec.Containers
-	if fromInitContainers {
-		containers = pod.Spec.InitContainers
-	}
-	for _, prev := range []bool{false, true} {
-		opts.Previous = prev
-		for i := 0; i < len(containers); i++ {
-			opts.Container = containers[i].Name
-
-			// Add container name to log filename in case of init-containers or multiple containers in the pod
-			containerName := ""
-			if fromInitContainers || len(containers) > 1 {
-				containerName = "-" + containers[i].Name
-			}
-
-			// Retrieve logs
-			data, err := kubeClient.CoreV1().
-				Pods(pod.Namespace).
-				GetLogs(pod.Name, opts).
-				DoRaw(ctx)
-			if err != nil {
-				logrus.Errorf("%v: An error while retrieving logs: %v", pod.Name, err.Error())
-				return
-			}
-
-			// Save logs
-			suffix := ".log"
-			if opts.Previous {
-				suffix = "-previous.log"
-			}
-			err = os.WriteFile(filepath.Join(dir, pod.Name+containerName+suffix), data, os.ModePerm)
-			if err != nil {
-				logrus.Errorf("An error during saving logs: %v", err.Error())
-			}
-		}
-	}
-}
-
-func captureLogs(kubeClient kubernetes.Interface, from time.Time, dir string) {
-	operationCtx, cancel := context.WithTimeout(ctx, config.Timeout)
-	defer cancel()
-	resp, err := kubeClient.CoreV1().Pods(fromAllNamespaces).List(operationCtx, metav1.ListOptions{})
-	if err != nil {
-		logrus.Errorf("An error while retrieving list of pods: %v", err.Error())
-	}
-	var wg sync.WaitGroup
-
-	for i := 0; i < len(resp.Items); i++ {
-		pod := &resp.Items[i]
-		if !matchRegex.MatchString(pod.Namespace) {
-			continue
-		}
-		wg.Add(1)
-		captureLogsTask := func() {
-			opts := &corev1.PodLogOptions{
-				SinceTime: &metav1.Time{Time: from},
-			}
-			savePodLogs(operationCtx, kubeClient, pod, opts, false, dir)
-			savePodLogs(operationCtx, kubeClient, pod, opts, true, dir)
-
-			wg.Done()
-		}
-		select {
-		case <-ctx.Done():
-			return
-		case jobsCh <- captureLogsTask:
-			continue
-		}
-	}
-
-	wg.Wait()
-}
-
 func initialize() {
 	const prefix = "logs"
 	if err := envconfig.Usage(prefix, &config); err != nil {
@@ -149,13 +76,7 @@ func initialize() {
 		logrus.Fatal(err.Error())
 	}
 
-	if !config.LogCollectionEnabled {
-		return
-	}
-
 	matchRegex = regexp.MustCompile(config.AllowedNamespaces)
-
-	jobsCh = make(chan func(), config.WorkerCount)
 
 	var singleClusterKubeConfig = os.Getenv("KUBECONFIG")
 
@@ -193,6 +114,8 @@ func initialize() {
 		kubeClients = append(kubeClients, kubeClient)
 	}
 
+	runner, _ = bash.New()
+
 	var cancel context.CancelFunc
 	ctx, cancel = signal.NotifyContext(context.Background(),
 		os.Interrupt,
@@ -202,93 +125,43 @@ func initialize() {
 		syscall.SIGQUIT,
 	)
 
-	for i := 0; i < config.WorkerCount; i++ {
-		go func() {
-			for j := range jobsCh {
-				j()
-			}
-		}()
-	}
-
 	go func() {
 		defer cancel()
 		<-ctx.Done()
-		close(jobsCh)
 	}()
-}
 
-func capture(kubeClient kubernetes.Interface, name string) context.CancelFunc {
-	now := time.Now()
+	clusterDumpSingleOperation = NewSingleOperation(func() {
+		for i, client := range kubeClients {
+			suitedir := filepath.Join(config.ArtifactsDir, fmt.Sprintf("cluster%v", i))
+			nsList, _ := client.CoreV1().Namespaces().List(ctx, v1.ListOptions{})
 
-	dir := filepath.Join(config.ArtifactsDir, name)
-	_ = os.MkdirAll(dir, os.ModePerm)
+			_, _, exitCode, err := runner.Run(
+				fmt.Sprintf("kubectl --kubeconfig %v cluster-info dump --output-directory=%s --namespaces %s",
+					kubeConfigs[i],
+					suitedir,
+					strings.Join(filterNamespaces(nsList), ",")))
 
-	return func() {
-		captureLogs(kubeClient, now, dir)
-	}
-}
-
-// TODO: do not use bash runner to get describe info. Use kubernetes API instead.
-func describePods(kubeClient kubernetes.Interface, kubeConfig, name string) {
-	getCtx, cancel := context.WithTimeout(ctx, config.Timeout)
-	defer cancel()
-
-	nsList, err := kubeClient.CoreV1().Namespaces().List(getCtx, metav1.ListOptions{})
-	if err != nil {
-		return
-	}
-
-	runner, err := bash.New()
-	if err != nil {
-		return
-	}
-
-	for _, ns := range filterNamespaces(nsList) {
-		p := filepath.Join(config.ArtifactsDir, name, "describe-"+ns+".log")
-		_, _, exitCode, err := runner.Run(fmt.Sprintf("kubectl --kubeconfig %v describe pods -n %v > %v", kubeConfig, ns, p))
-		if exitCode != 0 || err != nil {
-			logrus.Errorf("An error while retrieving describe for namespace: %v", ns)
+			if exitCode != 0 || err != nil {
+				logrus.Errorf("An error while getting cluster dump. Exit Code: %v, Error: %s", exitCode, err)
+			}
 		}
-	}
+	})
+}
+
+// ClusterDump saves logs from all pods in specified namespaces
+func ClusterDump() {
+	once.Do(initialize)
+	clusterDumpSingleOperation.Run()
 }
 
 func filterNamespaces(nsList *corev1.NamespaceList) []string {
-	var rv []string
+	result := make([]string, 0)
 
-	for i := 0; i < len(nsList.Items); i++ {
-		if matchRegex.MatchString(nsList.Items[i].Name) && nsList.Items[i].Status.Phase == corev1.NamespaceActive {
-			rv = append(rv, nsList.Items[i].Name)
+	for i := range nsList.Items {
+		if matchRegex.MatchString(nsList.Items[i].Name) {
+			result = append(result, nsList.Items[i].Name)
 		}
 	}
 
-	return rv
-}
-
-// Capture returns a function that saves logs since Capture function has been called.
-func Capture(name string) context.CancelFunc {
-	once.Do(initialize)
-
-	var pushArtifacts = func() {}
-	if !config.LogCollectionEnabled {
-		return pushArtifacts
-	}
-
-	for i, client := range kubeClients {
-		var clusterPrefix = filepath.Join(fmt.Sprintf("cluster%v", i+1), name)
-		var prevPushFn = pushArtifacts
-		var nextPushFn = capture(client, clusterPrefix)
-
-		pushArtifacts = func() {
-			prevPushFn()
-			nextPushFn()
-		}
-	}
-	return func() {
-		for i, client := range kubeClients {
-			var clusterPrefix = filepath.Join(fmt.Sprintf("cluster%v", i+1), name)
-
-			describePods(client, kubeConfigs[i], clusterPrefix)
-		}
-		pushArtifacts()
-	}
+	return result
 }
