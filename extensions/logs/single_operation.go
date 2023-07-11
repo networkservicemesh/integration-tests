@@ -29,9 +29,7 @@ const (
 
 // Operation means an object which can be executed
 type Operation interface {
-	//Run executes operation
 	Run()
-	//Wait waits for operation completed
 	Wait()
 }
 

@@ -46,7 +46,6 @@ const (
 )
 
 var (
-	m                          sync.Mutex
 	once                       sync.Once
 	config                     Config
 	ctx                        context.Context
