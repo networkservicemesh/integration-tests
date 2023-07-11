@@ -46,14 +46,15 @@ const (
 )
 
 var (
-	m           sync.Mutex
-	once        sync.Once
-	config      Config
-	ctx         context.Context
-	kubeClients []kubernetes.Interface
-	kubeConfigs []string
-	matchRegex  *regexp.Regexp
-	runner      *bash.Bash
+	m                          sync.Mutex
+	once                       sync.Once
+	config                     Config
+	ctx                        context.Context
+	kubeClients                []kubernetes.Interface
+	kubeConfigs                []string
+	matchRegex                 *regexp.Regexp
+	runner                     *bash.Bash
+	clusterDumpSingleOperation Operation
 )
 
 // Config is env config to setup log collecting.
@@ -129,31 +130,29 @@ func initialize() {
 		defer cancel()
 		<-ctx.Done()
 	}()
+
+	clusterDumpSingleOperation = NewSingleOperation(func() {
+		for i, client := range kubeClients {
+			suitedir := filepath.Join(config.ArtifactsDir, fmt.Sprintf("cluster%v", i))
+			nsList, _ := client.CoreV1().Namespaces().List(ctx, v1.ListOptions{})
+
+			_, _, exitCode, err := runner.Run(
+				fmt.Sprintf("kubectl --kubeconfig %v cluster-info dump --output-directory=%s --namespaces %s",
+					kubeConfigs[i],
+					suitedir,
+					strings.Join(filterNamespaces(nsList), ",")))
+
+			if exitCode != 0 || err != nil {
+				logrus.Errorf("An error while getting cluster dump. Exit Code: %v, Error: %s", exitCode, err)
+			}
+		}
+	})
 }
 
 // ClusterDump saves logs from all pods in specified namespaces
 func ClusterDump() {
 	once.Do(initialize)
-
-	m.Lock()
-	defer m.Unlock()
-
-	for i, client := range kubeClients {
-		suitedir := filepath.Join(config.ArtifactsDir, fmt.Sprintf("cluster%v", i))
-		nsList, _ := client.CoreV1().Namespaces().List(ctx, v1.ListOptions{})
-
-		_, _, exitCode, err := runner.Run(
-			fmt.Sprintf("kubectl --kubeconfig %v cluster-info dump --output-directory=%s --namespaces %s",
-				kubeConfigs[i],
-				suitedir,
-				strings.Join(filterNamespaces(nsList), ",")))
-
-		if exitCode != 0 || err != nil {
-			logrus.Errorf("An error while getting cluster dump. Exit Code: %v, Error: %s", exitCode, err)
-		}
-	}
-
-	time.Sleep(2 * time.Second)
+	clusterDumpSingleOperation.Run()
 }
 
 func filterNamespaces(nsList *corev1.NamespaceList) []string {
