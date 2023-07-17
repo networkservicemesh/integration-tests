@@ -152,7 +152,7 @@ func initialize() {
 					strings.Join(filterNamespaces(nsList), ",")))
 
 			if exitCode != 0 || err != nil {
-				logrus.Errorf("An error while getting cluster dump. Exit Code: %v, Error: %s", exitCode, err)
+				logrus.Errorf("An error while getting cluster dump. Exit Code: %v, Error: %s", exitCode, err.Error())
 			}
 		}
 	})
