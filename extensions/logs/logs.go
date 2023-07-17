@@ -36,6 +36,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
+	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
 
 	"github.com/networkservicemesh/gotestmd/pkg/bash"
@@ -53,7 +54,7 @@ var (
 	kubeConfigs                []string
 	matchRegex                 *regexp.Regexp
 	runner                     *bash.Bash
-	clusterDumpSingleOperation Operation
+	clusterDumpSingleOperation *singleOperation
 )
 
 // Config is env config to setup log collecting.
@@ -67,12 +68,11 @@ type Config struct {
 }
 
 func initialize() {
-	const prefix = "logs"
-	if err := envconfig.Usage(prefix, &config); err != nil {
+	if err := envconfig.Usage("NSM", &config); err != nil {
 		logrus.Fatal(err.Error())
 	}
 
-	if err := envconfig.Process(prefix, &config); err != nil {
+	if err := envconfig.Process("NSM", &config); err != nil {
 		logrus.Fatal(err.Error())
 	}
 
@@ -97,27 +97,35 @@ func initialize() {
 		kubeConfigs = append(kubeConfigs, singleClusterKubeConfig)
 	}
 
+	var apiVersions = []string{"client.authentication.k8s.io/v1", "client.authentication.k8s.io/v1beta1", "client.authentication.k8s.io/v1alpha1"}
+
 	for _, cfg := range kubeConfigs {
-		kubeconfig, err := clientcmd.BuildConfigFromFlags("", cfg)
-		if err != nil {
-			logrus.Fatal(err.Error())
+		var err error
+		for _, apiVersion := range apiVersions {
+			var kubeconfig *rest.Config
+			kubeconfig, err = clientcmd.BuildConfigFromFlags("", cfg)
+			if err != nil {
+				continue
+			}
+			kubeconfig.QPS = float32(config.WorkerCount) * defaultQPS
+			kubeconfig.Burst = int(kubeconfig.QPS) * 2
+
+			if kubeconfig.ExecProvider != nil {
+				kubeconfig.ExecProvider.APIVersion = apiVersion
+			}
+
+			kubeClient, err := kubernetes.NewForConfig(kubeconfig)
+			if err != nil {
+				continue
+			}
+			kubeClients = append(kubeClients, kubeClient)
+			break
 		}
-
-		kubeconfig.QPS = float32(config.WorkerCount) * defaultQPS
-		kubeconfig.Burst = int(kubeconfig.QPS) * 2
-
-		kubeClient, err := kubernetes.NewForConfig(kubeconfig)
-		if err != nil {
-			logrus.Fatal(err.Error())
-		}
-
-		kubeClients = append(kubeClients, kubeClient)
 	}
 
 	runner, _ = bash.New()
 
-	var cancel context.CancelFunc
-	ctx, cancel = signal.NotifyContext(context.Background(),
+	ctx, _ = signal.NotifyContext(context.Background(),
 		os.Interrupt,
 		os.Kill,
 		syscall.SIGHUP,
@@ -125,12 +133,10 @@ func initialize() {
 		syscall.SIGQUIT,
 	)
 
-	go func() {
-		defer cancel()
-		<-ctx.Done()
-	}()
-
-	clusterDumpSingleOperation = NewSingleOperation(func() {
+	clusterDumpSingleOperation = newSingleOperation(func() {
+		if ctx.Err() != nil {
+			return
+		}
 		for i, client := range kubeClients {
 			suitedir := filepath.Join(config.ArtifactsDir, fmt.Sprintf("cluster%v", i))
 			nsList, _ := client.CoreV1().Namespaces().List(ctx, v1.ListOptions{})
