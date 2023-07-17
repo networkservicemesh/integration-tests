@@ -36,7 +36,6 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
-	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
 
 	"github.com/networkservicemesh/gotestmd/pkg/bash"
@@ -67,12 +66,13 @@ type Config struct {
 	LogCollectionEnabled bool          `default:"true" desc:"Boolean variable which enables log collection" split_words:"true"`
 }
 
+// nolint: gocyclo
 func initialize() {
-	if err := envconfig.Usage("NSM", &config); err != nil {
+	if err := envconfig.Usage("logs", &config); err != nil {
 		logrus.Fatal(err.Error())
 	}
 
-	if err := envconfig.Process("NSM", &config); err != nil {
+	if err := envconfig.Process("logs", &config); err != nil {
 		logrus.Fatal(err.Error())
 	}
 
@@ -100,11 +100,10 @@ func initialize() {
 	var apiVersions = []string{"client.authentication.k8s.io/v1", "client.authentication.k8s.io/v1beta1", "client.authentication.k8s.io/v1alpha1"}
 
 	for _, cfg := range kubeConfigs {
-		var err error
 		for _, apiVersion := range apiVersions {
-			var kubeconfig *rest.Config
-			kubeconfig, err = clientcmd.BuildConfigFromFlags("", cfg)
+			kubeconfig, err := clientcmd.BuildConfigFromFlags("", cfg)
 			if err != nil {
+				logrus.Warn(err.Error())
 				continue
 			}
 			kubeconfig.QPS = float32(config.WorkerCount) * defaultQPS
@@ -116,11 +115,16 @@ func initialize() {
 
 			kubeClient, err := kubernetes.NewForConfig(kubeconfig)
 			if err != nil {
+				logrus.Warn(err.Error())
 				continue
 			}
 			kubeClients = append(kubeClients, kubeClient)
 			break
 		}
+	}
+	if len(kubeClients) == 0 {
+		logrus.Warn("k8s clients was not initialized properly. loggig is disabled")
+		return
 	}
 
 	runner, _ = bash.New()
