@@ -123,7 +123,7 @@ func initialize() {
 		}
 	}
 	if len(kubeClients) == 0 {
-		logrus.Warn("k8s clients was not initialized properly. loggig is disabled")
+		logrus.Warn("k8s clients weren't initialized properly. loggig is disabled")
 		return
 	}
 
