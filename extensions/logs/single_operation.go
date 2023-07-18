@@ -27,12 +27,6 @@ const (
 	scheduledAndRunning = int32(3)
 )
 
-// Operation means an object which can be executed
-type Operation interface {
-	Run()
-	Wait()
-}
-
 type singleOperation struct {
 	body  func()
 	state int32
@@ -44,8 +38,8 @@ func (o *singleOperation) Wait() {
 	}
 }
 
-// NewSingleOperation creates an operation which should be invoked once by run period. Can be used in cases where required the last run.
-func NewSingleOperation(body func()) Operation {
+// newSingleOperation creates an operation which should be invoked once by run period. Can be used in cases where required the last run.
+func newSingleOperation(body func()) *singleOperation {
 	if body == nil {
 		panic("body can not be nil")
 	}

@@ -53,7 +53,7 @@ var (
 	kubeConfigs                []string
 	matchRegex                 *regexp.Regexp
 	runner                     *bash.Bash
-	clusterDumpSingleOperation Operation
+	clusterDumpSingleOperation *singleOperation
 )
 
 // Config is env config to setup log collecting.
@@ -66,13 +66,13 @@ type Config struct {
 	LogCollectionEnabled bool          `default:"true" desc:"Boolean variable which enables log collection" split_words:"true"`
 }
 
+// nolint: gocyclo
 func initialize() {
-	const prefix = "logs"
-	if err := envconfig.Usage(prefix, &config); err != nil {
+	if err := envconfig.Usage("logs", &config); err != nil {
 		logrus.Fatal(err.Error())
 	}
 
-	if err := envconfig.Process(prefix, &config); err != nil {
+	if err := envconfig.Process("logs", &config); err != nil {
 		logrus.Fatal(err.Error())
 	}
 
@@ -97,27 +97,39 @@ func initialize() {
 		kubeConfigs = append(kubeConfigs, singleClusterKubeConfig)
 	}
 
+	var apiVersions = []string{"client.authentication.k8s.io/v1", "client.authentication.k8s.io/v1beta1", "client.authentication.k8s.io/v1alpha1"}
+
 	for _, cfg := range kubeConfigs {
-		kubeconfig, err := clientcmd.BuildConfigFromFlags("", cfg)
-		if err != nil {
-			logrus.Fatal(err.Error())
+		for _, apiVersion := range apiVersions {
+			kubeconfig, err := clientcmd.BuildConfigFromFlags("", cfg)
+			if err != nil {
+				logrus.Warn(err.Error())
+				continue
+			}
+			kubeconfig.QPS = float32(config.WorkerCount) * defaultQPS
+			kubeconfig.Burst = int(kubeconfig.QPS) * 2
+
+			if kubeconfig.ExecProvider != nil {
+				kubeconfig.ExecProvider.APIVersion = apiVersion
+			}
+
+			kubeClient, err := kubernetes.NewForConfig(kubeconfig)
+			if err != nil {
+				logrus.Warn(err.Error())
+				continue
+			}
+			kubeClients = append(kubeClients, kubeClient)
+			break
 		}
-
-		kubeconfig.QPS = float32(config.WorkerCount) * defaultQPS
-		kubeconfig.Burst = int(kubeconfig.QPS) * 2
-
-		kubeClient, err := kubernetes.NewForConfig(kubeconfig)
-		if err != nil {
-			logrus.Fatal(err.Error())
-		}
-
-		kubeClients = append(kubeClients, kubeClient)
+	}
+	if len(kubeClients) == 0 {
+		logrus.Warn("k8s clients weren't initialized properly. loggig is disabled")
+		return
 	}
 
 	runner, _ = bash.New()
 
-	var cancel context.CancelFunc
-	ctx, cancel = signal.NotifyContext(context.Background(),
+	ctx, _ = signal.NotifyContext(context.Background(),
 		os.Interrupt,
 		os.Kill,
 		syscall.SIGHUP,
@@ -125,12 +137,10 @@ func initialize() {
 		syscall.SIGQUIT,
 	)
 
-	go func() {
-		defer cancel()
-		<-ctx.Done()
-	}()
-
-	clusterDumpSingleOperation = NewSingleOperation(func() {
+	clusterDumpSingleOperation = newSingleOperation(func() {
+		if ctx.Err() != nil {
+			return
+		}
 		for i, client := range kubeClients {
 			suitedir := filepath.Join(config.ArtifactsDir, fmt.Sprintf("cluster%v", i))
 			nsList, _ := client.CoreV1().Namespaces().List(ctx, v1.ListOptions{})
@@ -142,7 +152,7 @@ func initialize() {
 					strings.Join(filterNamespaces(nsList), ",")))
 
 			if exitCode != 0 || err != nil {
-				logrus.Errorf("An error while getting cluster dump. Exit Code: %v, Error: %s", exitCode, err)
+				logrus.Errorf("An error while getting cluster dump. Exit Code: %v, Error: %s", exitCode, err.Error())
 			}
 		}
 	})
