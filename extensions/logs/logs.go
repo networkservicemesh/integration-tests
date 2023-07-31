@@ -49,7 +49,7 @@ var (
 	once                       sync.Once
 	config                     Config
 	ctx                        context.Context
-	kubeClients                []kubernetes.Interface
+	kubeClientSets             [][]kubernetes.Interface
 	kubeConfigs                []string
 	matchRegex                 *regexp.Regexp
 	runner                     *bash.Bash
@@ -99,7 +99,7 @@ func initialize() {
 
 	var apiVersions = []string{"client.authentication.k8s.io/v1", "client.authentication.k8s.io/v1beta1", "client.authentication.k8s.io/v1alpha1"}
 
-	for _, cfg := range kubeConfigs {
+	for i, cfg := range kubeConfigs {
 		for _, apiVersion := range apiVersions {
 			kubeconfig, err := clientcmd.BuildConfigFromFlags("", cfg)
 			if err != nil {
@@ -118,11 +118,10 @@ func initialize() {
 				logrus.Warn(err.Error())
 				continue
 			}
-			kubeClients = append(kubeClients, kubeClient)
-			break
+			kubeClientSets[i] = append(kubeClientSets[i], kubeClient)
 		}
 	}
-	if len(kubeClients) == 0 {
+	if len(kubeClientSets) == 0 {
 		logrus.Warn("k8s clients weren't initialized properly. loggig is disabled")
 		return
 	}
@@ -141,13 +140,20 @@ func initialize() {
 		if ctx.Err() != nil {
 			return
 		}
-		for i, client := range kubeClients {
+		for i, clientSet := range kubeClientSets {
 			suitedir := filepath.Join(config.ArtifactsDir, fmt.Sprintf("cluster%v", i))
-			nsList, err := client.CoreV1().Namespaces().List(ctx, v1.ListOptions{})
 
-			if err != nil {
-				logrus.Error(err.Error())
+			var nsList *corev1.NamespaceList
+			var err error
+			for _, client := range clientSet {
+				nsList, err = client.CoreV1().Namespaces().List(ctx, v1.ListOptions{})
+				if err == nil {
+					break
+				}
+
+				logrus.Errorf("An error while getting a list of namespaces. Error: %s", err.Error())
 			}
+
 			commandString := fmt.Sprintf("kubectl --kubeconfig %v cluster-info dump --output-directory=%s --namespaces %s",
 				kubeConfigs[i],
 				suitedir,
