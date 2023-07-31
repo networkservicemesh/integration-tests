@@ -143,13 +143,18 @@ func initialize() {
 		}
 		for i, client := range kubeClients {
 			suitedir := filepath.Join(config.ArtifactsDir, fmt.Sprintf("cluster%v", i))
-			nsList, _ := client.CoreV1().Namespaces().List(ctx, v1.ListOptions{})
+			nsList, err := client.CoreV1().Namespaces().List(ctx, v1.ListOptions{})
 
-			_, _, exitCode, err := runner.Run(
-				fmt.Sprintf("kubectl --kubeconfig %v cluster-info dump --output-directory=%s --namespaces %s",
-					kubeConfigs[i],
-					suitedir,
-					strings.Join(filterNamespaces(nsList), ",")))
+			if err != nil {
+				logrus.Error(err.Error())
+			}
+			commandString := fmt.Sprintf("kubectl --kubeconfig %v cluster-info dump --output-directory=%s --namespaces %s",
+				kubeConfigs[i],
+				suitedir,
+				strings.Join(filterNamespaces(nsList), ","))
+
+			logrus.Infof("COMMAND FOR LOG COLLECTION: %s", commandString)
+			_, _, exitCode, err := runner.Run(commandString)
 
 			if exitCode != 0 {
 				logrus.Errorf("An error while getting cluster dump. Exit Code: %v", exitCode)
