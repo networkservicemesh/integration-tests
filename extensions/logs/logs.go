@@ -33,23 +33,14 @@ import (
 
 	"github.com/kelseyhightower/envconfig"
 	"github.com/sirupsen/logrus"
-	corev1 "k8s.io/api/core/v1"
-	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/client-go/kubernetes"
-	"k8s.io/client-go/tools/clientcmd"
 
 	"github.com/networkservicemesh/gotestmd/pkg/bash"
-)
-
-const (
-	defaultQPS = 5 // this is default value for QPS of kubeconfig. See at documentation.
 )
 
 var (
 	once                       sync.Once
 	config                     Config
 	ctx                        context.Context
-	kubeClientSets             [][]kubernetes.Interface
 	kubeConfigs                []string
 	matchRegex                 *regexp.Regexp
 	runner                     *bash.Bash
@@ -97,36 +88,6 @@ func initialize() {
 		kubeConfigs = append(kubeConfigs, singleClusterKubeConfig)
 	}
 
-	var apiVersions = []string{"client.authentication.k8s.io/v1", "client.authentication.k8s.io/v1beta1", "client.authentication.k8s.io/v1alpha1"}
-
-	kubeClientSets = make([][]kubernetes.Interface, len(kubeConfigs))
-	for i, cfg := range kubeConfigs {
-		for _, apiVersion := range apiVersions {
-			kubeconfig, err := clientcmd.BuildConfigFromFlags("", cfg)
-			if err != nil {
-				logrus.Warn(err.Error())
-				continue
-			}
-			kubeconfig.QPS = float32(config.WorkerCount) * defaultQPS
-			kubeconfig.Burst = int(kubeconfig.QPS) * 2
-
-			if kubeconfig.ExecProvider != nil {
-				kubeconfig.ExecProvider.APIVersion = apiVersion
-			}
-
-			kubeClient, err := kubernetes.NewForConfig(kubeconfig)
-			if err != nil {
-				logrus.Warn(err.Error())
-				continue
-			}
-			kubeClientSets[i] = append(kubeClientSets[i], kubeClient)
-		}
-	}
-	if len(kubeClientSets) == 0 {
-		logrus.Warn("k8s clients weren't initialized properly. loggig is disabled")
-		return
-	}
-
 	runner, _ = bash.New()
 
 	ctx, _ = signal.NotifyContext(context.Background(),
@@ -141,27 +102,16 @@ func initialize() {
 		if ctx.Err() != nil {
 			return
 		}
-		for i, clientSet := range kubeClientSets {
+		for i := range kubeConfigs {
 			suitedir := filepath.Join(config.ArtifactsDir, fmt.Sprintf("cluster%v", i))
 
-			var nsList *corev1.NamespaceList
-			var err error
-			for _, client := range clientSet {
-				nsList, err = client.CoreV1().Namespaces().List(ctx, v1.ListOptions{})
-				if err == nil {
-					break
-				}
+			nsString, _, _, _ := runner.Run(fmt.Sprintf(`kubectl --kubeconfig %v get ns -o go-template='{{range .items}}{{ .metadata.name }} {{end}}'`, kubeConfigs[i]))
+			nsList := strings.Split(nsString, " ")
 
-				logrus.Errorf("An error while getting a list of namespaces. Error: %s", err.Error())
-			}
-
-			commandString := fmt.Sprintf("kubectl --kubeconfig %v cluster-info dump --output-directory=%s --namespaces %s",
+			_, _, exitCode, err := runner.Run(fmt.Sprintf("kubectl --kubeconfig %v cluster-info dump --output-directory=%s --namespaces %s",
 				kubeConfigs[i],
 				suitedir,
-				strings.Join(filterNamespaces(nsList), ","))
-
-			logrus.Infof("COMMAND FOR LOG COLLECTION: %s", commandString)
-			_, _, exitCode, err := runner.Run(commandString)
+				strings.Join(filterNamespaces(nsList), ",")))
 
 			if exitCode != 0 {
 				logrus.Errorf("An error while getting cluster dump. Exit Code: %v", exitCode)
@@ -179,12 +129,12 @@ func ClusterDump() {
 	clusterDumpSingleOperation.Run()
 }
 
-func filterNamespaces(nsList *corev1.NamespaceList) []string {
+func filterNamespaces(nsList []string) []string {
 	result := make([]string, 0)
 
-	for i := range nsList.Items {
-		if matchRegex.MatchString(nsList.Items[i].Name) {
-			result = append(result, nsList.Items[i].Name)
+	for i := range nsList {
+		if matchRegex.MatchString(nsList[i]) {
+			result = append(result, nsList[i])
 		}
 	}
 
