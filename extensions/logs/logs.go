@@ -99,6 +99,7 @@ func initialize() {
 
 	var apiVersions = []string{"client.authentication.k8s.io/v1", "client.authentication.k8s.io/v1beta1", "client.authentication.k8s.io/v1alpha1"}
 
+	kubeClientSets = make([][]kubernetes.Interface, len(kubeConfigs))
 	for i, cfg := range kubeConfigs {
 		for _, apiVersion := range apiVersions {
 			kubeconfig, err := clientcmd.BuildConfigFromFlags("", cfg)
