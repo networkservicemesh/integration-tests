@@ -25,7 +25,7 @@ func (s *Suite) SetupSuite() {
 	s.T().Cleanup(func() {
 		r.Run(`kubectl delete ns ns-vl3-lb`)
 	})
-	r.Run(`kubectl apply -k https://github.com/networkservicemesh/deployments-k8s/examples/features/vl3-lb?ref=a1b6b50ae5716e9fd4e0a2f1b5e61b6752137d52`)
+	r.Run(`kubectl apply -k https://github.com/networkservicemesh/deployments-k8s/examples/features/vl3-lb?ref=cc3646f7e741549e97ea90ae1b11cbc958f6a714`)
 	r.Run(`kubectl wait --for=condition=ready --timeout=2m pod -l type=vl3-client -n ns-vl3-lb`)
 	r.Run(`kubectl exec deployments/finance-client -n ns-vl3-lb -- curl -s finance:8080 | grep "Hello! I'm finance-server"`)
 }
