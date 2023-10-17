@@ -22,7 +22,7 @@ func (s *Suite) SetupSuite() {
 		}
 	}
 	r := s.Runner("../deployments-k8s/examples/k8s_monolith/external_nse/spiffe_federation")
-	r.Run(`kubectl apply -f https://raw.githubusercontent.com/networkservicemesh/deployments-k8s/07353627aa2495bd8778eb83e9f34f1c2a7f1f76/examples/k8s_monolith/external_nse/spiffe_federation/clusterspiffeid-template.yaml`)
+	r.Run(`kubectl apply -f https://raw.githubusercontent.com/networkservicemesh/deployments-k8s/3a0ff4fdf2edadc613f7ecf8a1e352444ed9394d/examples/k8s_monolith/external_nse/spiffe_federation/clusterspiffeid-template.yaml`)
 	r.Run(`bundlek8s=$(kubectl exec spire-server-0 -n spire -- bin/spire-server bundle show -format spiffe)` + "\n" + `bundledock=$(docker exec nse-simple-vl3-docker bin/spire-server bundle show -format spiffe)`)
 	r.Run(`echo $bundledock | kubectl exec -i spire-server-0 -n spire -- bin/spire-server bundle set -format spiffe -id "spiffe://docker.nsm/cmd-nse-simple-vl3-docker"` + "\n" + `echo $bundlek8s | docker exec -i nse-simple-vl3-docker bin/spire-server bundle set -format spiffe -id "spiffe://k8s.nsm"`)
 }
