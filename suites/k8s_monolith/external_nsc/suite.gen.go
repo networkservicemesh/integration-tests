@@ -35,7 +35,7 @@ func (s *Suite) SetupSuite() {
 	s.T().Cleanup(func() {
 		r.Run(`WH=$(kubectl get pods -l app=admission-webhook-k8s -n nsm-system --template '{{range .items}}{{.metadata.name}}{{"\n"}}{{end}}')` + "\n" + `kubectl delete mutatingwebhookconfiguration ${WH}` + "\n" + `kubectl delete ns nsm-system`)
 	})
-	r.Run(`kubectl apply -k https://github.com/networkservicemesh/deployments-k8s/examples/k8s_monolith/configuration/cluster?ref=8678d7be2fda6247ff8c854aae4ac0f9de2a7a47`)
+	r.Run(`kubectl apply -k https://github.com/networkservicemesh/deployments-k8s/examples/k8s_monolith/configuration/cluster?ref=b677cef3dbedb90865747fcdfbfe0db0a8cc3d87`)
 	r.Run(`kubectl get services registry -n nsm-system -o go-template='{{index (index (index (index .status "loadBalancer") "ingress") 0) "ip"}}'`)
 }
 func (s *Suite) TestKernel2IP2Kernel() {
@@ -43,7 +43,7 @@ func (s *Suite) TestKernel2IP2Kernel() {
 	s.T().Cleanup(func() {
 		r.Run(`kubectl delete ns ns-kernel2ip2kernel-monolith-nsc`)
 	})
-	r.Run(`kubectl apply -k https://github.com/networkservicemesh/deployments-k8s/examples/k8s_monolith/external_nsc/usecases/Kernel2IP2Kernel?ref=8678d7be2fda6247ff8c854aae4ac0f9de2a7a47`)
+	r.Run(`kubectl apply -k https://github.com/networkservicemesh/deployments-k8s/examples/k8s_monolith/external_nsc/usecases/Kernel2IP2Kernel?ref=b677cef3dbedb90865747fcdfbfe0db0a8cc3d87`)
 	r.Run(`kubectl wait --for=condition=ready --timeout=1m pod -l app=nse-kernel -n ns-kernel2ip2kernel-monolith-nsc`)
 	r.Run(`docker exec nsc-simple-docker ping -c4 172.16.1.100`)
 	r.Run(`kubectl exec deployments/nse-kernel -n ns-kernel2ip2kernel-monolith-nsc -- ping -c 4 172.16.1.101`)
