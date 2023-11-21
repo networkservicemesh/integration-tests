@@ -22,8 +22,8 @@ func (s *Suite) SetupSuite() {
 		}
 	}
 	r := s.Runner("../deployments-k8s/examples/interdomain/spiffe_federation")
-	r.Run(`kubectl --kubeconfig=$KUBECONFIG1 apply -f https://raw.githubusercontent.com/networkservicemesh/deployments-k8s/90c34ccf665e3ae15623aa7f1d73970775c6ce18/examples/interdomain/spiffe_federation/cluster1-spiffeid-template.yaml`)
-	r.Run(`kubectl --kubeconfig=$KUBECONFIG2 apply -f https://raw.githubusercontent.com/networkservicemesh/deployments-k8s/90c34ccf665e3ae15623aa7f1d73970775c6ce18/examples/interdomain/spiffe_federation/cluster2-spiffeid-template.yaml`)
+	r.Run(`kubectl --kubeconfig=$KUBECONFIG1 apply -f https://raw.githubusercontent.com/networkservicemesh/deployments-k8s/303b6dff604b5c47f7907e1ab266aaa72c17ae59/examples/interdomain/spiffe_federation/cluster1-spiffeid-template.yaml`)
+	r.Run(`kubectl --kubeconfig=$KUBECONFIG2 apply -f https://raw.githubusercontent.com/networkservicemesh/deployments-k8s/303b6dff604b5c47f7907e1ab266aaa72c17ae59/examples/interdomain/spiffe_federation/cluster2-spiffeid-template.yaml`)
 	r.Run(`bundle1=$(kubectl --kubeconfig=$KUBECONFIG1 exec spire-server-0 -n spire -- bin/spire-server bundle show -format spiffe)` + "\n" + `bundle2=$(kubectl --kubeconfig=$KUBECONFIG2 exec spire-server-0 -n spire -- bin/spire-server bundle show -format spiffe)`)
 	r.Run(`echo $bundle2 | kubectl --kubeconfig=$KUBECONFIG1 exec -i spire-server-0 -n spire -- bin/spire-server bundle set -format spiffe -id "spiffe://nsm.cluster2"` + "\n" + `echo $bundle1 | kubectl --kubeconfig=$KUBECONFIG2 exec -i spire-server-0 -n spire -- bin/spire-server bundle set -format spiffe -id "spiffe://nsm.cluster1"`)
 }

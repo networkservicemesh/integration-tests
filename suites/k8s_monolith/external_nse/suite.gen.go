@@ -35,7 +35,7 @@ func (s *Suite) SetupSuite() {
 	s.T().Cleanup(func() {
 		r.Run(`WH=$(kubectl get pods -l app=admission-webhook-k8s -n nsm-system --template '{{range .items}}{{.metadata.name}}{{"\n"}}{{end}}')` + "\n" + `kubectl delete mutatingwebhookconfiguration ${WH}` + "\n" + `kubectl delete ns nsm-system`)
 	})
-	r.Run(`kubectl apply -k https://github.com/networkservicemesh/deployments-k8s/examples/k8s_monolith/configuration/cluster?ref=90c34ccf665e3ae15623aa7f1d73970775c6ce18`)
+	r.Run(`kubectl apply -k https://github.com/networkservicemesh/deployments-k8s/examples/k8s_monolith/configuration/cluster?ref=303b6dff604b5c47f7907e1ab266aaa72c17ae59`)
 	r.Run(`WH=$(kubectl get pods -l app=admission-webhook-k8s -n nsm-system --template '{{range .items}}{{.metadata.name}}{{"\n"}}{{end}}')` + "\n" + `kubectl wait --for=condition=ready --timeout=1m pod ${WH} -n nsm-system`)
 	r.Run(`kubectl get services registry -n nsm-system -o go-template='{{index (index (index (index .status "loadBalancer") "ingress") 0) "ip"}}'`)
 }
@@ -44,7 +44,7 @@ func (s *Suite) TestKernel2IP2Kernel() {
 	s.T().Cleanup(func() {
 		r.Run(`kubectl delete ns ns-kernel2ip2kernel-monolith-nse`)
 	})
-	r.Run(`kubectl apply -k https://github.com/networkservicemesh/deployments-k8s/examples/k8s_monolith/external_nse/usecases/Kernel2IP2Kernel?ref=90c34ccf665e3ae15623aa7f1d73970775c6ce18`)
+	r.Run(`kubectl apply -k https://github.com/networkservicemesh/deployments-k8s/examples/k8s_monolith/external_nse/usecases/Kernel2IP2Kernel?ref=303b6dff604b5c47f7907e1ab266aaa72c17ae59`)
 	r.Run(`kubectl wait --for=condition=ready --timeout=1m pod -l app=alpine -n ns-kernel2ip2kernel-monolith-nse`)
 	r.Run(`nscs=$(kubectl  get pods -l app=alpine -o go-template --template="{{range .items}}{{.metadata.name}} {{end}}" -n ns-kernel2ip2kernel-monolith-nse)` + "\n" + `[[ ! -z $nscs ]]`)
 	r.Run(`(` + "\n" + `for nsc in $nscs` + "\n" + `do` + "\n" + `    ipAddr=$(kubectl exec -n ns-kernel2ip2kernel-monolith-nse $nsc -- ifconfig nsm-1) || exit` + "\n" + `    ipAddr=$(echo $ipAddr | grep -Eo 'inet addr:[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}'| cut -c 11-)` + "\n" + `    for pinger in $nscs` + "\n" + `    do` + "\n" + `        echo $pinger pings $ipAddr` + "\n" + `        kubectl exec $pinger -n ns-kernel2ip2kernel-monolith-nse -- ping -c2 -i 0.5 $ipAddr || exit` + "\n" + `    done` + "\n" + `done` + "\n" + `)`)
