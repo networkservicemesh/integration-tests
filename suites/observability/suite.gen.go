@@ -5,12 +5,14 @@ import (
 	"github.com/stretchr/testify/suite"
 
 	"github.com/networkservicemesh/integration-tests/extensions/base"
+	"github.com/networkservicemesh/integration-tests/suites/observability/dashboard"
 	"github.com/networkservicemesh/integration-tests/suites/spire/single_cluster"
 )
 
 type Suite struct {
 	base.Suite
 	single_clusterSuite single_cluster.Suite
+	dashboardSuite      dashboard.Suite
 }
 
 func (s *Suite) SetupSuite() {
@@ -23,6 +25,12 @@ func (s *Suite) SetupSuite() {
 			v.SetupSuite()
 		}
 	}
+	s.RunIncludedSuites()
+}
+func (s *Suite) RunIncludedSuites() {
+	s.Run("Dashboard", func() {
+		suite.Run(s.T(), &s.dashboardSuite)
+	})
 }
 func (s *Suite) TestJaeger_and_prometheus() {
 	r := s.Runner("../deployments-k8s/examples/observability/jaeger-and-prometheus")
@@ -31,11 +39,11 @@ func (s *Suite) TestJaeger_and_prometheus() {
 		r.Run(`kubectl delete mutatingwebhookconfiguration nsm-mutating-webhook` + "\n" + `kubectl delete ns nsm-system`)
 		r.Run(`kubectl describe pods -n observability` + "\n" + `kubectl delete ns observability` + "\n" + `pkill -f "port-forward"`)
 	})
-	r.Run(`kubectl apply -k https://github.com/networkservicemesh/deployments-k8s/examples/observability/jaeger-and-prometheus?ref=8696cbc63bde9ff3f79a87cf6ce096d044b4f9c9`)
+	r.Run(`kubectl apply -k https://github.com/networkservicemesh/deployments-k8s/examples/observability/jaeger-and-prometheus?ref=e1efc140acd5a00d4d49c5115cde99ecf2d33778`)
 	r.Run(`kubectl wait -n observability --timeout=1m --for=condition=ready pod -l app=opentelemetry`)
-	r.Run(`kubectl apply -k https://github.com/networkservicemesh/deployments-k8s/examples/observability/jaeger-and-prometheus/nsm-system?ref=8696cbc63bde9ff3f79a87cf6ce096d044b4f9c9`)
+	r.Run(`kubectl apply -k https://github.com/networkservicemesh/deployments-k8s/examples/observability/jaeger-and-prometheus/nsm-system?ref=e1efc140acd5a00d4d49c5115cde99ecf2d33778`)
 	r.Run(`WH=$(kubectl get pods -l app=admission-webhook-k8s -n nsm-system --template '{{range .items}}{{.metadata.name}}{{"\n"}}{{end}}')` + "\n" + `kubectl wait --for=condition=ready --timeout=1m pod ${WH} -n nsm-system`)
-	r.Run(`kubectl apply -k https://github.com/networkservicemesh/deployments-k8s/examples/observability/jaeger-and-prometheus/example?ref=8696cbc63bde9ff3f79a87cf6ce096d044b4f9c9`)
+	r.Run(`kubectl apply -k https://github.com/networkservicemesh/deployments-k8s/examples/observability/jaeger-and-prometheus/example?ref=e1efc140acd5a00d4d49c5115cde99ecf2d33778`)
 	r.Run(`kubectl wait --for=condition=ready --timeout=1m pod -l app=alpine -n ns-jaeger-and-prometheus`)
 	r.Run(`kubectl wait --for=condition=ready --timeout=1m pod -l app=nse-kernel -n ns-jaeger-and-prometheus`)
 	r.Run(`kubectl exec pods/alpine -n ns-jaeger-and-prometheus -- ping -c 4 172.16.1.100`)
