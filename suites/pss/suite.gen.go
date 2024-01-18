@@ -28,7 +28,7 @@ func (s *Suite) SetupSuite() {
 		r.Run(`kubectl delete ds/forwarder-vpp -n nsm-system`)
 		r.Run(`kubectl delete mutatingwebhookconfiguration nsm-mutating-webhook` + "\n" + `kubectl delete ns nsm-system`)
 	})
-	r.Run(`kubectl apply -k https://github.com/networkservicemesh/deployments-k8s/examples/pss/nsm-system?ref=9da9f8d1750c66359186d6471e09b75029e576b9`)
+	r.Run(`kubectl apply -k https://github.com/networkservicemesh/deployments-k8s/examples/pss/nsm-system?ref=aeebe7f98cd1201477c8fbfa151369d0322ff8aa`)
 	r.Run(`WH=$(kubectl get pods -l app=admission-webhook-k8s -n nsm-system --template '{{range .items}}{{.metadata.name}}{{"\n"}}{{end}}')` + "\n" + `kubectl wait --for=condition=ready --timeout=1m pod ${WH} -n nsm-system`)
 }
 func (s *Suite) TestNginx() {
@@ -36,7 +36,7 @@ func (s *Suite) TestNginx() {
 	s.T().Cleanup(func() {
 		r.Run(`kubectl delete ns ns-nginx`)
 	})
-	r.Run(`kubectl apply -k https://github.com/networkservicemesh/deployments-k8s/examples/pss/use-cases/nginx?ref=9da9f8d1750c66359186d6471e09b75029e576b9`)
+	r.Run(`kubectl apply -k https://github.com/networkservicemesh/deployments-k8s/examples/pss/use-cases/nginx?ref=aeebe7f98cd1201477c8fbfa151369d0322ff8aa`)
 	r.Run(`kubectl wait --for=condition=ready --timeout=5m pod -l app=nse-kernel -n ns-nginx`)
 	r.Run(`kubectl wait --for=condition=ready --timeout=1m pod -l app=nettools -n ns-nginx`)
 	r.Run(`kubectl exec pods/nettools -n ns-nginx -- curl 172.16.1.100:8080 | grep -o "<title>Welcome to nginx"`)
