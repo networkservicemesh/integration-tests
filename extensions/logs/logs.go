@@ -279,7 +279,8 @@ func (l *logCollector) collectLogs(collectCtx context.Context, pod *corev1.Pod, 
 		container := pod.Spec.Containers[i].Name
 		readers[i].outputFile = filepath.Join(l.suiteName, pod.Namespace, pod.Name) + "-" + container + ".log"
 		readers[i].podLogOptions = &corev1.PodLogOptions{}
-		readers[i].podLogOptions.Follow = true
+		// readers[i].podLogOptions.Follow = true
+		readers[i].podLogOptions.SinceTime = &v1.Time{Time: time.Now()}
 		readers[i].podLogOptions.Container = container
 
 		err := os.MkdirAll(filepath.Dir(readers[i].outputFile), os.ModePerm)
@@ -305,7 +306,7 @@ func (l *logCollector) collectLogs(collectCtx context.Context, pod *corev1.Pod, 
 			}
 			readers[i].stream = stream
 		}
-		readers[i].doStream(readers[i].podLogOptions)
+		// readers[i].doStream(readers[i].podLogOptions)
 	}
 
 	// for i := range readers {
@@ -335,23 +336,48 @@ func (l *logCollector) collectLogs(collectCtx context.Context, pod *corev1.Pod, 
 	for i := range readers {
 		index := i
 		go func() {
+			// for {
+			// 	if readers[index].stream == nil {
+			// 		readers[index].doStream(readers[index].podLogOptions)
+			// 	}
+			// 	n, err := readers[index].stream.Read(readers[index].buf[:])
+			// 	if err != nil {
+			// 		if collectCtx.Err() != nil {
+			// 			fmt.Printf("SAVING LOGS FROM: %s-%s", pod.Name, readers[index].podLogOptions.Container)
+			// 			readers[index].Save()
+			// 			if readers[index].stream != nil {
+			// 				readers[index].stream.Close()
+			// 			}
+			// 			return
+			// 		}
+			// 	}
+			// 	readers[index].logBuffer.Write(readers[index].buf[:n])
+			// 	time.Sleep(time.Millisecond * 500)
+			// }
+
+			defer func() {
+				fmt.Printf("SAVING LOGS FROM: %s-%s\n", pod.Name, readers[index].podLogOptions.Container)
+				readers[index].Save()
+			}()
+
 			for {
-				if readers[index].stream == nil {
-					readers[index].doStream(readers[index].podLogOptions)
-				}
-				n, err := readers[index].stream.Read(readers[index].buf[:])
+				buf, err := l.kubeClient.CoreV1().Pods(pod.Namespace).GetLogs(pod.Name, readers[index].podLogOptions).DoRaw(collectCtx)
 				if err != nil {
+					fmt.Printf("ERROR WHILE READING: %s\n", err.Error())
 					if collectCtx.Err() != nil {
-						fmt.Printf("SAVING LOGS FROM: %s-%s", pod.Name, readers[index].podLogOptions.Container)
-						readers[index].Save()
-						if readers[index].stream != nil {
-							readers[index].stream.Close()
-						}
 						return
 					}
+					time.Sleep(time.Second)
+					continue
 				}
-				readers[index].logBuffer.Write(readers[index].buf[:n])
+
+				readers[index].logBuffer.Write(buf)
+				if collectCtx.Err() != nil {
+					return
+				}
+
 				time.Sleep(time.Millisecond * 500)
+				readers[index].podLogOptions.SinceTime = &v1.Time{Time: time.Now()}
 			}
 		}()
 	}
