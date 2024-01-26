@@ -20,6 +20,7 @@
 package base
 
 import (
+	"context"
 	"fmt"
 	"strings"
 
@@ -35,16 +36,18 @@ type Suite struct {
 	// Add other extensions here
 	checkout checkout.Suite
 	prefetch prefetch.Suite
+
+	monitorCancel context.CancelFunc
 }
 
 // AfterTest stores logs after each test in the suite.
-func (s *Suite) AfterTest(_, _ string) {
-	logs.ClusterDump()
+func (s *Suite) AfterTest(suiteName, _ string) {
+	logs.ClusterDump(suiteName)
 }
 
 // TearDownSuite stores logs from containers that spawned during SuiteSetup.
 func (s *Suite) TearDownSuite() {
-	logs.ClusterDump()
+	s.monitorCancel()
 }
 
 // SetupSuite runs all extensions
@@ -76,4 +79,8 @@ func (s *Suite) SetupSuite() {
 
 	s.prefetch.SetT(s.T())
 	s.prefetch.SetupSuite()
+
+	nsMonitorCtx, monitorCancel := context.WithCancel(context.Background())
+	s.monitorCancel = monitorCancel
+	logs.MonitorNSMSystem(nsMonitorCtx, s.T().Name())
 }
