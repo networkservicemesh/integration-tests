@@ -351,6 +351,7 @@ func (l *logCollector) collectLogs(collectCtx context.Context, pod *corev1.Pod, 
 					}
 				}
 				readers[index].logBuffer.Write(readers[index].buf[:n])
+				time.Sleep(time.Millisecond * 500)
 			}
 		}()
 	}
