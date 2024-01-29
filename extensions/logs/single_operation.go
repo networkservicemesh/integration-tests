@@ -28,7 +28,6 @@ const (
 )
 
 type singleOperation struct {
-	body  func()
 	state int32
 }
 
@@ -39,14 +38,11 @@ func (o *singleOperation) Wait() {
 }
 
 // newSingleOperation creates an operation which should be invoked once by run period. Can be used in cases where required the last run.
-func newSingleOperation(body func()) *singleOperation {
-	if body == nil {
-		panic("body can not be nil")
-	}
-	return &singleOperation{body: body, state: notScheduled}
+func newSingleOperation() *singleOperation {
+	return &singleOperation{state: notScheduled}
 }
 
-func (o *singleOperation) Run() {
+func (o *singleOperation) Run(body func()) {
 	if !atomic.CompareAndSwapInt32(&o.state, notScheduled, running) {
 		if !atomic.CompareAndSwapInt32(&o.state, running, scheduledAndRunning) {
 			if !atomic.CompareAndSwapInt32(&o.state, notScheduled, running) {
@@ -57,9 +53,9 @@ func (o *singleOperation) Run() {
 		}
 	}
 
-	o.body()
+	body()
 	if !atomic.CompareAndSwapInt32(&o.state, running, notScheduled) {
-		o.body()
+		body()
 		atomic.StoreInt32(&o.state, notScheduled)
 	}
 }
