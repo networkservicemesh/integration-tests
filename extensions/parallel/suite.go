@@ -1,4 +1,4 @@
-// Copyright (c) 2023 Cisco and/or its affiliates.
+// Copyright (c) 2023-2024 Cisco and/or its affiliates.
 //
 // SPDX-License-Identifier: Apache-2.0
 //
@@ -110,7 +110,7 @@ func newTest(t *testing.T, s suite.TestingSuite, methodFinder reflect.Type, meth
 				r := recover()
 
 				if afterTestSuite, ok := subS.Interface().(suite.AfterTest); ok {
-					afterTestSuite.AfterTest(methodFinder.Elem().Name(), method.Name)
+					afterTestSuite.AfterTest(s.T().Name(), method.Name)
 				}
 
 				if tearDownTestSuite, ok := subS.Interface().(suite.TearDownTestSuite); ok {

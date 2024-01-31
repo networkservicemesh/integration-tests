@@ -1,6 +1,6 @@
 // Copyright (c) 2021-2022 Doc.ai and/or its affiliates.
 //
-// Copyright (c) 2023 Cisco and/or its affiliates.
+// Copyright (c) 2023-2024 Cisco and/or its affiliates.
 //
 // SPDX-License-Identifier: Apache-2.0
 //
@@ -98,12 +98,18 @@ func initialize() {
 		syscall.SIGQUIT,
 	)
 
-	clusterDumpSingleOperation = newSingleOperation(func() {
+	clusterDumpSingleOperation = newSingleOperation()
+}
+
+// ClusterDump saves logs from all pods in specified namespaces
+func ClusterDump(suiteName, testName string) {
+	once.Do(func() { initialize() })
+	clusterDumpSingleOperation.Run(func() {
 		if ctx.Err() != nil {
 			return
 		}
 		for i := range kubeConfigs {
-			suitedir := filepath.Join(config.ArtifactsDir, fmt.Sprintf("cluster%v", i))
+			suitedir := filepath.Join(config.ArtifactsDir, fmt.Sprintf("cluster%v", i), suiteName, testName)
 
 			nsString, _, _, _ := runner.Run(fmt.Sprintf(`kubectl --kubeconfig %v get ns -o go-template='{{range .items}}{{ .metadata.name }} {{end}}'`, kubeConfigs[i]))
 			nsList := strings.Split(nsString, " ")
@@ -121,12 +127,6 @@ func initialize() {
 			}
 		}
 	})
-}
-
-// ClusterDump saves logs from all pods in specified namespaces
-func ClusterDump() {
-	once.Do(initialize)
-	clusterDumpSingleOperation.Run()
 }
 
 func filterNamespaces(nsList []string) []string {
