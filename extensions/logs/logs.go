@@ -33,15 +33,8 @@ import (
 
 	"github.com/kelseyhightower/envconfig"
 	"github.com/sirupsen/logrus"
-	"k8s.io/client-go/kubernetes"
-	"k8s.io/client-go/tools/clientcmd"
 
 	"github.com/networkservicemesh/gotestmd/pkg/bash"
-)
-
-const (
-	defaultQPS        = 500 // this is default value for QPS of kubeconfig. See at documentation.
-	fromAllNamespaces = ""
 )
 
 var (
@@ -49,7 +42,6 @@ var (
 	config                     Config
 	ctx                        context.Context
 	kubeConfigs                []string
-	kubeClients                []kubernetes.Interface
 	matchRegex                 *regexp.Regexp
 	runner                     *bash.Bash
 	clusterDumpSingleOperation *singleOperation
@@ -94,23 +86,6 @@ func initialize() {
 
 	if len(kubeConfigs) == 0 {
 		kubeConfigs = append(kubeConfigs, singleClusterKubeConfig)
-	}
-
-	for _, cfg := range kubeConfigs {
-		kubeconfig, err := clientcmd.BuildConfigFromFlags("", cfg)
-		if err != nil {
-			logrus.Fatal(err.Error())
-		}
-
-		kubeconfig.QPS = float32(config.WorkerCount) * defaultQPS
-		kubeconfig.Burst = int(kubeconfig.QPS) * 2
-
-		kubeClient, err := kubernetes.NewForConfig(kubeconfig)
-		if err != nil {
-			logrus.Fatal(err.Error())
-		}
-
-		kubeClients = append(kubeClients, kubeClient)
 	}
 
 	runner, _ = bash.New()
