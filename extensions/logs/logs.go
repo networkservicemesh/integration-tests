@@ -43,6 +43,7 @@ var (
 	ctx                        context.Context
 	kubeConfigs                []string
 	matchRegex                 *regexp.Regexp
+	dockerRegex                *regexp.Regexp
 	runner                     *bash.Bash
 	clusterDumpSingleOperation *singleOperation
 )
@@ -54,6 +55,7 @@ type Config struct {
 	WorkerCount          int           `default:"8" desc:"Number of log collector workers" split_words:"true"`
 	MaxKubeConfigs       int           `default:"3" desc:"Number of used kubeconfigs" split_words:"true"`
 	AllowedNamespaces    string        `default:"(ns-.*)|(nsm-system)|(spire)|(observability)" desc:"Regex of allowed namespaces" split_words:"true"`
+	AllowedContainers    string        `default:"(nsc-.*)|(nse-.*)" desc:"Regexp of allowed docker containers" split_words:"true"`
 	LogCollectionEnabled bool          `default:"true" desc:"Boolean variable which enables log collection" split_words:"true"`
 }
 
@@ -68,6 +70,7 @@ func initialize() {
 	}
 
 	matchRegex = regexp.MustCompile(config.AllowedNamespaces)
+	dockerRegex = regexp.MustCompile(config.AllowedContainers)
 
 	var singleClusterKubeConfig = os.Getenv("KUBECONFIG")
 
@@ -125,6 +128,25 @@ func ClusterDump(suiteName, testName string) {
 			if err != nil {
 				logrus.Errorf("An error while getting cluster dump. Error: %s", err.Error())
 			}
+
+			allContainers, _, _, err := runner.Run(`docker ps --format '{{.Names}}'`)
+			if err != nil {
+				logrus.Errorf("An error while getting docker containers. Error: %s", err.Error())
+				continue
+			}
+			containerList := strings.Split(strings.TrimSpace(allContainers), "\n")
+			containers := filterContainers(containerList)
+
+			for _, container := range containers {
+				_, _, dExitCode, dErr := runner.Run(fmt.Sprintf("docker logs %s > %s/%s.log", container, suitedir, container))
+
+				if dExitCode != 0 {
+					logrus.Errorf("An error while getting docker logs. Exit Code: %v", dExitCode)
+				}
+				if dErr != nil {
+					logrus.Errorf("An error while getting docker logs. Error: %s", dErr.Error())
+				}
+			}
 		}
 	})
 }
@@ -135,6 +157,18 @@ func filterNamespaces(nsList []string) []string {
 	for i := range nsList {
 		if matchRegex.MatchString(nsList[i]) {
 			result = append(result, nsList[i])
+		}
+	}
+
+	return result
+}
+
+func filterContainers(containerList []string) []string {
+	result := make([]string, 0)
+
+	for i := range containerList {
+		if dockerRegex.MatchString(containerList[i]) {
+			result = append(result, containerList[i])
 		}
 	}
 
