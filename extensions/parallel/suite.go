@@ -39,9 +39,14 @@ func failOnPanic(t *testing.T, r interface{}) {
 }
 
 // Run runs suite tests in parallel
-func Run(t *testing.T, s suite.TestingSuite, excludedTests ...string) {
+func Run(t *testing.T, s suite.TestingSuite, options ...Option) {
+	parallelOpts := &parallelOptions{}
+	for _, opt := range options {
+		opt(parallelOpts)
+	}
+
 	excludedTestsSet := make(map[string]struct{})
-	for _, test := range excludedTests {
+	for _, test := range parallelOpts.excludedTests {
 		excludedTestsSet[test] = struct{}{}
 	}
 
