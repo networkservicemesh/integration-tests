@@ -1,5 +1,7 @@
 // Copyright (c) 2021 Doc.ai and/or its affiliates.
 //
+// Copyright (c) 2024 Cisco and/or its affiliates.
+//
 // SPDX-License-Identifier: Apache-2.0
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
@@ -41,8 +43,10 @@ spec:
         app: prefetch-{{.Number}}
     spec:
       initContainers:
+        # return container is used to pass the return application to other containers.
+        # containers use it to exit immediately after loading the image.
         - name: return
-          image: rrandom312/return
+          image: ghcr.io/networkservicemesh/cmd-return
           imagePullPolicy: IfNotPresent
           command: ["cp", "/bin/return", "/out/return"]
           volumeMounts:
@@ -51,7 +55,7 @@ spec:
 {{.Containers}}
       containers:
         - name: pause
-          image: google/pause:latest
+          image: registry.k8s.io/pause:3.9
       volumes:
         - name: bin
           emptyDir: { }
