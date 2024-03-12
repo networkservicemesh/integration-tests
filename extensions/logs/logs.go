@@ -138,7 +138,7 @@ func ClusterDump(suiteName, testName string) {
 			containers := filterContainers(containerList)
 
 			for _, container := range containers {
-				_, _, dExitCode, dErr := runner.Run(fmt.Sprintf("docker logs %s > %s/%s.log", container, suitedir, container))
+				_, _, dExitCode, dErr := runner.Run(fmt.Sprintf("docker logs %s >& %s/%s.log", container, suitedir, container))
 
 				if dExitCode != 0 {
 					logrus.Errorf("An error while getting docker logs. Exit Code: %v", dExitCode)
