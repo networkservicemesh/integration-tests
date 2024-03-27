@@ -17,15 +17,15 @@
 package parallel
 
 type parallelOptions struct {
-	excludedTests []string
+	syncTests []func()
 }
 
 // Option is an option pattern for parallel package
 type Option func(o *parallelOptions)
 
-// WithExcludedTests - set a list of tests to exclude from parallel execution
-func WithExcludedTests(tests []string) Option {
+// WithRunningTestsSynchronously - set a list of tests that should be run synchronously
+func WithRunningTestsSynchronously(tests ...func()) Option {
 	return func(o *parallelOptions) {
-		o.excludedTests = tests
+		o.syncTests = tests
 	}
 }

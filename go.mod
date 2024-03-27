@@ -8,6 +8,7 @@ require (
 	github.com/networkservicemesh/gotestmd v0.0.0-20220628095933-eabbdc09e0dc
 	github.com/sirupsen/logrus v1.8.1
 	github.com/stretchr/testify v1.8.4
+	go.uber.org/goleak v1.1.10
 	gopkg.in/yaml.v3 v3.0.1
 )
 
