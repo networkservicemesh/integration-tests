@@ -22,8 +22,8 @@ func (s *Suite) SetupSuite() {
 		}
 	}
 	r := s.Runner("../deployments-k8s/examples/k8s_monolith/external_nse/spiffe_federation")
-	r.Run(`kubectl apply -f https://raw.githubusercontent.com/networkservicemesh/deployments-k8s/9e79eefc906da3d79010b30f1a99ff44730df284/examples/k8s_monolith/external_nse/spiffe_federation/clusterspiffeid-template.yaml`)
-	r.Run(`kubectl apply -f https://raw.githubusercontent.com/networkservicemesh/deployments-k8s/9e79eefc906da3d79010b30f1a99ff44730df284/examples/spire/base/clusterspiffeid-webhook-template.yaml`)
+	r.Run(`kubectl apply -f https://raw.githubusercontent.com/networkservicemesh/deployments-k8s/05a9319b78acdb91b0d4d0ef6b21736d7b17602c/examples/k8s_monolith/external_nse/spiffe_federation/clusterspiffeid-template.yaml`)
+	r.Run(`kubectl apply -f https://raw.githubusercontent.com/networkservicemesh/deployments-k8s/05a9319b78acdb91b0d4d0ef6b21736d7b17602c/examples/spire/base/clusterspiffeid-webhook-template.yaml`)
 	r.Run(`bundlek8s=$(kubectl exec spire-server-0 -n spire -- bin/spire-server bundle show -format spiffe)` + "\n" + `bundledock=$(docker exec nse-simple-vl3-docker bin/spire-server bundle show -format spiffe)`)
 	r.Run(`echo $bundledock | kubectl exec -i spire-server-0 -n spire -- bin/spire-server bundle set -format spiffe -id "spiffe://docker.nsm/cmd-nse-simple-vl3-docker"` + "\n" + `echo $bundlek8s | docker exec -i nse-simple-vl3-docker bin/spire-server bundle set -format spiffe -id "spiffe://k8s.nsm"`)
 }
