@@ -19,6 +19,7 @@ package parallel
 
 import (
 	"reflect"
+	"runtime"
 	"runtime/debug"
 	"strings"
 	"testing"
@@ -45,9 +46,9 @@ func Run(t *testing.T, s suite.TestingSuite, options ...Option) {
 		opt(parallelOpts)
 	}
 
-	excludedTestsSet := make(map[string]struct{})
-	for _, test := range parallelOpts.excludedTests {
-		excludedTestsSet[test] = struct{}{}
+	syncedTestsSet := make(map[string]struct{}, len(parallelOpts.syncTests))
+	for _, test := range parallelOpts.syncTests {
+		syncedTestsSet[getFunctionName(test)] = struct{}{}
 	}
 
 	defer recoverAndFailOnPanic(t)
@@ -71,7 +72,7 @@ func Run(t *testing.T, s suite.TestingSuite, options ...Option) {
 			continue
 		}
 		parallel := true
-		if _, ok := excludedTestsSet[method.Name]; ok {
+		if _, ok := syncedTestsSet[method.Name]; ok {
 			parallel = false
 		}
 
@@ -135,4 +136,11 @@ func newTest(t *testing.T, s suite.TestingSuite, methodFinder reflect.Type, meth
 			method.Func.Call([]reflect.Value{subS})
 		},
 	}
+}
+
+func getFunctionName(fn interface{}) string {
+	var rawFnName = runtime.FuncForPC(reflect.ValueOf(fn).Pointer()).Name()
+	var splitFn = func(r rune) bool { return r == '.' || r == '-' }
+	var segments = strings.FieldsFunc(rawFnName, splitFn)
+	return segments[len(segments)-2]
 }
