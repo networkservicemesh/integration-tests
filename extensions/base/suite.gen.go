@@ -2,5 +2,5 @@
 package base
 
 const (
-	sha = "af3d1c3aeb090e669422a208dcbc49f8a0636b27"
+	sha = "b6b2fab7e6d6f0dfa415f579ae39ecb14bab3bc9"
 )
