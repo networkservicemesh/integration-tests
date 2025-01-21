@@ -41,11 +41,7 @@ jobs:
     with:
       tag: ${{ needs.get-tag.outputs.tag }}
       dependent_repositories: |
-        ["integration-k8s-packet",
-          "integration-k8s-gke",
-          "integration-k8s-aks",
-          "integration-k8s-aws",
-          "integration-k8s-kind",
-          "integration-interdomain-k8s"]
+        ["integration-k8s-gke",
+         "integration-k8s-kind"]
     secrets:
       token: ${{ secrets.NSM_BOT_GITHUB_TOKEN }}
