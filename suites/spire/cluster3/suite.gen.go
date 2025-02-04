@@ -26,10 +26,10 @@ func (s *Suite) SetupSuite() {
 		r.Run(`kubectl --kubeconfig=$KUBECONFIG3 delete crd clusterspiffeids.spire.spiffe.io` + "\n" + `kubectl --kubeconfig=$KUBECONFIG3 delete crd clusterfederatedtrustdomains.spire.spiffe.io` + "\n" + `kubectl --kubeconfig=$KUBECONFIG3 delete validatingwebhookconfiguration.admissionregistration.k8s.io/spire-controller-manager-webhook` + "\n" + `kubectl --kubeconfig=$KUBECONFIG3 delete ns spire`)
 	})
 	r.Run(`[[ ! -z $KUBECONFIG3 ]]`)
-	r.Run(`kubectl --kubeconfig=$KUBECONFIG3 apply -k https://github.com/networkservicemesh/deployments-k8s/examples/spire/cluster3?ref=77a6f5b8a7cae2534793a630d36b00e89158aba9`)
+	r.Run(`kubectl --kubeconfig=$KUBECONFIG3 apply -k https://github.com/networkservicemesh/deployments-k8s/examples/spire/cluster3?ref=fc56967350e269c98ef0960ccbcda98a4ee1adbc`)
 	r.Run(`kubectl --kubeconfig=$KUBECONFIG3 wait -n spire --timeout=3m --for=condition=ready pod -l app=spire-server`)
 	r.Run(`kubectl --kubeconfig=$KUBECONFIG3 wait -n spire --timeout=1m --for=condition=ready pod -l app=spire-agent`)
-	r.Run(`kubectl --kubeconfig=$KUBECONFIG3 apply -f https://raw.githubusercontent.com/networkservicemesh/deployments-k8s/77a6f5b8a7cae2534793a630d36b00e89158aba9/examples/spire/cluster3/clusterspiffeid-template.yaml`)
-	r.Run(`kubectl --kubeconfig=$KUBECONFIG3 apply -f https://raw.githubusercontent.com/networkservicemesh/deployments-k8s/77a6f5b8a7cae2534793a630d36b00e89158aba9/examples/spire/base/clusterspiffeid-webhook-template.yaml`)
+	r.Run(`kubectl --kubeconfig=$KUBECONFIG3 apply -f https://raw.githubusercontent.com/networkservicemesh/deployments-k8s/fc56967350e269c98ef0960ccbcda98a4ee1adbc/examples/spire/cluster3/clusterspiffeid-template.yaml`)
+	r.Run(`kubectl --kubeconfig=$KUBECONFIG3 apply -f https://raw.githubusercontent.com/networkservicemesh/deployments-k8s/fc56967350e269c98ef0960ccbcda98a4ee1adbc/examples/spire/base/clusterspiffeid-webhook-template.yaml`)
 }
 func (s *Suite) Test() {}
