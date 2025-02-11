@@ -4,6 +4,20 @@ The tests are a result of generating from examples from deployments repositories
 
 ## How re-generate tests manually?
 
+### Prerequisite
+
+Install gotestmd
+
+``` bash
+go install github.com/networkservicemesh/gotestmd@main
+```
+
+Install goimports
+
+```bash
+go install golang.org/x/tools/cmd/goimports@latest
+```
+
 ```
 go generate ./...
 ```
