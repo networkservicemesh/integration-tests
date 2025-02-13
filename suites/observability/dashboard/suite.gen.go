@@ -27,7 +27,7 @@ func (s *Suite) SetupSuite() {
 	s.T().Cleanup(func() {
 		r.Run(`pkill -f "kubectl port-forward -n nsm-system service/dashboard-backend 3001:3001"` + "\n" + `pkill -f "kubectl port-forward -n nsm-system service/dashboard-ui 3000:3000"` + "\n" + `kubectl delete service/dashboard-ui service/dashboard-backend pod/dashboard -n=nsm-system`)
 	})
-	r.Run(`kubectl apply -k https://github.com/networkservicemesh/deployments-k8s/apps/dashboard?ref=6fe8044c72bbe963714b4fbf2016e685d6dc2385`)
+	r.Run(`kubectl apply -k https://github.com/networkservicemesh/deployments-k8s/apps/dashboard?ref=45d03e5bec1f76ebd8a07e86ba82c4745abc8ff9`)
 	r.Run(`kubectl wait --for=condition=ready pod -l app=dashboard --timeout=5m -n nsm-system`)
 	r.Run(`nohup kubectl port-forward -n nsm-system service/dashboard-backend 3001:3001 &`)
 	r.Run(`nohup kubectl port-forward -n nsm-system service/dashboard-ui 3000:3000 &`)
