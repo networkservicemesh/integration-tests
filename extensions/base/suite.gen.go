@@ -2,5 +2,5 @@
 package base
 
 const (
-	sha = "75b9451bb4f2cdf716c6370167be028ba96910b9"
+	sha = "tags/v1.14.5-rc.3"
 )
