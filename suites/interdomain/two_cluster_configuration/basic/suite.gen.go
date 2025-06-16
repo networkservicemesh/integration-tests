@@ -36,8 +36,8 @@ func (s *Suite) SetupSuite() {
 		r.Run(`kubectl --kubeconfig=$KUBECONFIG1 delete mutatingwebhookconfiguration nsm-mutating-webhook` + "\n" + `kubectl --kubeconfig=$KUBECONFIG1 delete ns nsm-system`)
 		r.Run(`kubectl --kubeconfig=$KUBECONFIG2 delete mutatingwebhookconfiguration nsm-mutating-webhook` + "\n" + `kubectl --kubeconfig=$KUBECONFIG2 delete ns nsm-system`)
 	})
-	r.Run(`kubectl --kubeconfig=$KUBECONFIG1 apply -k https://github.com/networkservicemesh/deployments-k8s/examples/interdomain/two_cluster_configuration/basic/cluster1?ref=fbccf8bc1c095515ba2b596e37aca9a323b7fcba`)
-	r.Run(`kubectl --kubeconfig=$KUBECONFIG2 apply -k https://github.com/networkservicemesh/deployments-k8s/examples/interdomain/two_cluster_configuration/basic/cluster2?ref=fbccf8bc1c095515ba2b596e37aca9a323b7fcba`)
+	r.Run(`kubectl --kubeconfig=$KUBECONFIG1 apply -k https://github.com/networkservicemesh/deployments-k8s/examples/interdomain/two_cluster_configuration/basic/cluster1?ref=4ca067ac5354cc3c6f0db433d62793224c190f4e`)
+	r.Run(`kubectl --kubeconfig=$KUBECONFIG2 apply -k https://github.com/networkservicemesh/deployments-k8s/examples/interdomain/two_cluster_configuration/basic/cluster2?ref=4ca067ac5354cc3c6f0db433d62793224c190f4e`)
 	r.Run(`kubectl --kubeconfig=$KUBECONFIG1 wait --for=condition=ready --timeout=1m pod -n nsm-system -l app=admission-webhook-k8s`)
 	r.Run(`kubectl --kubeconfig=$KUBECONFIG2 wait --for=condition=ready --timeout=1m pod -n nsm-system -l app=admission-webhook-k8s`)
 }
