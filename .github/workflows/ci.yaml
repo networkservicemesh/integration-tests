@@ -8,16 +8,14 @@ on:
 jobs:
   shellcheck:
     uses: networkservicemesh/.github/.github/workflows/shellcheck.yaml@main
-
   golangci-lint:
     uses: networkservicemesh/.github/.github/workflows/golangci-lint.yaml@main
-
+    with:
+      linter-version: v2.13.2
   excludeFmtErrorf:
     uses: networkservicemesh/.github/.github/workflows/exclude-fmt-errorf.yaml@main
-
   checkgomod:
     uses: networkservicemesh/.github/.github/workflows/checkgomod.yaml@main
-
   build-and-test:
     uses: networkservicemesh/.github/.github/workflows/build-and-test.yaml@main
     with:
